@@ -17,7 +17,10 @@ static const int CROWN_START_Y = 248;
 #ifdef GUI
 // Visual elements of the map
 static const int MAP_LAYERS = 3;          // Map is layered for visual purposes
-static const int NUM_TILE_IDS = 235;      // Total number of different tile textures
+
+// better GUI -- more map tiles
+static const int NUM_TILE_IDS = 439; // 235;      // Total number of different tile textures
+
 extern const short GameMap[MAP_LAYERS][MAP_HEIGHT][MAP_WIDTH];
 #endif
 
@@ -52,5 +55,24 @@ inline bool IsOriginalSpawnArea(int x, int y)
 }
 
 }
+
+
+// better GUI -- variables declaration
+extern char AsciiArtMap[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
+#define SHADOW_LAYERS 2
+#define SHADOW_EXTRALAYERS 1
+#define SHADOW_SHAPES 17
+#define RPG_ICON_EMPTY 276
+#define RGP_ICON_HUC_BANDIT 411
+
+#define ASCIIART_IS_TREE(T) ((T=='B') || (T=='b') || (T=='C') || (T=='c'))
+#define ASCIIART_IS_ROCK(T) ((T=='G') || (T=='g') || (T=='H') || (T=='h'))
+#define ASCIIART_IS_CLIFFBASE(T) ((T=='[') || (T==']') || (T=='!') || (T=='|'))
+#define ASCIIART_IS_BASETERRAIN(T) ((T=='0') || (T=='1') || (T=='.'))
+#define ASCIIART_IS_WALKABLETERRAIN(T) ((T=='0') || (T=='.'))
+#define ASCIIART_IS_CLIFFSIDE(T) ((T=='(') || (T=='{') || (T=='<') || (T==')') || (T=='}') || (T=='>'))
+#define ASCIIART_IS_CLIFFDIRT(T) ((T==',') || (T==';') || (T==':'))
+#define ASCIIART_IS_CLIFFTOP(T) ((T=='?') || (T=='_'))
+
 
 #endif

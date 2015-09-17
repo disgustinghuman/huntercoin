@@ -12,6 +12,9 @@
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/algorithm/string/case_conv.hpp> // for to_lower()
 
+// better GUI -- includes
+#include "gamemap.h"
+
 using namespace std;
 using namespace boost;
 
@@ -126,6 +129,479 @@ bool AppInit(int argc, char* argv[])
         StartShutdown();
     return fRet;
 }
+
+
+// better GUI -- asciiart map
+// note: need at least 3 additional columns (CR, LF, '\0') and 2 additional lines (2 tiles offset for cliffs because of their "height")
+char AsciiArtMap[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
+
+static bool Calculate_AsciiArtMap()
+{
+    for (int y = 0; y < Game::MAP_HEIGHT + 2; y++)
+    {
+        for (int x = 0; x < Game::MAP_WIDTH; x++)
+        {
+            char c = '0';
+
+            if (y < Game::MAP_HEIGHT)
+            {
+                if (Game::ObstacleMap[y][x]) c = '1';
+
+                int gm0 = Game::GameMap[0][y][x];
+                int gm1 = Game::GameMap[1][y][x];
+                int gm2 = Game::GameMap[2][y][x];
+
+                if ((gm1 == 153) || (gm1 == 170))  c = 'B';
+                else if ((gm2 == 153) || (gm2 == 170))  c = 'B';
+                else if ((gm1 == 173) || (gm1 == 165))  c = 'b';
+                else if ((gm2 == 173) || (gm2 == 165))  c = 'b';
+                else if ((gm1 == 155) || (gm1 == 167))  c = 'C';
+                else if ((gm2 == 155) || (gm2 == 167))  c = 'C';
+                else if ((gm1 == 172) || (gm1 == 176))  c = 'c';
+                else if ((gm2 == 172) || (gm2 == 176))  c = 'c';
+                else if ((gm1 == 212) || (gm2 == 212))  c = 'G'; // "dark" boulder
+                else if ((gm1 == 101) || (gm2 == 101)  || (gm1 == 102)|| (gm2 == 102))  c = '!';
+                else if ((gm1 == 73) || (gm2 == 73) || (gm1 == 78) || (gm2 == 78))  c = '|';
+                else if ((gm1 == 86) || (gm2 == 86) || (gm1 == 87) || (gm2 == 87))  c = '[';
+                else if ((gm1 == 83) || (gm2 == 83) || (gm1 == 90) || (gm2 == 90))  c = ']';
+
+                else if ((gm1 == 200) || (gm2 == 200) || (gm1 == 201) || (gm2 == 201))  c = '?';
+                else if ((gm1 == 213) || (gm2 == 213) || (gm1 == 214) || (gm2 == 214))  c = '_';
+                else if ((gm1 == 68) || (gm2 == 68) || (gm1 == 215) || (gm2 == 215))  c = ';';
+                else if ((gm1 == 205) || (gm2 == 205) || (gm1 == 206) || (gm2 == 206))  c = ':';
+                else if ((gm1 == 204) || (gm2 == 204) || (gm1 == 207) || (gm2 == 207))  c = ',';
+                else if (gm0 == 1) c = '.';
+                else if (gm0 == 2) c = '.';
+                else if (gm0 == 40) c = '.';
+                else if (gm0 == 47) c = '.';
+
+                // for trails that only have half grass half dirt tiles
+                else if ((y > 248) && (y < 253) && (x > 80) && (x < 200) && (gm0 == 42)) c = '.';
+                else if ((y > 248) && (y < 253) && (x > 300) && (x < 420) && (gm0 == 51)) c = '.';
+                else if ((y > 200) && (y < 300) && (x > 75) && (x < 125) && ((gm0 == 9) || (gm0 == 49))) c = '.';
+                else if ((y > 200) && (y < 300) && (x > 375) && (x < 425) && ((gm0 == 12) || (gm0 == 50))) c = '.';
+                else if ((x > 200) && (x < 300) && (y > 80) && (y < 200) && ((gm0 == 7) || (gm0 == 21))) c = '.';
+                else if ((x > 200) && (x < 300) && (y > 300) && (y < 420) && ((gm0 == 42) || (gm0 == 51))) c = '.';
+
+            }
+            else
+            {
+                c = '.';
+            }
+
+            if (y >= 2)
+            {
+
+                int gm1_on_cliff1 = (y >= 2) ? Game::GameMap[1][y - 2][x] : 0;
+                int gm2_on_cliff2 = (y >= 2) ? Game::GameMap[2][y - 2][x] : 0;
+
+                if ((gm1_on_cliff1 == 97) || (gm2_on_cliff2 == 97) || (gm1_on_cliff1 == 96) || (gm2_on_cliff2 == 96))  c = '(';
+                else if ((gm1_on_cliff1 == 95) || (gm2_on_cliff2 == 95) || (gm1_on_cliff1 == 98) || (gm2_on_cliff2 == 98))  c = ')';
+                else if ((gm1_on_cliff1 == 203) || (gm2_on_cliff2 == 203) || (gm1_on_cliff1 == 178) || (gm2_on_cliff2 == 178))  c = '{';
+                else if ((gm1_on_cliff1 == 177) || (gm2_on_cliff2 == 177) || (gm1_on_cliff1 == 208) || (gm2_on_cliff2 == 208))  c = '}';
+                else if ((gm1_on_cliff1 == 216) || (gm2_on_cliff2 == 216) || (gm1_on_cliff1 == 184) || (gm2_on_cliff2 == 184))  c = '<';
+                else if ((gm1_on_cliff1 == 181) || (gm2_on_cliff2 == 181) || (gm1_on_cliff1 == 217) || (gm2_on_cliff2 == 217))  c = '>';
+            }
+            AsciiArtMap[y][x] = c;
+        }
+        AsciiArtMap[y][Game::MAP_WIDTH] = '\0';
+    }
+
+    FILE *fp0;
+    fp0 = NULL;
+    fp0 = fopen("extractedasciiartmap.txt", "w");
+    if (fp0 == NULL)
+        return false;
+    for (int y = 0; y < Game::MAP_HEIGHT + 2; y++)
+    {
+        for (int x = 0; x < Game::MAP_WIDTH; x++)
+        {
+            char c = AsciiArtMap[y][x];
+            if (x == Game::MAP_WIDTH - 1) fprintf(fp0, "%c\n", c);
+            else fprintf(fp0, "%c", c);
+        }
+        AsciiArtMap[y][Game::MAP_WIDTH] = '\0';
+    }
+    fclose(fp0);
+    MilliSleep(50);
+
+
+    // error correction
+
+    // "cliff base" row:   [!|!||!!!]
+    // check if it's right end, left end or somewhere in the middle
+    for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)
+    {
+        for (int x = 1; x < Game::MAP_WIDTH - 1; x++)
+        {
+            char ml = AsciiArtMap[y][x - 1];
+            char mm = AsciiArtMap[y][x];
+            char mr = AsciiArtMap[y][x + 1];
+            if (ASCIIART_IS_CLIFFBASE(ml))
+            {
+                if (mm == '[') AsciiArtMap[y][x] = '!';
+
+                if ((ASCIIART_IS_WALKABLETERRAIN(mm)) && (ASCIIART_IS_WALKABLETERRAIN(mr)))
+                {
+                    AsciiArtMap[y][x-1] = ']';
+                }
+            }
+            if (ASCIIART_IS_CLIFFBASE(mr))
+            {
+                if (mm == ']') AsciiArtMap[y][x] = '|';
+
+                if ((ASCIIART_IS_WALKABLETERRAIN(mm)) && (ASCIIART_IS_WALKABLETERRAIN(ml)))
+                {
+                    AsciiArtMap[y][x+1] = '[';
+                }
+            }
+        }
+    }
+    // mark the tiles which are automatically filled in
+    //
+    //  111111        (++++)
+    //  111111   to   {++++}
+    //  [!|!|]        [!|!|]
+    for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)
+    {
+        for (int x = 1; x < Game::MAP_WIDTH - 1; x++)
+        {
+            char lm = AsciiArtMap[y + 1][x];
+            char mm = AsciiArtMap[y][x];
+            char um = AsciiArtMap[y - 1][x];
+
+            if (ASCIIART_IS_CLIFFBASE(lm))
+            {
+                if (mm == '1') AsciiArtMap[y][x] = '+';
+                if (um == '1') AsciiArtMap[y - 1][x] = '+';
+            }
+        }
+    }
+    // "cliff dirt" tiles
+    for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)
+    {
+        for (int x = 1; x < Game::MAP_WIDTH - 1; x++)
+        {
+            char um = AsciiArtMap[y - 1][x];
+            char ml = AsciiArtMap[y][x - 1];
+            char mm = AsciiArtMap[y][x];
+            char mr = AsciiArtMap[y][x + 1];
+            char lm = AsciiArtMap[y + 1][x];
+
+
+//            if (lm == '+')
+//            {
+//                if (mm == '1')
+//                {
+//                    AsciiArtMap[y][x] = ';';
+//                    if (um == '1') AsciiArtMap[y - 1][x] = ':';
+//                }
+//            }
+
+            //
+            //  ;1}   to   ;:}
+            //
+            //  ;)}   to   ;:}
+            if (ASCIIART_IS_CLIFFDIRT(ml))
+                if (ASCIIART_IS_CLIFFSIDE(mr))
+                    if ((mm == '1') || (ASCIIART_IS_CLIFFSIDE(mm)))
+                        AsciiArtMap[y][x] = ';';
+            //
+            //  (1;   to   (:;
+            //
+            //  ((;   to   (:;
+            if (ASCIIART_IS_CLIFFDIRT(mr))
+                if (ASCIIART_IS_CLIFFSIDE(ml))
+                    if ((mm == '1') || (ASCIIART_IS_CLIFFSIDE(mm)))
+                        AsciiArtMap[y][x] = ':';
+            // no double "cliff top" tiles
+            //
+            //  _      _
+            //  _  to  :
+            if (ASCIIART_IS_CLIFFTOP(um))
+                if (ASCIIART_IS_CLIFFTOP(mm))
+                    AsciiArtMap[y][x] = ':';
+
+            //
+            //  ,      ,
+            //  _  to  :
+            if (ASCIIART_IS_CLIFFDIRT(um))
+                if (ASCIIART_IS_CLIFFTOP(mm))
+                    AsciiArtMap[y][x] = ';';
+            //
+            //                 ?     ?
+            //  ?      ?       1     :
+            //  1  to  :       1  to ;
+            if (ASCIIART_IS_CLIFFTOP(um))
+                if (mm == '1')
+                {
+                    AsciiArtMap[y][x] = ':';
+                    if (lm == '1')
+                        AsciiArtMap[y + 1][x] = ';';
+                }
+
+            //
+            //   ;1  to  ;:       1;  to  ;;
+            if ((ASCIIART_IS_CLIFFDIRT(ml)) || (ASCIIART_IS_CLIFFDIRT(mr)))
+                if (mm == '1')
+                {
+                    AsciiArtMap[y][x] = ';';
+                }
+        }
+    }
+
+    // once more
+    for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)
+    {
+        for (int x = 1; x < Game::MAP_WIDTH - 1; x++)
+        {
+            char um = AsciiArtMap[y - 1][x];
+            char ml = AsciiArtMap[y][x - 1];
+            char mm = AsciiArtMap[y][x];
+            char mr = AsciiArtMap[y][x + 1];
+            char lm = AsciiArtMap[y + 1][x];
+
+            //
+            //  ;1}   to   ;:}
+            //
+            //  ;)}   to   ;:}
+            if (ASCIIART_IS_CLIFFDIRT(ml))
+                if (ASCIIART_IS_CLIFFSIDE(mr))
+                    if ((mm == '1') || (ASCIIART_IS_CLIFFSIDE(mm)))
+                        AsciiArtMap[y][x] = ';';
+            //
+            //  (1;   to   (:;
+            //
+            //  ((;   to   (:;
+            if (ASCIIART_IS_CLIFFDIRT(mr))
+                if (ASCIIART_IS_CLIFFSIDE(ml))
+                    if ((mm == '1') || (ASCIIART_IS_CLIFFSIDE(mm)))
+                        AsciiArtMap[y][x] = ':';
+
+            //
+            //  ;_}   to   ;:}
+            if ((ASCIIART_IS_CLIFFDIRT(ml)) && (ASCIIART_IS_CLIFFTOP(mm)) && (ASCIIART_IS_CLIFFSIDE(mr)))
+                AsciiArtMap[y][x] = ';';
+            //
+            //  (_;   to   (:;
+            if ((ASCIIART_IS_CLIFFSIDE(ml)) && (ASCIIART_IS_CLIFFTOP(mm)) && (ASCIIART_IS_CLIFFDIRT(mr)))
+                AsciiArtMap[y][x] = ';';
+
+            //
+            // "+((" to "+:("
+            if ((ml == '+') && (ASCIIART_IS_CLIFFSIDE(mm)) && (ASCIIART_IS_CLIFFSIDE(mr)))
+                AsciiArtMap[y][x] = ';';
+            //
+            // "))+" to "):+"
+            if ((ASCIIART_IS_CLIFFSIDE(ml)) && (ASCIIART_IS_CLIFFSIDE(mm)) && (mr == '+'))
+                AsciiArtMap[y][x] = ':';
+
+            // ";>; to ";:;"
+            if ((ASCIIART_IS_CLIFFDIRT(ml)) && (ASCIIART_IS_CLIFFSIDE(mm)) && (ASCIIART_IS_CLIFFDIRT(mr)))
+                AsciiArtMap[y][x] = ';';
+        }
+    }
+    // left or right end for normal lines of cliff tiles
+    for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)
+    {
+        for (int x = 1; x < Game::MAP_WIDTH - 1; x++)
+        {
+            char ul = AsciiArtMap[y - 1][x - 1];
+            char um = AsciiArtMap[y - 1][x];
+            char ur = AsciiArtMap[y - 1][x + 1];
+            char ml = AsciiArtMap[y][x - 1];
+            char mm = AsciiArtMap[y][x];
+            char mr = AsciiArtMap[y][x + 1];
+            char ll = AsciiArtMap[y + 1][x - 1];
+            char lm = AsciiArtMap[y + 1][x];
+            char lr = AsciiArtMap[y + 1][x + 1];
+            if (ASCIIART_IS_CLIFFSIDE(mm))
+            {
+                if (ASCIIART_IS_BASETERRAIN(mr))
+                {
+                    if (mm == '(') AsciiArtMap[y][x] = ')';
+                    if (mm == '{') AsciiArtMap[y][x] = '}';
+                    if (mm == '<') AsciiArtMap[y][x] = '>';
+                }
+                if (ASCIIART_IS_BASETERRAIN(ml))
+                {
+                    if (mm == ')') AsciiArtMap[y][x] = '(';
+                    if (mm == '}') AsciiArtMap[y][x] = '{';
+                    if (mm == '>') AsciiArtMap[y][x] = '<';
+                }
+                // we could check the cliff side too
+//                if (ASCIIART_IS_CLIFFDIRT(mr))
+//                if (ASCIIART_IS_CLIFFDIRT(mr))
+            }
+        }
+    }
+    // if columns of cliff tiles get smaller/larger by 1 at upper end
+    for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)
+    {
+        for (int x = 1; x < Game::MAP_WIDTH - 1; x++)
+        {
+
+            char um = AsciiArtMap[y - 1][x];
+            char ml = AsciiArtMap[y][x - 1];
+            char mm = AsciiArtMap[y][x];
+            char mr = AsciiArtMap[y][x + 1];
+            char lm = AsciiArtMap[y + 1][x];
+            char ll = AsciiArtMap[y + 1][x - 1];
+            char lr = AsciiArtMap[y + 1][x + 1];
+
+            if (ASCIIART_IS_CLIFFTOP(mr))
+                if ((ASCIIART_IS_CLIFFTOP(lm)) || (ASCIIART_IS_CLIFFDIRT(lm)))
+                    if (ASCIIART_IS_CLIFFTOP(ll))
+                    {
+                        AsciiArtMap[y][x - 1] = '#';
+                        AsciiArtMap[y][x] = '#';
+                        AsciiArtMap[y + 1][x - 1] = '#';
+                        AsciiArtMap[y + 1][x] = '/';
+                    }
+            if (ASCIIART_IS_CLIFFTOP(ml))
+                if ((ASCIIART_IS_CLIFFTOP(lm)) || (ASCIIART_IS_CLIFFDIRT(lm)))
+                    if (ASCIIART_IS_CLIFFTOP(lr))
+                    {
+                        AsciiArtMap[y][x] = '#';
+                        AsciiArtMap[y][x + 1] = '#';
+                        AsciiArtMap[y + 1][x] = '#';
+                        AsciiArtMap[y + 1][x + 1] = '\\';
+                    }
+        }
+    }
+    // if columns of cliff tiles get smaller/larger at lower end
+    for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)
+    {
+        for (int x = 1; x < Game::MAP_WIDTH - 1; x++)
+        {
+            char ul = AsciiArtMap[y - 1][x - 1];
+            char um = AsciiArtMap[y - 1][x];
+            char ur = AsciiArtMap[y - 1][x + 1];
+            char ml = AsciiArtMap[y][x - 1];
+            char mm = AsciiArtMap[y][x];
+            char mr = AsciiArtMap[y][x + 1];
+            char ll = AsciiArtMap[y + 1][x - 1];
+            char lm = AsciiArtMap[y + 1][x];
+            char lr = AsciiArtMap[y + 1][x + 1];
+            if (ll == ']')
+            {
+                if (ASCIIART_IS_CLIFFBASE(ur))
+                {
+                    AsciiArtMap[y + 1][x] = '#';
+                    AsciiArtMap[y + 1][x - 1] = 'z';
+                    AsciiArtMap[y][x] = '#';
+                    AsciiArtMap[y][x - 1] = '#';
+                    AsciiArtMap[y - 1][x] = '#';
+                    AsciiArtMap[y - 1][x - 1] = '#';
+                }
+            }
+            else if (lr == '[')
+            {
+                if (ASCIIART_IS_CLIFFBASE(ul))
+                {
+                    AsciiArtMap[y + 1][x + 1] = 'Z';
+                    AsciiArtMap[y + 1][x] = '#';
+                    AsciiArtMap[y][x + 1] = '#';
+                    AsciiArtMap[y][x] = '#';
+                    AsciiArtMap[y - 1][x + 1] = '#';
+                    AsciiArtMap[y - 1][x] = '#';
+                }
+            }
+            else if (mm == ']')
+            {
+                if (ASCIIART_IS_CLIFFBASE(ur))
+                {
+                    AsciiArtMap[y][x] = 's';
+                    AsciiArtMap[y][x - 1] = '#';
+                    AsciiArtMap[y - 1][x - 1] = '#';
+                    AsciiArtMap[y - 1][x] = '#';
+                }
+            }
+            else if (mm == '[')
+            {
+                if (ASCIIART_IS_CLIFFBASE(ul))
+                {
+                    AsciiArtMap[y][x + 1] = 'S';
+                    AsciiArtMap[y][x] = '#';
+                    AsciiArtMap[y - 1][x] = '#';
+                    AsciiArtMap[y - 1][x + 1] = '#';
+                }
+            }
+        }
+    }
+
+    fp0 = NULL;
+    fp0 = fopen("fixedasciiartmap.txt", "w");
+    if (fp0 == NULL)
+        return false;
+    for (int y = 0; y < Game::MAP_HEIGHT + 2; y++)
+    {
+        for (int x = 0; x < Game::MAP_WIDTH; x++)
+        {
+            char c = AsciiArtMap[y][x];
+            if (x == Game::MAP_WIDTH - 1) fprintf(fp0, "%c\n", c);
+            else fprintf(fp0, "%c", c);
+        }
+        AsciiArtMap[y][Game::MAP_WIDTH] = '\0';
+    }
+    fclose(fp0);
+    MilliSleep(50);
+
+
+    // try to fix grass/dirt transition part 1
+    for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)
+        for (int x = 1; x < Game::MAP_WIDTH - 1; x++)
+        {
+
+            int w = 0;
+            if ((AsciiArtMap[y][x] == '0') || (AsciiArtMap[y][x] == '1')) w = 1;
+            else if ( (ASCIIART_IS_ROCK(AsciiArtMap[y][x])) || (ASCIIART_IS_TREE(AsciiArtMap[y][x])) ) w = 2;
+
+            if (w)
+            {
+                bool f = false;
+
+                bool dirt_S = ((y < Game::MAP_HEIGHT - 1) && (AsciiArtMap[y + 1][x] == '.'));
+                bool dirt_N = ((y > 0) && (AsciiArtMap[y - 1][x] == '.'));
+                bool dirt_E = ((x < Game::MAP_WIDTH - 1) && (AsciiArtMap[y][x + 1] == '.'));
+                bool dirt_W = ((x > 0) && (AsciiArtMap[y][x - 1] == '.'));
+                bool dirt_SE = ((y < Game::MAP_HEIGHT - 1) && (x < Game::MAP_WIDTH - 1) && (AsciiArtMap[y + 1][x + 1] == '.'));
+                bool dirt_NE = ((y > 0) && (x < Game::MAP_WIDTH - 1) && (AsciiArtMap[y - 1][x + 1] == '.'));
+                bool dirt_NW = ((y > 0) && (x > 0) && (AsciiArtMap[y - 1][x - 1] == '.'));
+                bool dirt_SW = ((y < Game::MAP_HEIGHT - 1) && (x > 0) && (AsciiArtMap[y + 1][x - 1] == '.'));
+
+                // symmetric cases that cannot be resolved normally
+                if ((dirt_N) && (dirt_S))
+                {
+                    if (w > 1) AsciiArtMap[y + 1][x] = '0'; // = AsciiArtMap[y - 1][x] = '0';
+                    else f = true;
+                }
+                else if ((dirt_W) && (dirt_E))
+                {
+                    if (w > 1) AsciiArtMap[y][x + 1] = '0'; // = AsciiArtMap[y][x - 1] = '0';
+                    else f = true;
+                }
+                else if ((!dirt_N) && (!dirt_S) && (!dirt_E) && (!dirt_W))
+                {
+                    // version 1
+                    if (x % 4 >= 2)
+                    {
+                        if ((dirt_SE) && (dirt_NW)) AsciiArtMap[y + 1][x + 1] = '0';
+                        if ((dirt_SW) && (dirt_NE)) AsciiArtMap[y + 1][x - 1] = '0';
+                    }
+                    // version 2
+                    else
+                    {
+                        if (((dirt_SE) && (dirt_NW)) || ((dirt_SW) && (dirt_NE))) f = true; //AsciiArtMap[y][x] = '.';
+                    }
+                }
+
+                if (f) AsciiArtMap[y][x] = '.';
+            }
+        }
+
+}
+
 
 bool AppInit2(int argc, char* argv[])
 {
@@ -380,6 +856,9 @@ bool AppInit2(int argc, char* argv[])
         fprintf(stdout, "huntercoin server starting\n");
     strErrors = "";
     int64 nStart;
+
+    // better GUI -- asciiart map
+    Calculate_AsciiArtMap();
 
     /* Start the RPC server already here.  This is to make it available
        "immediately" upon starting the daemon process.  Until everything

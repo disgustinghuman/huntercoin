@@ -754,4 +754,39 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
 
 }
 
+
+// pending tx monitor -- variables
+extern bool pmon_noisy;
+extern int pmon_out_of_wp_idx;
+extern int pmon_frames;
+extern bool pmon_new_data;
+extern bool pmon_stop;
+#define PMON_TX_MAX 1000
+extern std::string pmon_tx_names[PMON_TX_MAX];
+extern std::string pmon_tx_values[PMON_TX_MAX];
+extern int pmon_tx_age[PMON_TX_MAX];
+extern int pmon_tx_count;
+extern std::string pmon_oldtick_tx_names[PMON_TX_MAX];
+extern std::string pmon_oldtick_tx_values[PMON_TX_MAX];
+extern int pmon_oldtick_tx_age[PMON_TX_MAX];
+extern int pmon_oldtick_tx_count;
+#define PMON_ALL_MAX 2000
+extern std::string pmon_all_names[PMON_ALL_MAX];
+extern int pmon_all_x[PMON_ALL_MAX];
+extern int pmon_all_y[PMON_ALL_MAX];
+extern int pmon_all_next_x[PMON_ALL_MAX];
+extern int pmon_all_next_y[PMON_ALL_MAX];
+extern int pmon_all_color[PMON_ALL_MAX];
+extern int pmon_all_color[PMON_ALL_MAX];
+extern bool pmon_all_cache_isinmylist[PMON_ALL_MAX];
+extern int pmon_all_count;
+#define PMON_MY_MAX 20
+extern std::string pmon_my_names[PMON_MY_MAX];
+extern int pmon_my_alarm_dist[PMON_MY_MAX];
+extern int pmon_my_idx[PMON_MY_MAX];
+extern int pmon_my_alarm_state[PMON_MY_MAX];
+extern int pmon_my_foecontact_age[PMON_MY_MAX];
+extern bool pmon_name_update(int my_idx, bool really);
+
+
 #endif

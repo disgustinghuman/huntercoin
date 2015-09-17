@@ -206,8 +206,18 @@ public:
             return false;
 
         const Game::GameState &gameState = GetCurrentGameState();
-        if (gameState.hashBlock == cachedLastBlock)
+
+
+        // pending tx monitor -- UI main loop
+        if (pmon_frames < 1000)
+            pmon_frames++;
+        else
+            pmon_frames = 0;
+        if ((gameState.hashBlock == cachedLastBlock) && (!pmon_new_data))
             return false;
+        if (pmon_new_data)
+            pmon_new_data = false;
+
 
         bool fChanged = false;
         for (int i = 0, n = size(); i < n; i++)
