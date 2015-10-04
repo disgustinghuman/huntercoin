@@ -2173,26 +2173,28 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
     // pending tx monitor -- acoustic alarm
     bool do_sound_alarm = false;
-    for (int m = 0; m < PMON_MY_MAX; m++)
+    if (pmon_noisy)
     {
-        if (pmon_my_alarm_state[m] == 1)
+        for (int m = 0; m < PMON_MY_MAX; m++)
         {
-             pmon_my_alarm_state[m] = 2;
-             do_sound_alarm = true;
+            if (pmon_my_alarm_state[m] == 1)
+            {
+                 pmon_my_alarm_state[m] = 2;
+                 do_sound_alarm = true;
+            }
+        }
+
+        if (do_sound_alarm)
+        {
+            {
+                boost::filesystem::path pathDebug = boost::filesystem::path(GetDataDir()) / "small_wave_file.wav";
+
+                // Open file with the associated application
+                if (boost::filesystem::exists(pathDebug))
+                    QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(pathDebug.string())));
+            }
         }
     }
-
-    if (do_sound_alarm)
-    {
-        {
-            boost::filesystem::path pathDebug = boost::filesystem::path(GetDataDir()) / "small_wave_file.wav";
-
-            // Open file with the associated application
-            if (boost::filesystem::exists(pathDebug))
-                QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(pathDebug.string())));
-        }
-    }
-
 
     return true;
 }
