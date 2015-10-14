@@ -631,32 +631,34 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
 // to parse the asciiart map (shadows)
 #define SHADOWMAP_AASHAPE_MAX 71
 #define SHADOWMAP_AASHAPE_MAX_CLIFFCORNER 28
-int ShadowAAShapes[SHADOWMAP_AASHAPE_MAX][5] = {{ 0, 0, 'H', 'h', 254},  // menhir
-                                                { -1, 0, 'H', 'h', 255},
+int ShadowAAShapes[SHADOWMAP_AASHAPE_MAX][5] = {{ 0, 0, 'C', 'c', 244}, // conifer, important shadow tiles
+                                                { 0, -1, 'C', 'c', 247},
 
-                                                { 1, 0, 'G', 'g', 256},  // boulder
-                                                { 0, 0, 'G', 'g', 257},
-                                                { -1, 0, 'G', 'g', 258},
-
-                                                { 2, 0, 'B', 'b', 236},  // broadleaf
-                                                { 1, 0, 'B', 'b', 237},
+                                                { 1, 0, 'B', 'b', 237},  // broadleaf, important shadow tiles
                                                 { 0, 0, 'B', 'b', 238},
-                                                { -1, 0, 'B', 'b', 239},
                                                 { 1, -1, 'B', 'b', 240},
                                                 { 0, -1, 'B', 'b', 241},
-                                                { -1, -1, 'B', 'b', 242},
+
+                                                { 0, 0, 'H', 'h', 254},  // menhir
+                                                { -1, 0, 'H', 'h', 255},
 
                                                 { 0, 0, 'P', 'p', 412},  // palisades
                                                 { 0, -1, 'P', 'p', 427},
                                                 { -1, 0, 'P', 'p', 418},
                                                 { -1, -1, 'P', 'p', 438},
 
-                                                { 1, 0, 'C', 'c', 243},  // conifer
-                                                { 0, 0, 'C', 'c', 244},
+                                                { 1, 0, 'C', 'c', 243},  // conifer, small shadow tiles (skipped if layers are full)
                                                 { -1, 0, 'C', 'c', 245},
                                                 { 1, -1, 'C', 'c', 246},
-                                                { 0, -1, 'C', 'c', 247},
                                                 { -1, -1, 'C', 'c', 248},
+
+                                                { 2, 0, 'B', 'b', 236},  // broadleaf, small shadow tiles (skipped if layers are full)
+                                                { -1, 0, 'B', 'b', 239},
+                                                { -1, -1, 'B', 'b', 242},
+
+                                                { 1, 0, 'G', 'g', 256},  // boulder
+                                                { 0, 0, 'G', 'g', 257},
+                                                { -1, 0, 'G', 'g', 258},
 
                                                 { 0, 0, 'R', 'R', 364}, // cliff, corner 1
                                                 { 0, -1, 'R', 'R', 365},
@@ -689,7 +691,6 @@ int ShadowAAShapes[SHADOWMAP_AASHAPE_MAX][5] = {{ 0, 0, 'H', 'h', 254},  // menh
                                                 { 0, -1, ']', ']', 408},
                                                 { -1, -1, ']', ']', 409},
                                                 { -2, -1, ']', ']', 410},
-
 
                                                 { 1, 2, 'Z', 'Z', 370}, // if columns of cliff tiles get larger by 2 at lower end
                                                 { 1, 1, 'Z', 'Z', 371},
@@ -767,8 +768,10 @@ public:
                     int stile3 = 0;
 
                     // parse asciiart map
-                    if (Displaycache_gamemapgood[y][x] < layer+1)
+                    if (Displaycache_gamemapgood[y][x] < SHADOW_LAYERS + 1)
                     {
+                        Displaycache_gamemapgood[y][x] = SHADOW_LAYERS + 1;
+
                         if ((SHADOW_LAYERS > 1) && (layer > 1)) break;
 
                         bool is_cliffcorner = false;
@@ -795,7 +798,6 @@ public:
                                 {
                                     if (is_palisade)
                                     {
-                                        stile = 0;
                                         continue; // only 1 palisade shadow per tile
                                     }
                                     else
@@ -820,44 +822,36 @@ public:
                                     }
                                 }
 
+                                if ((stile <= 0) || (stile >= NUM_TILE_IDS))
+                                    continue;
+
                                 if (!stile1)
                                 {
                                     stile1 = stile;
-                                    Displaycache_grassoffs_x[y][x][1] = 0;
-                                    Displaycache_grassoffs_y[y][x][1] = 0;
-                                    Displaycache_gamemapgood[y][x] = 1+1;
-                                    if (!Displaycache_gamemap[y][x][1]) Displaycache_gamemap[y][x][1] = stile;
-
+                                    Displaycache_gamemap[y][x][1] = stile;
                                 }
                                 else if ((!stile2) && (SHADOW_LAYERS >= 2))
                                 {
                                     stile2 = stile;
-                                    Displaycache_grassoffs_x[y][x][2] = 0;
-                                    Displaycache_grassoffs_y[y][x][2] = 0;
-                                    Displaycache_gamemapgood[y][x] = 2+1;
-                                    if (!Displaycache_gamemap[y][x][2]) Displaycache_gamemap[y][x][2] = stile;
+                                    Displaycache_gamemap[y][x][2] = stile;
                                 }
                                 else if ((!stile3) && (SHADOW_LAYERS >= 3))
                                 {
                                     stile3 = stile;
-                                    Displaycache_grassoffs_x[y][x][2] = 0;
-                                    Displaycache_grassoffs_y[y][x][2] = 0;
-                                    Displaycache_gamemapgood[y][x] = 3+1;
-                                    if (!Displaycache_gamemap[y][x][3]) Displaycache_gamemap[y][x][3] = stile;
+                                    Displaycache_gamemap[y][x][3] = stile;
+                                }
+                                else
+                                {
+                                    continue;
                                 }
 
-                                if (stile)
-                                {
-                                    painter->setOpacity(0.4);
-                                    painter->drawPixmap(x * TILE_SIZE, y * TILE_SIZE, grobjs->tiles[stile]);
-                                    painter->setOpacity(1);
-                                }
+                                painter->setOpacity(0.4);
+                                painter->drawPixmap(x * TILE_SIZE, y * TILE_SIZE, grobjs->tiles[stile]);
+                                painter->setOpacity(1);
 
                                 // shadows of 1 of the cliff corners need custom logic
                                 if ((AsciiArtMap[v][u] == 'L') || (AsciiArtMap[v][u] == 'R') || (AsciiArtMap[v][u] == '>'))
                                     is_cliffcorner = true;
-
-                                continue;
                             }
                         }
                         Display_dbg_maprepaint_cachemisses++;
