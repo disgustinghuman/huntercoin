@@ -1575,6 +1575,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                         // check for pending tx (to determine idle status)
                         bool tmp_has_pending_tx = false;
+                        bool tmp_is_banking = gameState.IsBank(coord);
                         if ((characterState.waypoints.empty()) || (pmon_out_of_wp_idx == m))
                         {
                             for (int k2 = 0; k2 < pmon_tx_count; k2++)
@@ -1587,7 +1588,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                             }
                         }
 
-                        if ((characterState.waypoints.empty()) && (!tmp_has_pending_tx))
+                        if ((characterState.waypoints.empty()) && (!tmp_has_pending_tx) && (!tmp_is_banking))
                         {
                             if (pmon_out_of_wp_idx == -1)
                                 pmon_out_of_wp_idx = m;

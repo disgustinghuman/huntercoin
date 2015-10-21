@@ -1500,6 +1500,13 @@ name_pending (const Array& params, bool fHelp)
     // max name length for huntercoin is only 10
     char my_name[100], my_param[100];
 
+    // clear the list of "our" hunters
+    // (names in this list can be in a different wallet, but we assume they are all "friendlies")
+    for (unsigned int i = 0; i < PMON_MY_MAX; i++)
+    {
+        pmon_my_names[i] = "";
+        pmon_my_alarm_dist[i] = 0;
+    }
     for (unsigned int i = 0; i < PMON_MY_MAX; i++)
     {
         if (fscanf(fp, "%50s ", my_name) < 1)
@@ -1528,7 +1535,7 @@ name_pending (const Array& params, bool fHelp)
       pmon_my_alarm_state[m] = 0;
   }
 
-  for (int k = 0; k < 10000; k++)
+  while (true)
   {
       for (int k2 = 0; k2 < pmon_tx_count; k2++)
       {
