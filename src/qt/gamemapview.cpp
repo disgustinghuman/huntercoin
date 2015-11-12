@@ -444,10 +444,23 @@ int Display_go_x[7] = {12, 26, 7, 13, 34, 18, 1};
 int Display_go_y[7] = {19, 1, 29, 8, 16, 20, 34};
 int Display_go_idx = 0;
 
+uint64_t Display_rng[2] = {98347239859043, 653935414278534};
+uint64_t Display_xorshift128plus(void)
+{
+    uint64_t x = Display_rng[0];
+    uint64_t const y = Display_rng[1];
+    Display_rng[0] = y;
+    x ^= x << 23; // a
+    x ^= x >> 17; // b
+    x ^= y ^ (y >> 26); // c
+    Display_rng[1] = x;
+    return x + y;
+}
+
 // to parse the asciiart map
-#define SHADOWMAP_AAOBJECT_MAX 154
-#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 152
-#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 151
+#define SHADOWMAP_AAOBJECT_MAX 128
+#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 126
+#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 125
 int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 0, 0, 'h', 252},
                                                   { 0, 1, 'H', 250},
@@ -504,18 +517,19 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 1, 0, '[', 85},
                                                   { 0, 0, '[', 86},
 
-                                                  { 0, 2, ']', 69},  // cliff, lower right corner
+                                                  // tiles converted to terrain commented out
+//                                                { 0, 2, ']', 69},  // cliff, lower right corner
                                                   { -1, 2, ']', 70},
-                                                  { 0, 1, ']', 71},
+//                                                { 0, 1, ']', 71},
                                                   { -1, 1, ']', 72},
                                                   { 0, 0, ']', 83},
                                                   { -1, 0, ']', 84},
 
-                                                  { 0, 2, '!', 103},  // cliff, lower end of normal column (2 versions)
-                                                  { 0, 1, '!', 105},
+//                                                { 0, 2, '!', 103},  // cliff, lower end of normal column (2 versions)
+//                                                { 0, 1, '!', 105},
                                                   { 0, 0, '!', 101},
-                                                  { 0, 2, '|', 107},
-                                                  { 0, 1, '|', 109},
+//                                                { 0, 2, '|', 107},
+//                                                { 0, 1, '|', 109},
                                                   { 0, 0, '|', 73},
 
                                                   { 1, 2, '{', 210},  // cliff, left/right end of normal line (2 versions)
@@ -526,6 +540,12 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { -1, 2, '}', 99},
                                                   { 0, 2, ')', 177},
                                                   { -1, 2, ')', 179},
+
+                                                  // alternative terrain version (some tiles converted to terrain)
+                                                  { -1, 2, 'j', 99},  // cliff, left/right end of normal line
+                                                  { -1, 2, 'J', 179},
+                                                  { 1, 2, 'i', 210},
+                                                  { 1, 2, 'I', 202},
 
                                                   { 0, 3, '<', 185},   // cliff, left/right side of "special" line
                                                   { 1, 2, '<', 221},
@@ -556,47 +576,50 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 0, 0, 'R', 291},
                                                   { -1, 0, 'R', 292},
 
-                                                  { 1, 2, 'L', 293},  // cliff, "concave" upper left corner
-                                                  { 0, 2, 'L', 294},
-                                                  { 1, 1, 'L', 295},
-                                                  { 0, 1, 'L', 296},
-                                                  { 1, 0, 'L', 297},
+                                                  // tiles converted to terrain commented out
+//                                                { 1, 2, 'L', 293},  // cliff, "concave" upper left corner
+//                                                { 0, 2, 'L', 294},
+//                                                { 1, 1, 'L', 295},
+//                                                { 0, 1, 'L', 296},
+//                                                { 1, 0, 'L', 297},
                                                   { 0, 0, 'L', 298},
 
-                                                  { 1, 4, 'Z', 309},  // if columns of cliff tiles get larger by 2 at lower end
-                                                  { 0, 4, 'Z', 310},
-                                                  { 1, 3, 'Z', 311},
-                                                  { 0, 3, 'Z', 312},
+//                                                { 1, 4, 'Z', 309},  // if columns of cliff tiles get larger by 2 at lower end
+//                                                { 0, 4, 'Z', 310},
+//                                                { 1, 3, 'Z', 311},
+//                                                { 0, 3, 'Z', 312},
                                                   { 1, 2, 'Z', 313},
-                                                  { 0, 2, 'Z', 314},
+//                                                { 0, 2, 'Z', 314},
                                                   { 1, 1, 'Z', 315},
                                                   { 0, 1, 'Z', 316},
                                                   { 1, 0, 'Z', 317},
                                                   { 0, 0, 'Z', 318},
-                                                  { 1, 4, 'z', 319},  // if columns of cliff tiles get smaller  by 2 at lower end
-                                                  { 0, 4, 'z', 320},
-                                                  { 1, 3, 'z', 321},
-                                                  { 0, 3, 'z', 322},
-                                                  { 1, 2, 'z', 323},
+
+//                                                { 1, 4, 'z', 319},  // if columns of cliff tiles get smaller by 2 at lower end
+//                                                { 0, 4, 'z', 320},
+//                                                { 1, 3, 'z', 321},
+//                                                { 0, 3, 'z', 322},
+//                                                { 1, 2, 'z', 323},
                                                   { 0, 2, 'z', 324},
                                                   { 1, 1, 'z', 325},
                                                   { 0, 1, 'z', 326},
                                                   { 1, 0, 'z', 327},
                                                   { 0, 0, 'z', 328},
 
-                                                  { 1, 3, 'S', 348}, // if columns of cliff tiles get larger by 1 at lower end
-                                                  { 0, 3, 'S', 349},
-                                                  { 1, 2, 'S', 350},
-                                                  { 0, 2, 'S', 351},
+//                                                { 1, 3, 'S', 348}, // if columns of cliff tiles get larger by 1 at lower end
+//                                                { 0, 3, 'S', 349},
+//                                                { 1, 2, 'S', 350},
+//                                                { 0, 2, 'S', 351},
                                                   { 1, 1, 'S', 352},
-                                                  { 0, 1, 'S', 353},
+//                                                { 0, 1, 'S', 353},
                                                   { 1, 0, 'S', 354},
                                                   { 0, 0, 'S', 355},
-                                                  { 1, 3, 's', 356}, // if columns of cliff tiles get smaller by 1 at lower end
-                                                  { 0, 3, 's', 357},
-                                                  { 1, 2, 's', 358},
-                                                  { 0, 2, 's', 359},
-                                                  { 1, 1, 's', 360},
+
+//                                                { 1, 3, 's', 356}, // if columns of cliff tiles get smaller by 1 at lower end
+//                                                { 0, 3, 's', 357},
+//                                                { 1, 2, 's', 358},
+//                                                { 0, 2, 's', 359},
+//                                                { 1, 1, 's', 360},
                                                   { 0, 1, 's', 361},
                                                   { 1, 0, 's', 362},
                                                   { 0, 0, 's', 363},
@@ -621,15 +644,14 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
 
                                                   { 0, 0, '"', 263},  // grass, green (manually placed)
                                                   { 0, 0, '\'', 266},  // grass, green to yellow (manually placed)
+                                                  { 0, 0, 'v', 259},  // red grass (manually placed)
 
                                                   { 0, 0, '1', 268}, // yellow grass -- "conditional" objects are last in this list
                                                   { 0, 0, '0', 263}, // grass -- "conditional" objects are last in this list
                                                   { 0, 0, '.', 266}, // grass -- "conditional" objects are last in this list
-//                                                  { 0, 0, ';', 259}, // blood grass -- "conditional" objects are last in this list
-//                                                  { 0, 0, ':', 262}, // blood grass -- "conditional" objects are last in this list
                                                  };
 // to parse the asciiart map (shadows)
-#define SHADOWMAP_AASHAPE_MAX 71
+#define SHADOWMAP_AASHAPE_MAX 72
 #define SHADOWMAP_AASHAPE_MAX_CLIFFCORNER 28
 int ShadowAAShapes[SHADOWMAP_AASHAPE_MAX][5] = {{ 0, 0, 'C', 'c', 244}, // conifer, important shadow tiles
                                                 { 0, -1, 'C', 'c', 247},
@@ -665,7 +687,7 @@ int ShadowAAShapes[SHADOWMAP_AASHAPE_MAX][5] = {{ 0, 0, 'C', 'c', 244}, // conif
 
                                                 { 0, 0, 'L', 'L', 366}, // cliff, corner 2
                                                 { -1, 0, 'L', 'L', 367},
-                                                { 0, -1, 'L', 'L', 368},
+//                                              { 0, -1, 'L', 'L', 368},
                                                 { -1, -1, 'L', 'L', 369},
 
                                                 { -1, 1, '>', '>', 383}, // cliff, right side of special "upper right corner" row (CLIFVEG)
@@ -673,8 +695,11 @@ int ShadowAAShapes[SHADOWMAP_AASHAPE_MAX][5] = {{ 0, 0, 'C', 'c', 244}, // conif
 
                                                 { -1, 2, ')', '}', 381}, // cliff, right side of normal row (CLIFVEG)
                                                 { -2, 2, ')', '}', 382},
-                                                { 0, 1, 'l', 'l', 381}, //
+                                                { 0, 1, 'l', 'l', 381}, // cliff, corner 3
                                                 { -1, 1, 'l', 'l', 382},
+
+                                                { -1, 2, 'J', 'j', 381}, // cliff, right side of normal row (terrain version)
+                                                { -2, 2, 'J', 'j', 382},
 
                                                 { 1, 0, '[', '[', 395},  // cliff, lower left corner (CLIFVEG)
                                                 { 0, 0, '[', '[', 396},
@@ -780,7 +805,9 @@ public:
                         {
                             int u = x + ShadowAAShapes[m][0];
                             int v = y + ShadowAAShapes[m][1];
-                            if ((u < 0) || (v < 0) || (u >= MAP_WIDTH) || (v >= MAP_HEIGHT)) // if (!(IsInsideMap((u, v))))
+
+                            // AsciiArtMap array bounds
+                            if ((u < 0) || (v < 0) || (u >= MAP_WIDTH + 4) || (v >= MAP_HEIGHT + 4))
                                continue;
 
                             if ((is_cliffcorner) && (m >= SHADOWMAP_AASHAPE_MAX_CLIFFCORNER))
@@ -887,8 +914,9 @@ public:
                         char terrain = AsciiArtMap[y][x];
                         char terrain_N = (y > 0) ? AsciiArtMap[y - 1][x] : '0';
                         char terrain_W = (x > 0) ? AsciiArtMap[y][x - 1] : '0';
-                        char terrain_E = (x < MAP_WIDTH - 1) ? AsciiArtMap[y][x + 1] : '0';
-                        char terrain_S = (y < MAP_HEIGHT - 1) ? AsciiArtMap[y + 1][x] : '0';
+                        char terrain_E = AsciiArtMap[y][x + 1];
+                        char terrain_S = AsciiArtMap[y + 1][x];
+                        char terrain_S2 = AsciiArtMap[y + 2][x];
 
                         // gate on cobblestone (or on something else)
                         if (terrain == 'U')
@@ -896,14 +924,76 @@ public:
                             terrain = terrain_W;
                         }
 
+                        // tiles converted to terrain
+                        // cliff, lower right corner
+                        if (terrain_S == ']') tile = 71;
+                        else if (AsciiArtMap[y + 2][x] == ']') tile = 69;
+
+                        // cliff, lower end of normal column (2 versions)
+                        else if (terrain_S == '!') tile = 105;
+                        else if (AsciiArtMap[y + 2][x] == '!') tile = 103;
+                        else if (terrain_S == '|') tile = 109;
+                        else if (AsciiArtMap[y + 2][x] == '|') tile = 107;
+
+                        // cliff, left/right end of normal line (alternative terrain version)
+                        else if (terrain_S2 == 'j') tile = 95;
+                        else if (terrain_S2 == 'J') tile = 177;
+                        else if (terrain_S2 == 'i') tile = 97;
+                        else if (terrain_S2 == 'I') tile = 203;
+
+                        // cliff, "concave" upper left corner
+                        else if (AsciiArtMap[y + 2][x + 1] == 'L') tile = 293;
+                        else if (AsciiArtMap[y + 2][x] == 'L') tile = 294;
+                        else if (AsciiArtMap[y + 1][x + 1] == 'L') tile = 295;
+                        else if (AsciiArtMap[y + 1][x] == 'L') tile = 296;
+                        else if (AsciiArtMap[y][x + 1] == 'L') tile = 297;
+
+                        // if columns of cliff tiles get larger by 2 at lower end
+                        else if (AsciiArtMap[y + 4][x + 1] == 'Z') tile = 309;
+                        else if (AsciiArtMap[y + 4][x] == 'Z') tile = 310;
+                        else if (AsciiArtMap[y + 3][x + 1] == 'Z') tile = 311;
+                        else if (AsciiArtMap[y + 3][x] == 'Z') tile = 312;
+                        else if (AsciiArtMap[y + 2][x] == 'Z') tile = 314;
+
+                        // if columns of cliff tiles get smaller by 2 at lower end
+                        else if (AsciiArtMap[y + 4][x + 1] == 'z') tile = 319;
+                        else if (AsciiArtMap[y + 4][x] == 'z') tile = 320;
+                        else if (AsciiArtMap[y + 3][x + 1] == 'z') tile = 321;
+                        else if (AsciiArtMap[y + 3][x] == 'z') tile = 322;
+                        else if (AsciiArtMap[y + 2][x + 1] == 'z') tile = 323;
+
+                        // if columns of cliff tiles get larger by 1 at lower end
+                        else if (AsciiArtMap[y + 3][x + 1] == 'S') tile = 348;
+                        else if (AsciiArtMap[y + 3][x] == 'S') tile = 349;
+                        else if (AsciiArtMap[y + 2][x + 1] == 'S') tile = 350;
+                        else if (AsciiArtMap[y + 2][x] == 'S') tile = 351;
+                        else if (terrain_S == 'S')  tile = 353; // special
+
+                        // if columns of cliff tiles get smaller by 1 at lower end
+                        else if (AsciiArtMap[y + 3][x + 1] == 's') tile = 356;
+                        else if (AsciiArtMap[y + 3][x] == 's') tile = 357;
+                        else if (AsciiArtMap[y + 2][x + 1] == 's') tile = 358;
+                        else if (AsciiArtMap[y + 2][x] == 's') tile = 359;
+                        else if (AsciiArtMap[y + 1][x + 1] == 's') tile = 360;
+
                         // water
-                        if (terrain == 'w')
+                        else if (terrain == 'w')
                         {
                             tile = 299;
                         }
-                        else if (terrain == ';') tile = 68; // cliff dirt
-                        else if (terrain == ':') tile = 205; // cliff dirt
-                        else if (terrain == ',') tile = 204; // cliff dirt
+                        else if (terrain == 'W')
+                        {
+                            if (y % 2) tile = x % 2 ? 329 : 330;
+                            else tile = x % 2 ? 331 : 332;
+                        }
+
+                        else if (terrain == ';') tile = 68; // sand
+                        else if (terrain == ':') tile = 205; // sand
+                        else if (terrain == ',') tile = 204; // sand
+                        else if (terrain == 'v')             // red grass on sand
+                        {
+                            tile = 205;
+                        }
                         else if (terrain == 'o') tile = 31; // cobblestone
                         else if (terrain == 'O') tile = 32; // cobblestone
                         else if (terrain == 'q') tile = 33; // cobblestone
@@ -976,25 +1066,30 @@ public:
                         // tree on cliff
                         // rocks on cliff
                         // and also cliff side tiles that don't have normal terrain as background
-                        else if ((y < MAP_HEIGHT - 1) &&
-                                 ((ASCIIART_IS_TREE(terrain)) || (ASCIIART_IS_ROCK(terrain))))
+                        else if ((ASCIIART_IS_TREE(terrain)) || (ASCIIART_IS_ROCK(terrain)))
                         {
-                            if (ASCIIART_IS_CLIFFDIRT(terrain_S))
-                                tile = 68;                                                      // also cliff dirt
+                            if ((ASCIIART_IS_CLIFFSAND(terrain_S)) || (terrain_S == 'v'))
+                                tile = 68;                                                      // also sand
                         }
                         // cliff on cliff
                         // cliff on water
-                        else if ((y < MAP_HEIGHT - 1) && (ASCIIART_IS_CLIFFBASE(terrain)) || (terrain == 'L') || (terrain == 'R') || (terrain == '#') || (terrain == 'S') || (terrain == 's' || (terrain == 'Z') || (terrain == 'z')))
+                        else if ((ASCIIART_IS_CLIFFBASE(terrain)) || (terrain == 'L') || (terrain == 'R') || (terrain == '#') || (terrain == 'S') || (terrain == 's' || (terrain == 'Z') || (terrain == 'z')))
                         {
-                            if ((terrain_S == ';') || (terrain_S == ':') || (terrain_S == ',')) // cliff dirt
-                                tile = 68;                                                      // also cliff dirt
+                            if ((terrain_S == ';') || (terrain_S == ':') || (terrain_S == ',')) // sand
+                                tile = 68;                                                      // also sand
                             else if (terrain_S == 'w')
                                 tile = 299;
+                            else if (terrain_S == 'W')
+                            {
+                                if (y % 2) tile = x % 2 ? 329 : 330;
+                                else tile = x % 2 ? 331 : 332;
+                            }
+
                         }
-                        // cliff side on cliff without glitches
-                        else if (ASCIIART_IS_CLIFFSIDE(terrain))
+                        // cliff side tiles are painted at 1 cliff height (2 rows) vertical offset
+                        else if (ASCIIART_IS_CLIFFSIDE_NEW(terrain))
                         {
-                            tile = 68;                                                      // also cliff dirt
+                            if (tile == 0) tile = 68;                                           // change default terrain tile from grass to sand
                         }
 
                         if (tile == 0)
@@ -1080,6 +1175,88 @@ public:
                             {
                                 tile = 5; // 1/4 dirt SW
                             }
+                            else
+                            {
+                                bool sand_S = ASCIIART_IS_CLIFFSAND(terrain_S);
+                                bool sand_N = ASCIIART_IS_CLIFFSAND(terrain_N);
+                                bool sand_E = ASCIIART_IS_CLIFFSAND(terrain_E);
+                                bool sand_W = ASCIIART_IS_CLIFFSAND(terrain_W);
+                                bool sand_SE = (ASCIIART_IS_CLIFFSAND(AsciiArtMap[y + 1][x + 1]));
+                                bool sand_NE = ((y > 0) && (ASCIIART_IS_CLIFFSAND(AsciiArtMap[y - 1][x + 1])));
+                                bool sand_NW = ((y > 0) && (x > 0) && (ASCIIART_IS_CLIFFSAND(AsciiArtMap[y - 1][x - 1])));
+                                bool sand_SW = ((x > 0) && (ASCIIART_IS_CLIFFSAND(AsciiArtMap[y + 1][x - 1])));
+
+                                if (sand_S)
+                                {
+                                    if (sand_W)
+                                    {
+                                        if (sand_NE) tile = 68;  // sand
+                                        else tile = 450;
+                                    }
+                                    else if (sand_E)
+                                    {
+                                        if (sand_NW) tile = 68;  // sand
+                                        else tile = 449;
+                                    }
+                                    else
+                                    {
+                                        if (sand_N) tile = 68;  // sand
+                                        else if (sand_NW) tile = 450;   // 3/4 sand SW
+                                        else if (sand_NE) tile = 449;   // 3/4 sand SE
+                                        else tile = 442;                // 1/2 sand S
+                                    }
+                                }
+                                else if (sand_N)
+                                {
+                                    if (sand_W)
+                                    {
+                                        if (sand_SE) tile = 68;  // sand
+                                        else tile = 452;         // 3/4 sand NW
+                                    }
+                                    else if (sand_E)
+                                    {
+                                        if (sand_SW) tile = 68;  // sand
+                                        else tile = 451;         // 3/4 sand NE
+                                    }
+                                    else
+                                    {
+                                        if (sand_S) tile = 68;  // sand
+                                        else if (sand_SW) tile = 452; // 3/4 sand NW
+                                        else if (sand_SE) tile = 451; // 3/4 sand NE
+                                        else tile = 447;              // 1/2 sand N
+                                    }
+                                }
+                                else if (sand_W)
+                                {
+                                    if (sand_NE) tile = 452;      // 3/4 sand NW
+                                    else if (sand_SE) tile = 450; // 3/4 sand SW
+                                    else if (sand_E) tile = 68;   // sand
+                                    else tile = 445;              // 1/2 sand W
+                                }
+                                else if (sand_E)
+                                {
+                                    if (sand_NW) tile = 451;      // 3/4 sand NE
+                                    else if (sand_SW) tile = 449; // 3/4 sand SE
+                                    else if (sand_W) tile = 68;   // sand
+                                    else tile = 444;              // 1/2 sand E
+                                }
+                                else if (sand_SE)
+                                {
+                                    tile = 441; // 1/4 sand SE
+                                }
+                                else if (sand_NE)
+                                {
+                                    tile = 446; // 1/4 sand NE
+                                }
+                                else if (sand_NW)
+                                {
+                                    tile = 448; // 1/4 sand NW
+                                }
+                                else if (sand_SW)
+                                {
+                                    tile = 443; // 1/4 sand SW
+                                }
+                            }
                         }
                     }
 
@@ -1161,7 +1338,8 @@ public:
                             if ((u < 0) || (v < 0) || (u >= MAP_WIDTH) || (v >= MAP_HEIGHT + 2))
                                 continue;
 
-                            if (AsciiArtMap[v][u] == ShadowAAObjects[m][2])
+                            if ((AsciiArtMap[v][u] == ShadowAAObjects[m][2]) &&
+                                (Displaycache_gamemap[y][x][0] != ShadowAAObjects[m][3]))
                             {
                                 int off = y_offs * 10 + x_offs;
                                 if (!tile_min)
@@ -1200,6 +1378,8 @@ public:
                                 }
                             }
                         }
+
+
                         if (l == l_free)
                         {
                             if (tile_min) tile = tile_min;
@@ -1216,7 +1396,11 @@ public:
 
                     if (TILE_IS_GRASS(tile))
                     {
-                        if ((AsciiArtMap[y][x] == '"') || (AsciiArtMap[y][x] == '\''))
+                        if (tile == 259)
+                            if (Display_xorshift128plus() & 1)
+                                tile = 262;
+
+                        if ((AsciiArtMap[y][x] == '"') || (AsciiArtMap[y][x] == '\'') || (AsciiArtMap[y][x] == 'v'))
                         {
                             Display_go_idx++;
                             if ((Display_go_idx >= 7) || (Display_go_idx < 0)) Display_go_idx = 0;
@@ -1234,7 +1418,6 @@ public:
 
                     Displaycache_gamemapgood[y][x] = layer+1;
                     if (!Displaycache_gamemap[y][x][layer]) Displaycache_gamemap[y][x][layer] = tile;
-
                     Display_dbg_maprepaint_cachemisses++;
                 }
                 else
@@ -1253,7 +1436,8 @@ public:
 
                 float tile_opacity = 1.0;
                 if ((tile == RPG_TILE_TPGLOW) || (tile == RPG_TILE_TPGLOW_SMALL) || (tile == RPG_TILE_TPGLOW_TINY)) tile_opacity = 0.65;
-                else if ((tile >= 299) && (tile <= 303)) tile_opacity = 0.8; // water
+                else if ((tile >= 299) && (tile <= 303)) tile_opacity = 0.78; // water
+                else if ((tile >= 329) && (tile <= 332)) tile_opacity = 0.78; // blue water
 
                 if (tile_opacity < 0.99) painter->setOpacity(tile_opacity);
                 painter->drawPixmap(x * TILE_SIZE + grassoffs_x, y * TILE_SIZE + grassoffs_y, grobjs->tiles[tile]);
@@ -1658,6 +1842,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
         bool tmp_trigger_alarm = false;
         bool enemy_in_range = false;
         int my_alarm_range = pmon_my_alarm_dist[m];
+        if (pmon_my_alarm_state[m])
+            my_alarm_range++;
 
         int my_idx = pmon_my_idx[m];
         if (my_idx < 0)  // not alive

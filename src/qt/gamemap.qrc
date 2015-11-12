@@ -439,6 +439,20 @@
         <file alias="436">res/gamemap/436.png</file>
         <file alias="437">res/gamemap/437.png</file>
         <file alias="438">res/gamemap/438.png</file>
+        <file alias="439">res/gamemap/439.png</file>
+        <file alias="440">res/gamemap/440.png</file>
+        <file alias="441">res/gamemap/441.png</file>
+        <file alias="442">res/gamemap/442.png</file>
+        <file alias="443">res/gamemap/443.png</file>
+        <file alias="444">res/gamemap/444.png</file>
+        <file alias="445">res/gamemap/445.png</file>
+        <file alias="446">res/gamemap/446.png</file>
+        <file alias="447">res/gamemap/447.png</file>
+        <file alias="448">res/gamemap/448.png</file>
+        <file alias="449">res/gamemap/449.png</file>
+        <file alias="450">res/gamemap/450.png</file>
+        <file alias="451">res/gamemap/451.png</file>
+        <file alias="452">res/gamemap/452.png</file>
     </qresource>
     <qresource prefix="/gamemap/sprites">
         <file alias="0_1">res/gamemap/sprites/0_1.png</file>

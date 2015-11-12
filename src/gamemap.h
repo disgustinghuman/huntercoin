@@ -19,7 +19,7 @@ static const int CROWN_START_Y = 248;
 static const int MAP_LAYERS = 3;          // Map is layered for visual purposes
 
 // better GUI -- more map tiles
-static const int NUM_TILE_IDS = 439; // 235;      // Total number of different tile textures
+static const int NUM_TILE_IDS = 453; // 235;      // Total number of different tile textures
 
 // extern const short GameMap[MAP_LAYERS][MAP_HEIGHT][MAP_WIDTH];
 #endif
@@ -89,7 +89,8 @@ extern int Displaycache_gamemap[Game::MAP_HEIGHT][Game::MAP_WIDTH][Game::MAP_LAY
 #define ASCIIART_IS_BASETERRAIN(T) ((T=='0') || (T=='1') || (T=='.'))
 #define ASCIIART_IS_WALKABLETERRAIN(T) ((T=='0') || (T=='.'))
 #define ASCIIART_IS_CLIFFSIDE(T) ((T=='(') || (T=='{') || (T=='<') || (T==')') || (T=='}') || (T=='>'))
-#define ASCIIART_IS_CLIFFDIRT(T) ((T==',') || (T==';') || (T==':'))
+#define ASCIIART_IS_CLIFFSIDE_NEW(T) ((T=='(') || (T=='{') || (T=='<') || (T==')') || (T=='}') || (T=='>') || (T=='i') || (T=='I') || (T=='j') || (T=='J'))
+#define ASCIIART_IS_CLIFFSAND(T) ((T==',') || (T==';') || (T==':'))
 #define ASCIIART_IS_CLIFFTOP(T) ((T=='?') || (T=='_'))
 #define ASCIIART_IS_COBBLESTONE(T) ((T=='o') || (T=='O') || (T=='q') || (T=='Q') || (T=='8'))
 
