@@ -209,10 +209,6 @@ public:
 
 
         // pending tx monitor -- UI main loop
-        if (pmon_frames < 1000)
-            pmon_frames++;
-        else
-            pmon_frames = 0;
         if ((gameState.hashBlock == cachedLastBlock) && (!pmon_new_data))
             return false;
         if (pmon_new_data)

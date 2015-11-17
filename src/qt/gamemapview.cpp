@@ -1653,13 +1653,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 entry.icon_d1 = 0;
                 entry.icon_d2 = 0;
                 if (pl.value > 40000000000)
-                    entry.icon_d2 = 411;
-//                    entry.name += QString::fromUtf8("\u2620"); // Unicode Character 'SKULL AND CROSSBONES'
+                    entry.icon_d2 = RGP_ICON_HUC_BANDIT;
                 if (pl.value > 20000000000)
-                    entry.icon_d1 = 411;
-//                    entry.name += QString::fromUtf8("\u2620 ");
-                else
-                    entry.name += QString::fromStdString(" ");
+                    entry.icon_d1 = RGP_ICON_HUC_BANDIT;
 
                 entry.name += QString::fromStdString(" ");
                 entry.name += QString::number(coord.x);
@@ -1772,21 +1768,34 @@ void GameMapView::updateGameMap(const GameState &gameState)
                             }
                         }
 
+                        // if this hunter is idle, or "longest idle"
                         if ((characterState.waypoints.empty()) && (!tmp_has_pending_tx) && (!tmp_is_banking))
                         {
-                            if (pmon_out_of_wp_idx == -1)
+                            pmon_my_idlecount[m]++;
+
+                            if (pmon_out_of_wp_idx <= -1)
+                                pmon_out_of_wp_idx = m;
+                            else if ((pmon_out_of_wp_idx < PMON_MY_MAX) && (pmon_my_idlecount[m] > pmon_my_idlecount[pmon_out_of_wp_idx]))
                                 pmon_out_of_wp_idx = m;
                         }
-                        else if (pmon_out_of_wp_idx == m)
+                        else
                         {
-                            pmon_out_of_wp_idx = -1;
+                            pmon_my_idlecount[m] = 0;
+
+                            if (pmon_out_of_wp_idx == m)
+                                pmon_out_of_wp_idx = -1;
                         }
 
+                        // longest idle time in minutes
                         if (pmon_out_of_wp_idx >= 0)
                         {
-                            entry.name += QString::fromStdString(" Idle:");
+                            entry.name += QString::fromUtf8(" \u231B"); // hourglass
                             if (pmon_out_of_wp_idx < PMON_MY_MAX)
+                            {
+                                entry.name += QString::number(pmon_my_idlecount[pmon_out_of_wp_idx] * pmon_go / 60);
+                                entry.name += QString::fromStdString("min:");
                                 entry.name += QString::fromStdString(pmon_my_names[pmon_out_of_wp_idx]);
+                            }
                         }
                         else if (!tmp_alarm)
                         {
@@ -1835,6 +1844,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         {
             pmon_my_foecontact_age[m] = 0;
             pmon_my_alarm_state[m] = 0;
+            pmon_my_idlecount[m] = 0;
 
             continue;
         }
@@ -1849,6 +1859,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         if (my_idx < 0)  // not alive
         {
             pmon_my_alarm_state[m] = 0;
+            pmon_my_idlecount[m] = 0;
 
             if (pmon_out_of_wp_idx == m) pmon_out_of_wp_idx = -1;
 

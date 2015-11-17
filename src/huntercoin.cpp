@@ -1154,9 +1154,9 @@ Value name_firstupdate(const Array& params, bool fHelp)
 // pending tx monitor -- variables
 bool pmon_noisy = false;
 int pmon_out_of_wp_idx = -1;
-int pmon_frames = 0;
 bool pmon_new_data = false;
 bool pmon_stop = true;
+int pmon_go;
 std::string pmon_tx_names[PMON_TX_MAX];
 std::string pmon_tx_values[PMON_TX_MAX];
 int pmon_tx_age[PMON_TX_MAX];
@@ -1173,11 +1173,12 @@ int pmon_all_next_y[PMON_ALL_MAX];
 int pmon_all_color[PMON_ALL_MAX];
 bool pmon_all_cache_isinmylist[PMON_ALL_MAX]; // only valid for current block
 int pmon_all_count;
-std::string pmon_my_names[PMON_MY_MAX] = {"aaa", "bbb", "ccc", "ddd", "eee", "fff", "ggg", "hhh", "iii", "jjj", "kkk", "lll", "mmm", "nnn", "ooo", "ppp", "qqq", "rrr", "sss", "ttt"};
+std::string pmon_my_names[PMON_MY_MAX];
 int pmon_my_alarm_dist[PMON_MY_MAX];
 int pmon_my_idx[PMON_MY_MAX];
 int pmon_my_alarm_state[PMON_MY_MAX];
 int pmon_my_foecontact_age[PMON_MY_MAX];
+int pmon_my_idlecount[PMON_MY_MAX];
 
 
 Value name_update(const Array& params, bool fHelp)
@@ -1487,7 +1488,7 @@ name_pending (const Array& params, bool fHelp)
 
 
   // pending tx monitor -- main loop
-  int pmon_go = 0;
+  pmon_go = 0;
   if (params.size () != 0)
   {
     std::string pmon_param = params[0].get_str();
@@ -1520,10 +1521,13 @@ name_pending (const Array& params, bool fHelp)
         }
 
         pmon_my_names[i].assign(my_name);
-        pmon_my_alarm_dist[i] = ((my_param[0] >= '0') && (my_param[0] <= '9')) ? my_param[0] - '0' : 9;
+        pmon_my_alarm_dist[i] = atoi(my_param);
+        if (pmon_my_alarm_dist[i] < 0) pmon_my_alarm_dist[i] = 10;
     }
 
-    pmon_go = ((pmon_param[0] >= '2') && (pmon_param[0] <= '9')) ? pmon_param[0] - '0' : 5;
+    pmon_go = atoi(pmon_param.c_str());
+    if (pmon_go < 2) pmon_go = 5;
+
     fclose(fp);
     MilliSleep(20);
   }
