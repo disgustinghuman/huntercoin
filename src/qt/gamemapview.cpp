@@ -458,9 +458,9 @@ uint64_t Display_xorshift128plus(void)
 }
 
 // to parse the asciiart map
-#define SHADOWMAP_AAOBJECT_MAX 128
-#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 126
-#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 125
+#define SHADOWMAP_AAOBJECT_MAX 125
+#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 123
+#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 122
 int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 0, 0, 'h', 252},
                                                   { 0, 1, 'H', 250},
@@ -569,14 +569,14 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 1, 0, 'l', 285},
                                                   { 0, 0, 'l', 286},
 
-                                                  { 0, 2, 'R', 287},  // cliff, "concave" upper right corner
-                                                  { -1, 2, 'R', 288},
+                                                  // tiles converted to terrain commented out
+//                                                { 0, 2, 'R', 287},  // cliff, "concave" upper right corner
+//                                                { -1, 2, 'R', 288},
                                                   { 0, 1, 'R', 289},
-                                                  { -1, 1, 'R', 290},
+//                                                { -1, 1, 'R', 290},
                                                   { 0, 0, 'R', 291},
                                                   { -1, 0, 'R', 292},
 
-                                                  // tiles converted to terrain commented out
 //                                                { 1, 2, 'L', 293},  // cliff, "concave" upper left corner
 //                                                { 0, 2, 'L', 294},
 //                                                { 1, 1, 'L', 295},
@@ -940,6 +940,11 @@ public:
                         else if (terrain_S2 == 'J') tile = 177;
                         else if (terrain_S2 == 'i') tile = 97;
                         else if (terrain_S2 == 'I') tile = 203;
+
+                        // cliff, "concave" upper right corner
+                        else if (terrain_S2 == 'R') tile = 287;
+                        else if ((x >= 1) && (AsciiArtMap[y + 2][x - 1] == 'R')) tile = 288;
+                        else if ((x >= 1) && (AsciiArtMap[y + 1][x - 1] == 'R')) tile = 290;
 
                         // cliff, "concave" upper left corner
                         else if (AsciiArtMap[y + 2][x + 1] == 'L') tile = 293;
@@ -1789,7 +1794,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         // longest idle time in minutes
                         if (pmon_out_of_wp_idx >= 0)
                         {
+#ifdef WIN32
+                            // note: "Segoe UI Symbol" has u231B and many other unicode characters on windows7 (and all newer versions?)
+                            entry.name += QString::fromUtf8(" \u2603"); // snowman
+#else
                             entry.name += QString::fromUtf8(" \u231B"); // hourglass
+#endif
                             if (pmon_out_of_wp_idx < PMON_MY_MAX)
                             {
                                 entry.name += QString::number(pmon_my_idlecount[pmon_out_of_wp_idx] * pmon_go / 60);
