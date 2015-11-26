@@ -175,11 +175,14 @@ need adjacent               the tile under the tree is sand, otherwise they woul
 1?__??_?_1                  1?__??_?_1
 1:;,:;,:,1                  1:;,C;B:,1
 <;000000:>                  <;:;,:;;:>
-(,000000;)                 B(,:C,::,;J
-{,00000;+}                  {++;++++Cj
-(+,:;++++)                 C(+++++++;J
-[!|##!##|]                  [!||!!|!|]
+(,000000;)                  iC:c,::,;J
+{,00000;+}                  I;+;++++Cj
+(+,:;++++)                 Bi+++++++;J
+[!|##!##|]                  m!||!!|!|]
    #S!#s
-                                     ^-- right side of cliff: tile painted in terrain layer if 'J' and 'j' is used instead of ')' and '}'
+                                     ^-- right side of cliff: tiles painted in terrain layer if 'J' and 'j' is used instead of ')' and '}'
                                          (otherwise shadow tiles from the adjacent tree would not be visible)
+
+                            ^-- left side of cliff: tiles painted in terrain layer if 'I', 'i' and 'm' is used instead of '(' and '{' and '['
+                                (otherwise parts of the adjacent conifer tree and its shadow would not be visible)
 

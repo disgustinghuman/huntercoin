@@ -458,9 +458,9 @@ uint64_t Display_xorshift128plus(void)
 }
 
 // to parse the asciiart map
-#define SHADOWMAP_AAOBJECT_MAX 125
-#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 123
-#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 122
+#define SHADOWMAP_AAOBJECT_MAX 129
+#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 127
+#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 126
 int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 0, 0, 'h', 252},
                                                   { 0, 1, 'H', 250},
@@ -516,6 +516,12 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 0, 1, '[', 75},
                                                   { 1, 0, '[', 85},
                                                   { 0, 0, '[', 86},
+
+                                                  // alternative terrain version (some tiles converted to terrain)
+                                                  { 1, 2, 'm', 91},  // cliff, lower left corner
+                                                  { 1, 1, 'm', 74},
+                                                  { 1, 0, 'm', 85},
+                                                  { 0, 0, 'm', 86},
 
                                                   // tiles converted to terrain commented out
 //                                                { 0, 2, ']', 69},  // cliff, lower right corner
@@ -701,10 +707,10 @@ int ShadowAAShapes[SHADOWMAP_AASHAPE_MAX][5] = {{ 0, 0, 'C', 'c', 244}, // conif
                                                 { -1, 2, 'J', 'j', 381}, // cliff, right side of normal row (terrain version)
                                                 { -2, 2, 'J', 'j', 382},
 
-                                                { 1, 0, '[', '[', 395},  // cliff, lower left corner (CLIFVEG)
-                                                { 0, 0, '[', '[', 396},
-                                                { 1, -1, '[', '[', 397},
-                                                { 0, -1, '[', '[', 398},
+                                                { 1, 0, '[', 'm', 395},  // cliff, lower left corner (CLIFVEG)
+                                                { 0, 0, '[', 'm', 396},
+                                                { 1, -1, '[', 'm', 397},
+                                                { 0, -1, '[', 'm', 398},
 
                                                 { -1, 2, ']', ']', 401},  // cliff, lower right corner (CLIFVEG)
                                                 { -2, 2, ']', ']', 402},
@@ -925,8 +931,12 @@ public:
                         }
 
                         // tiles converted to terrain
+                        // cliff, lower left corner
+                        if (terrain_S == 'm') tile = 75;
+                        else if (terrain_S2 == 'm') tile = 92;
+
                         // cliff, lower right corner
-                        if (terrain_S == ']') tile = 71;
+                        else if (terrain_S == ']') tile = 71;
                         else if (AsciiArtMap[y + 2][x] == ']') tile = 69;
 
                         // cliff, lower end of normal column (2 versions)
