@@ -1649,17 +1649,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
             // pending tx monitor -- info text
             const Coord &wmon_from = characterState.from;
-            if (pmon_all_count >= PMON_ALL_MAX)
+            if (((pmon_state == PMONSTATE_CONSOLE) || (pmon_state == PMONSTATE_RUN)) &&
+                (pmon_all_count < PMON_ALL_MAX))
             {
-                entry.name += QString::fromStdString(" off,ERROR");
-            }
-            else if (pmon_stop)
-            {
-//                entry.name += QString::fromStdString(" off");
-            }
-            else if ((!pmon_stop) && (pmon_all_count < PMON_ALL_MAX))
-            {
-
                 pmon_all_names[pmon_all_count] = chid.ToString();
                 pmon_all_x[pmon_all_count] = coord.x;
                 pmon_all_y[pmon_all_count] = coord.y;
@@ -1859,8 +1851,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
     {
       for (int m = 0; m < PMON_MY_MAX; m++)
       {
-
-        if (pmon_stop)
+        if (pmon_state == PMONSTATE_SHUTDOWN)
         {
             pmon_my_foecontact_age[m] = 0;
             pmon_my_alarm_state[m] = 0;
@@ -1921,6 +1912,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
       }
     }
+    if (pmon_state == PMONSTATE_SHUTDOWN)
+        pmon_state = PMONSTATE_STOPPED;
 
 
     Coord prev_coord;
@@ -2096,7 +2089,10 @@ void GameMapView::mousePressEvent(QMouseEvent *event)
         }
         else if ( ! (event->modifiers().testFlag( Qt::ShiftModifier )) )
         {
-            pmon_stop = true;
+            if (pmon_state == PMONSTATE_STOPPED)
+                pmon_state = PMONSTATE_START;
+            else
+                pmon_state = PMONSTATE_SHUTDOWN;
         }
         else
         {

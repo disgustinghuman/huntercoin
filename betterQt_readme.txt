@@ -4,21 +4,29 @@ Pending Transaction Monitor
   The "pending tx monitor" can reroute output from the console command "name_pending" to GUI
 
   input:
-    name_pending 5            console command to start with update interval every 5 seconds (console is not available while it runs)
-    middle mouse button       stop it (need 5 seconds to stop)
+    middle mouse button       switch tx monitor on (default update interval: 5 seconds)
+
+    name_pending 5            "legacy" console command to start with update interval every 5 seconds
+                              (min update interval is 2 seconds, console is not available while it runs)
+
+    middle mouse button       stop tx monitor
+
     Ctrl+middle mouse button  toggle silent mode
+
     names.txt                 up to 25 player names of "friendly" hunters + distance to trigger alarm. Changes are effective after stopping and restarting the tx monitor.
                               - if name is in names.txt, hunters ignore each other for alarm purposes
                               - it's not required that all friendlies are controlled by the same node/wallet
+
   output:
     small_wave_file.wav      played (by asking the OS to open it) on alarm, must be in same folder as debug.log (not included, windows system sounds work just fine)
+
     *ALARM*: <name> [<name>]  after all names from names.txt in case of alarm
     <n> min: <name>           after all names from names.txt, longest idle hunter (out of waypoints for n minutes)
     (OK)                      after all names from names.txt, in case of no alarm and no idle hunter
     x,y->x2,y2               after hunter name, coors currently and expected after next block
     wp:...                   after hunter name, next waypoint
     tx*<age>:...             after hunter name, value of pendig tx, and how "old" it is
-    CONTACT*<age>            we will be in destruct range with an enemy player after next block. If started with "name_pending 5",
+    CONTACT*<age>            we will be in destruct range with an enemy player after next block. If started with update interval of 5 seconds,
                              then "CONTACT*4" or "CONTACT*5" (20 or 25 seconds) is basically seeing the white in their eyes
 
 
