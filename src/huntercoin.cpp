@@ -1150,6 +1150,37 @@ Value name_firstupdate(const Array& params, bool fHelp)
     return wtx.GetHash().GetHex();
 }
 
+
+// pending tx monitor -- variables
+bool pmon_noisy = false;
+int pmon_out_of_wp_idx = -1;
+bool pmon_new_data = false;
+bool pmon_stop = true;
+int pmon_go;
+std::string pmon_tx_names[PMON_TX_MAX];
+std::string pmon_tx_values[PMON_TX_MAX];
+int pmon_tx_age[PMON_TX_MAX];
+int pmon_tx_count = 0;
+std::string pmon_oldtick_tx_names[PMON_TX_MAX];
+std::string pmon_oldtick_tx_values[PMON_TX_MAX];
+int pmon_oldtick_tx_age[PMON_TX_MAX];
+int pmon_oldtick_tx_count = 0;
+std::string pmon_all_names[PMON_ALL_MAX];
+int pmon_all_x[PMON_ALL_MAX];
+int pmon_all_y[PMON_ALL_MAX];
+int pmon_all_next_x[PMON_ALL_MAX];
+int pmon_all_next_y[PMON_ALL_MAX];
+int pmon_all_color[PMON_ALL_MAX];
+bool pmon_all_cache_isinmylist[PMON_ALL_MAX]; // only valid for current block
+int pmon_all_count;
+std::string pmon_my_names[PMON_MY_MAX];
+int pmon_my_alarm_dist[PMON_MY_MAX];
+int pmon_my_idx[PMON_MY_MAX];
+int pmon_my_alarm_state[PMON_MY_MAX];
+int pmon_my_foecontact_age[PMON_MY_MAX];
+int pmon_my_idlecount[PMON_MY_MAX];
+
+
 Value name_update(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 3)
@@ -1444,15 +1475,81 @@ AddRawTxNameOperation (CTransaction& tx, const Object& obj)
   tx.vout.push_back (out);
 }
 
+
 static Value
 name_pending (const Array& params, bool fHelp)
 {
-  if (fHelp || params.size () != 0)
+  if (fHelp || params.size () > 1)
     throw runtime_error(
       "name_pending\n"
       "List all pending name operations known of.\n");
 
   Array res;
+
+
+  // pending tx monitor -- main loop
+  pmon_go = 0;
+  if (params.size () != 0)
+  {
+    std::string pmon_param = params[0].get_str();
+    FILE *fp;
+    fp = fopen("names.txt", "r");
+    if (fp == NULL)
+        throw runtime_error(
+            "Can't read names.txt");
+
+    // max name length for huntercoin is only 10
+    char my_name[100], my_param[100];
+
+    // clear the list of "our" hunters
+    // (names in this list can be in a different wallet, but we assume they are all "friendlies")
+    for (unsigned int i = 0; i < PMON_MY_MAX; i++)
+    {
+        pmon_my_names[i] = "";
+        pmon_my_alarm_dist[i] = 0;
+    }
+    for (unsigned int i = 0; i < PMON_MY_MAX; i++)
+    {
+        if (fscanf(fp, "%50s ", my_name) < 1)
+        {
+            break;
+        }
+
+        if (fscanf(fp, "%50s ", my_param) < 1)
+        {
+            break;
+        }
+
+        pmon_my_names[i].assign(my_name);
+        pmon_my_alarm_dist[i] = atoi(my_param);
+        if (pmon_my_alarm_dist[i] < 0) pmon_my_alarm_dist[i] = 10;
+    }
+
+    pmon_go = atoi(pmon_param.c_str());
+    if (pmon_go < 2) pmon_go = 5;
+
+    fclose(fp);
+    MilliSleep(20);
+  }
+
+
+  pmon_stop = false;
+  for (unsigned int m = 0; m < PMON_MY_MAX; m++)
+  {
+      pmon_my_alarm_state[m] = 0;
+  }
+
+  while (true)
+  {
+      for (int k2 = 0; k2 < pmon_tx_count; k2++)
+      {
+          pmon_oldtick_tx_names[k2] = pmon_tx_names[k2];
+          pmon_oldtick_tx_values[k2] = pmon_tx_values[k2];
+          pmon_oldtick_tx_age[k2] = pmon_tx_age[k2];
+      }
+      pmon_oldtick_tx_count = pmon_tx_count;
+      pmon_tx_count = 0;
+
 
   CRITICAL_BLOCK (cs_main)
   CRITICAL_BLOCK (cs_mapTransactions)
@@ -1518,6 +1615,8 @@ name_pending (const Array& params, bool fHelp)
               const bool isMine = IsMyName (txout);
 
               /* Construct the JSON output.  */
+              if (!pmon_go)
+              {
               Object obj;
               obj.push_back (Pair ("name", name));
               obj.push_back (Pair ("txid", j->GetHex ()));
@@ -1525,9 +1624,45 @@ name_pending (const Array& params, bool fHelp)
               obj.push_back (Pair ("value", value));
               obj.push_back (Pair ("ismine", isMine));
               res.push_back (obj);
+              }
+
+
+              // pending tx monitor -- main loop
+              if (pmon_tx_count < PMON_TX_MAX)
+              {
+                  pmon_tx_names[pmon_tx_count] = name;
+                  pmon_tx_values[pmon_tx_count] = value;
+                  pmon_tx_age[pmon_tx_count] = 0;
+                  for (int k2 = 0; k2 < pmon_oldtick_tx_count; k2++)
+                  {
+                      if ((pmon_oldtick_tx_names[k2] == name) &&
+                              (pmon_oldtick_tx_values[k2] == value))
+                      {
+                          pmon_tx_age[pmon_tx_count] = pmon_oldtick_tx_age[k2] + 1;
+                          break;
+                      }
+                  }
+
+                  pmon_tx_count++;
+              }
+
+
             }
         }
     }
+
+
+  if (!pmon_go)
+      break;
+
+  // pending tx monitor -- main loop
+  MilliSleep(1000);
+  pmon_new_data = true;
+  if (pmon_stop)
+      break;
+  MilliSleep(1000 * pmon_go - 1000);
+}
+
 
   return res;
 }
