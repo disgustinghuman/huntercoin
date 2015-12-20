@@ -755,6 +755,7 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
 }
 
 
+#ifdef GUI
 // pending tx monitor -- variables
 #define PMONSTATE_STOPPED 1
 #define PMONSTATE_SHUTDOWN 2
@@ -786,7 +787,7 @@ extern int pmon_all_color[PMON_ALL_MAX];
 extern int pmon_all_color[PMON_ALL_MAX];
 extern bool pmon_all_cache_isinmylist[PMON_ALL_MAX];
 extern int pmon_all_count;
-#define PMON_MY_MAX 25
+#define PMON_MY_MAX 30
 extern std::string pmon_my_names[PMON_MY_MAX];
 extern int pmon_my_alarm_dist[PMON_MY_MAX];
 extern int pmon_my_idx[PMON_MY_MAX];
@@ -795,6 +796,7 @@ extern int pmon_my_foecontact_age[PMON_MY_MAX];
 extern int pmon_my_idlecount[PMON_MY_MAX];
 extern bool pmon_name_pending_start();
 extern bool pmon_name_pending();
+#endif
 
 
 #endif

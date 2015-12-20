@@ -13,7 +13,7 @@ Pending Transaction Monitor
 
     Ctrl+middle mouse button  toggle silent mode
 
-    names.txt                 up to 25 player names of "friendly" hunters + distance to trigger alarm. Changes are effective after stopping and restarting the tx monitor.
+    names.txt                 up to 30 player names of "friendly" hunters + distance to trigger alarm. Changes are effective after stopping and restarting the tx monitor.
                               - if name is in names.txt, hunters ignore each other for alarm purposes
                               - it's not required that all friendlies are controlled by the same node/wallet
 

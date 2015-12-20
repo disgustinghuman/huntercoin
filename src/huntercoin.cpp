@@ -1151,12 +1151,13 @@ Value name_firstupdate(const Array& params, bool fHelp)
 }
 
 
+#ifdef GUI
 // pending tx monitor -- variables
 bool pmon_noisy = false;
 int pmon_out_of_wp_idx = -1;
 bool pmon_new_data = false;
 int pmon_state = PMONSTATE_STOPPED;
-int pmon_go;
+int pmon_go; // update interval in seconds
 int64 pmon_tick;
 std::string pmon_tx_names[PMON_TX_MAX];
 std::string pmon_tx_values[PMON_TX_MAX];
@@ -1230,7 +1231,6 @@ bool pmon_name_pending_start()
 
 bool pmon_name_pending()
 {
-
     for (int k2 = 0; k2 < pmon_tx_count; k2++)
     {
         pmon_oldtick_tx_names[k2] = pmon_tx_names[k2];
@@ -1329,6 +1329,7 @@ bool pmon_name_pending()
     pmon_new_data = true;
     return true;
 }
+#endif
 
 
 Value name_update(const Array& params, bool fHelp)
@@ -1625,163 +1626,136 @@ AddRawTxNameOperation (CTransaction& tx, const Object& obj)
   tx.vout.push_back (out);
 }
 
-
 static Value
 name_pending (const Array& params, bool fHelp)
 {
-  if (fHelp || params.size () > 1)
+#ifdef GUI
+    // pending tx monitor -- main loop
+    pmon_go = 0;
+    if (params.size () == 1)
+    {
+        std::string pmon_param = params[0].get_str();
+        pmon_go = atoi(pmon_param.c_str());
+
+        if (pmon_name_pending_start())
+            pmon_state = PMONSTATE_CONSOLE;
+        else
+            throw runtime_error(
+                "Can't read names.txt");
+
+        while (pmon_go)
+        {
+            for (int k2 = 0; k2 < pmon_tx_count; k2++)
+            {
+                pmon_oldtick_tx_names[k2] = pmon_tx_names[k2];
+                pmon_oldtick_tx_values[k2] = pmon_tx_values[k2];
+                pmon_oldtick_tx_age[k2] = pmon_tx_age[k2];
+            }
+            pmon_oldtick_tx_count = pmon_tx_count;
+            pmon_tx_count = 0;
+
+            pmon_name_pending();
+
+            if (pmon_state != PMONSTATE_CONSOLE)
+            {
+                MilliSleep(500);
+                break;
+            }
+
+            for (int lsleepy = 0; lsleepy < pmon_go; lsleepy++)
+            {
+                MilliSleep(1000);
+
+                // on shutdown request: update 1 more time, then exit
+                if ((pmon_state != PMONSTATE_CONSOLE) && (pmon_state != PMONSTATE_SHUTDOWN))
+                    break;
+            }
+        }
+        return "";
+    }
+#endif
+
+  if (fHelp || params.size () != 0)
     throw runtime_error(
       "name_pending\n"
       "List all pending name operations known of.\n");
 
   Array res;
 
-
-  // pending tx monitor -- main loop
-  pmon_go = 0;
-#ifdef GUI
-  if (params.size () != 0)
-  {
-      std::string pmon_param = params[0].get_str();
-      pmon_go = atoi(pmon_param.c_str());
-      if (pmon_go < 2) pmon_go = 5;
-
-      if (pmon_name_pending_start())
-          pmon_state = PMONSTATE_CONSOLE;
-      else
-          throw runtime_error(
-              "Can't read names.txt");
-  }
-#endif
-
-
-  while (true)
-  {
-    if (pmon_go)
+  CRITICAL_BLOCK (cs_main)
+  CRITICAL_BLOCK (cs_mapTransactions)
     {
-        for (int k2 = 0; k2 < pmon_tx_count; k2++)
+      std::map<vchType, std::set<uint256> >::const_iterator i;
+      for (i = mapNamePending.begin (); i != mapNamePending.end (); ++i)
         {
-            pmon_oldtick_tx_names[k2] = pmon_tx_names[k2];
-            pmon_oldtick_tx_values[k2] = pmon_tx_values[k2];
-            pmon_oldtick_tx_age[k2] = pmon_tx_age[k2];
-        }
-        pmon_oldtick_tx_count = pmon_tx_count;
-        pmon_tx_count = 0;
-    }
+          if (i->second.empty ())
+            continue;
 
+          const std::string name = stringFromVch (i->first);
 
-    CRITICAL_BLOCK (cs_main)
-    CRITICAL_BLOCK (cs_mapTransactions)
-    {
-        std::map<vchType, std::set<uint256> >::const_iterator i;
-        for (i = mapNamePending.begin (); i != mapNamePending.end (); ++i)
-        {
-            if (i->second.empty ())
-                continue;
-
-            const std::string name = stringFromVch (i->first);
-
-            for (std::set<uint256>::const_iterator j = i->second.begin ();
-                 j != i->second.end (); ++j)
+          for (std::set<uint256>::const_iterator j = i->second.begin ();
+               j != i->second.end (); ++j)
             {
-                if (mapTransactions.count (*j) == 0)
+              if (mapTransactions.count (*j) == 0)
                 {
-                    printf ("name_pending: Tx %s not found in mapTransactions\n",
-                            j->GetHex ().c_str ());
-                    continue;
+                  printf ("name_pending: Tx %s not found in mapTransactions\n",
+                          j->GetHex ().c_str ());
+                  continue;
                 }
-                const CTransaction& tx = mapTransactions[*j];
+              const CTransaction& tx = mapTransactions[*j];
 
-                int op, nOut;
-                std::vector<vchType> vvch;
-                if (!DecodeNameTx (tx, op, nOut, vvch))
+              int op, nOut;
+              std::vector<vchType> vvch;
+              if (!DecodeNameTx (tx, op, nOut, vvch))
                 {
-                    printf ("name_pending: failed to find name output in tx %s\n",
-                            j->GetHex ().c_str ());
-                    continue;
+                  printf ("name_pending: failed to find name output in tx %s\n",
+                          j->GetHex ().c_str ());
+                  continue;
                 }
 
-                /* Decode the name operation.  */
-                std::string value;
-                std::string opString;
-                switch (op)
+              /* Decode the name operation.  */
+              std::string value;
+              std::string opString;
+              switch (op)
                 {
                 case OP_NAME_FIRSTUPDATE:
-                    opString = "name_firstupdate";
-                    if (vvch.size () == 3)
-                      value = stringFromVch (vvch[2]);
-                    else
-                      {
-                        assert (vvch.size () == 2);
-                        value = stringFromVch (vvch[1]);
-                      }
-                    break;
+                  opString = "name_firstupdate";
+                  if (vvch.size () == 3)
+                    value = stringFromVch (vvch[2]);
+                  else
+                    {
+                      assert (vvch.size () == 2);
+                      value = stringFromVch (vvch[1]);
+                    }
+                  break;
 
                 case OP_NAME_UPDATE:
-                    assert (vvch.size () == 2);
-                    opString = "name_update";
-                    value = stringFromVch (vvch[1]);
-                    break;
+                  assert (vvch.size () == 2);
+                  opString = "name_update";
+                  value = stringFromVch (vvch[1]);
+                  break;
 
                 default:
-                    printf ("name_pending: unexpected op code %d for tx %s\n",
-                            op, j->GetHex ().c_str ());
-                    continue;
+                  printf ("name_pending: unexpected op code %d for tx %s\n",
+                          op, j->GetHex ().c_str ());
+                  continue;
                 }
 
-                /* See if it is owned by the wallet user.  */
-                const CTxOut& txout = tx.vout[nOut];
-                const bool isMine = IsMyName (txout);
+              /* See if it is owned by the wallet user.  */
+              const CTxOut& txout = tx.vout[nOut];
+              const bool isMine = IsMyName (txout);
 
-                /* Construct the JSON output.  */
-                if (!pmon_go)
-                {
-                    Object obj;
-                    obj.push_back (Pair ("name", name));
-                    obj.push_back (Pair ("txid", j->GetHex ()));
-                    obj.push_back (Pair ("op", opString));
-                    obj.push_back (Pair ("value", value));
-                    obj.push_back (Pair ("ismine", isMine));
-                    res.push_back (obj);
-                }
-
-
-                // pending tx monitor -- main loop
-                if (pmon_go)
-                if (pmon_tx_count < PMON_TX_MAX)
-                {
-                    pmon_tx_names[pmon_tx_count] = name;
-                    pmon_tx_values[pmon_tx_count] = value;
-                    pmon_tx_age[pmon_tx_count] = 0;
-                    for (int k2 = 0; k2 < pmon_oldtick_tx_count; k2++)
-                    {
-                        if ((pmon_oldtick_tx_names[k2] == name) &&
-                                (pmon_oldtick_tx_values[k2] == value))
-                        {
-                            pmon_tx_age[pmon_tx_count] = pmon_oldtick_tx_age[k2] + 1;
-                            break;
-                        }
-                    }
-
-                    pmon_tx_count++;
-                }
-
+              /* Construct the JSON output.  */
+              Object obj;
+              obj.push_back (Pair ("name", name));
+              obj.push_back (Pair ("txid", j->GetHex ()));
+              obj.push_back (Pair ("op", opString));
+              obj.push_back (Pair ("value", value));
+              obj.push_back (Pair ("ismine", isMine));
+              res.push_back (obj);
             }
         }
     }
-
-    if (!pmon_go)
-        break;
-
-    MilliSleep(500);
-    pmon_new_data = true;
-    if (pmon_state != PMONSTATE_CONSOLE)
-        break;
-
-    MilliSleep(1000 * pmon_go - 500);
-    if (pmon_state == PMONSTATE_STOPPED)
-        break;
-  }
 
   return res;
 }

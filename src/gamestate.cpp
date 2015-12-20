@@ -11,10 +11,12 @@
 #include "headers.h"
 #include "huntercoin.h"
 
+#ifdef GUI
 // pending tx monitor -- acoustic alarm
 #include <QUrl>
 #include <QDesktopServices>
 #include <boost/filesystem.hpp>
+#endif
 
 
 using namespace Game;
@@ -2171,6 +2173,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         return error ("total amount before and after step mismatch");
       }
 
+#ifdef GUI
     // pending tx monitor -- acoustic alarm
     bool do_sound_alarm = false;
     if (pmon_noisy)
@@ -2195,6 +2198,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             }
         }
     }
+#endif
 
     return true;
 }
