@@ -57,6 +57,7 @@ inline bool IsOriginalSpawnArea(int x, int y)
 }
 
 
+#ifdef GUI
 // better GUI -- variables declaration
 extern char AsciiArtMap[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
 extern int AsciiArtTileCount[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
@@ -93,6 +94,7 @@ extern int Displaycache_gamemap[Game::MAP_HEIGHT][Game::MAP_WIDTH][Game::MAP_LAY
 #define ASCIIART_IS_CLIFFSAND(T) ((T==',') || (T==';') || (T==':'))
 #define ASCIIART_IS_CLIFFTOP(T) ((T=='?') || (T=='_'))
 #define ASCIIART_IS_COBBLESTONE(T) ((T=='o') || (T=='O') || (T=='q') || (T=='Q') || (T=='8'))
+#endif
 
 
 #endif

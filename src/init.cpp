@@ -12,8 +12,10 @@
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/algorithm/string/case_conv.hpp> // for to_lower()
 
+#ifdef GUI
 // better GUI -- includes
 #include "gamemap.h"
+#endif
 
 using namespace std;
 using namespace boost;
@@ -131,6 +133,7 @@ bool AppInit(int argc, char* argv[])
 }
 
 
+#ifdef GUI
 // better GUI -- asciiart map
 // note: need at least 3 additional columns (CR, LF, '\0') and 2 additional lines (2 tiles offset for cliffs because of their "height")
 char AsciiArtMap[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
@@ -252,6 +255,7 @@ static bool Calculate_AsciiArtMap()
         }
 
 }
+#endif
 
 
 bool AppInit2(int argc, char* argv[])
@@ -508,8 +512,10 @@ bool AppInit2(int argc, char* argv[])
     strErrors = "";
     int64 nStart;
 
+#ifdef GUI
     // better GUI -- asciiart map
     Calculate_AsciiArtMap();
+#endif
 
     /* Start the RPC server already here.  This is to make it available
        "immediately" upon starting the daemon process.  Until everything
