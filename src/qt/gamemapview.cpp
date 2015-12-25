@@ -27,13 +27,13 @@ struct GameGraphicsObjects
 {
     // Player sprites for each color and 10 directions (with 0 and 5 being null, the rest are as on numpad)
     // better GUI -- more player sprites
-    QPixmap player_sprite[Game::NUM_TEAM_COLORS+1][10];
+    QPixmap player_sprite[Game::NUM_TEAM_COLORS+2][10];
 
     QPixmap coin_sprite, heart_sprite, crown_sprite;
     QPixmap tiles[NUM_TILE_IDS];
 
     // better GUI -- more player sprites
-    QBrush player_text_brush[Game::NUM_TEAM_COLORS+1];
+    QBrush player_text_brush[Game::NUM_TEAM_COLORS+2];
 
     QPen magenta_pen, gray_pen;
 
@@ -48,9 +48,10 @@ struct GameGraphicsObjects
 
         // better GUI -- more player sprites
         player_text_brush[4] = QBrush(QColor(255, 255, 255));
+        player_text_brush[5] = QBrush(QColor(255, 255, 255));
 
         // better GUI -- more player sprites
-        for (int i = 0; i < Game::NUM_TEAM_COLORS+1; i++)
+        for (int i = 0; i < Game::NUM_TEAM_COLORS+2; i++)
 
             for (int j = 1; j < 10; j++)
             {
@@ -1527,6 +1528,7 @@ struct CharacterEntry
     unsigned char color;
 
     // better GUI -- icons
+    int icon_a1; // gems and storage
     int icon_d1;
     int icon_d2;
 
@@ -1627,6 +1629,16 @@ void GameMapView::updateGameMap(const GameState &gameState)
         pmon_my_idx[m] = -1;
     }
 
+#ifdef PERMANENT_LUGGAGE
+    // gems and storage
+    if (gameState.gemSpawnState == GEM_SPAWNED)
+    {
+        gem_visualonly_state = GEM_SPAWNED;
+        gem_visualonly_x = gameState.gemSpawnPos.x;
+        gem_visualonly_y = gameState.gemSpawnPos.y;
+    }
+#endif
+
 
     // Sort by coordinate bottom-up, so the stacking (multiple players on tile) looks correct
     std::multimap<Coord, CharacterEntry> sortedPlayers;
@@ -1646,6 +1658,29 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (chid == gameState.crownHolder)
                 entry.name += QString::fromUtf8(" \u265B");
 
+
+            // gems and storage
+            entry.icon_a1 = 0;
+            if (((gem_visualonly_state == GEM_UNKNOWN_HUNTER) || (gem_visualonly_state == GEM_ININVENTORY)) &&
+                (gem_cache_winner_name == chid.ToString()))
+            {
+                gem_visualonly_state = GEM_ININVENTORY;
+                entry.icon_a1 = 453;
+            }
+#ifdef PERMANENT_LUGGAGE
+            int64 tmp_in_purse = characterState.rpg_gems_in_purse;
+            if (tmp_in_purse >= 100000000)
+            {
+                entry.icon_a1 = 453;
+            }
+            if (tmp_in_purse > 0)
+            {
+                entry.name += QString::fromStdString(" ");
+                // entry.name += QString::number(tmp_in_purse);
+                entry.name += QString::fromStdString(FormatMoney(tmp_in_purse));
+                entry.name += QString::fromStdString("gems");
+            }
+#endif
 
             // pending tx monitor -- info text
             const Coord &wmon_from = characterState.from;
@@ -1937,7 +1972,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
 
         // better GUI -- better player sprites
-        int color_attack1 = RPG_ICON_EMPTY;
+        int color_attack1 = data.second.icon_a1 ==  453 ? 453 : RPG_ICON_EMPTY; // gems and storage
+
         int color_defense1 = data.second.icon_d1 ==  RGP_ICON_HUC_BANDIT ? RGP_ICON_HUC_BANDIT : RPG_ICON_EMPTY;
         int color_defense2 = data.second.icon_d2 ==  RGP_ICON_HUC_BANDIT ? RGP_ICON_HUC_BANDIT : RPG_ICON_EMPTY;
         gameMapCache->AddPlayer(playerName, x, y, 1 + offs, data.second.color, color_attack1, color_defense1, color_defense2, characterState.dir, characterState.loot.nAmount);
@@ -1956,6 +1992,11 @@ void GameMapView::updateGameMap(const GameState &gameState)
             tmp_name += QString::fromStdString("|");
 
         gameMapCache->AddPlayer(tmp_name, TILE_SIZE * bank_xpos[m], TILE_SIZE * bank_ypos[m], 1 + 0, 4, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 3, 0);
+    }
+    // gems and storage
+    if (gem_visualonly_state == GEM_SPAWNED)
+    {
+        gameMapCache->AddPlayer("Tia'tha", TILE_SIZE * gem_visualonly_x, TILE_SIZE * gem_visualonly_y, 1 + 0, 5, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
     }
 
 

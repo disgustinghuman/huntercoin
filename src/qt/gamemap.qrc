@@ -453,6 +453,7 @@
         <file alias="450">res/gamemap/450.png</file>
         <file alias="451">res/gamemap/451.png</file>
         <file alias="452">res/gamemap/452.png</file>
+        <file alias="453">res/gamemap/453.png</file>
     </qresource>
     <qresource prefix="/gamemap/sprites">
         <file alias="0_1">res/gamemap/sprites/0_1.png</file>
@@ -495,6 +496,14 @@
         <file alias="4_7">res/gamemap/sprites/4_7.png</file>
         <file alias="4_8">res/gamemap/sprites/4_8.png</file>
         <file alias="4_9">res/gamemap/sprites/4_9.png</file>
+        <file alias="5_1">res/gamemap/sprites/5_1.png</file>
+        <file alias="5_2">res/gamemap/sprites/5_2.png</file>
+        <file alias="5_3">res/gamemap/sprites/5_3.png</file>
+        <file alias="5_4">res/gamemap/sprites/5_4.png</file>
+        <file alias="5_6">res/gamemap/sprites/5_6.png</file>
+        <file alias="5_7">res/gamemap/sprites/5_7.png</file>
+        <file alias="5_8">res/gamemap/sprites/5_8.png</file>
+        <file alias="5_9">res/gamemap/sprites/5_9.png</file>
         <file alias="coin">res/gamemap/sprites/coin.png</file>
         <file alias="heart">res/gamemap/sprites/heart.png</file>
         <file alias="crown">res/gamemap/sprites/crown.png</file>

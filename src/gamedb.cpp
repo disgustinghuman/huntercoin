@@ -155,6 +155,18 @@ public:
           return error ("GameStepValidator: name_firstupdate is not spawn");
 
         std::string addressLock = m.AddressOperationPermission(*pstate);
+
+#ifdef PERMANENT_LUGGAGE
+        // gems and storage
+        if (GEM_ALLOW_SPAWN(fTestNet, pstate->nHeight))
+        {
+            std::string sa;
+            GetNameAddress(tx, sa);
+            m.playernameaddress = sa;
+            printf("luggage test: move for name %s, playernameaddr %s\n", sName.c_str(), sa.c_str());
+        }
+#endif
+
         if (!addressLock.empty())
         {
             // If one of inputs has address equal to addressLock, then that input has been signed by the address owner

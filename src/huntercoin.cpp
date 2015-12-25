@@ -1151,6 +1151,14 @@ Value name_firstupdate(const Array& params, bool fHelp)
 }
 
 
+#ifdef PERMANENT_LUGGAGE_OR_GUI
+// gems and storage
+int gem_visualonly_state = 0; // 1..spawned  2..harvested (current block)  3..in player inventory  4..same as 3 but player not found
+int gem_visualonly_x = 10;
+int gem_visualonly_y = 250;
+std::string gem_cache_winner_name;
+#endif
+
 #ifdef GUI
 // pending tx monitor -- variables
 bool pmon_noisy = false;

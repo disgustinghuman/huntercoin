@@ -455,9 +455,30 @@ void Move::ApplyCommon(GameState &state) const
         pl.message_block = state.nHeight;
     }
     if (address)
+    {
         pl.address = *address;
+
+#ifdef PERMANENT_LUGGAGE
+        // gems and storage -- schedule to process reward address change next block
+        if (GEM_ALLOW_SPAWN(fTestNet, state.nHeight))
+        {
+          pl.playerflags |= 1;
+          printf("luggage test: player %s set reward address to %s\n", mi->first.c_str(), pl.address.c_str());
+        }
+#endif
+
+    }
     if (addressLock)
         pl.addressLock = *addressLock;
+
+#ifdef PERMANENT_LUGGAGE
+    if ((playernameaddress) && (*playernameaddress != pl.playernameaddress))
+    {
+        pl.playernameaddress = *playernameaddress;
+        pl.playerflags |= 2;
+        printf("luggage test: player %s transferred to %s\n", mi->first.c_str(), pl.playernameaddress.c_str());
+    }
+#endif
 }
 
 std::string Move::AddressOperationPermission(const GameState &state) const
@@ -924,6 +945,13 @@ GetDirection (const Coord& c1, const Coord& c2)
     return (1 - dy) * 3 + dx + 2;
 }
 
+
+// gems and storage
+#ifdef PERMANENT_LUGGAGE
+std::string Huntermsg_cache_address;
+#endif
+
+
 // Simple straight-line motion
 void CharacterState::MoveTowardsWaypoint()
 {
@@ -1222,6 +1250,14 @@ GameState::GameState()
     nHeight = -1;
     nDisasterHeight = -1;
     hashBlock = 0;
+
+    // gems and storage
+#ifdef PERMANENT_LUGGAGE
+    gemSpawnPos.x = 0;
+    gemSpawnPos.y = 0;
+    gemSpawnState = 0;
+#endif
+
     SetOriginalBanks (banks);
 }
 
@@ -2036,7 +2072,166 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
     // For all alive players perform path-finding
     BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
         BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
+        {
+
+            // gems and storage
+#ifdef PERMANENT_LUGGAGE
+            if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
+            {
+              if ((outState.gemSpawnState == GEM_SPAWNED) || (outState.gemSpawnState == GEM_HARVESTING))
+              {
+                CharacterState &ch = pc.second;
+                if (ch.coord == outState.gemSpawnPos)
+                {
+                    outState.gemSpawnState = GEM_HARVESTING;
+                    gem_visualonly_state = GEM_HARVESTING; // keep in sync
+                    gem_cache_winner_name = p.first;
+                }
+              }
+            }
+#elif GUI
+            if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
+            {
+              if ((gem_visualonly_state == GEM_SPAWNED) || (gem_visualonly_state == GEM_HARVESTING))
+              {
+                  CharacterState &ch = pc.second;
+                  if ((ch.coord.x == gem_visualonly_x) && (ch.coord.y == gem_visualonly_y))
+                  {
+                      gem_visualonly_state = GEM_HARVESTING;
+                      gem_cache_winner_name = p.first;
+                  }
+              }
+            }
+#endif
+
             pc.second.MoveTowardsWaypoint();
+        }
+
+    // gems and storage
+#ifdef PERMANENT_LUGGAGE
+    if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
+    {
+      BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
+      {
+        // update player name address on record in gamestate if reward address was updated in previous block
+        // or if we just found a gem
+        int64 tmp_gems = 0;
+        int64 tmp_new_gems = 0;
+        bool tmp_disconnect_storage = false;
+        bool tmp_reward_addr_set = (p.second.address.length() > 1); // (IsValidBitcoinAddress(p.second.address)) fast enough?
+
+        // found a gem
+        if ((outState.gemSpawnState == GEM_HARVESTING) &&
+            (gem_cache_winner_name == p.first))
+        {
+            p.second.playerflags |= 4;
+            tmp_new_gems = GEM_NORMAL_VALUE;
+        }
+
+        if (p.second.playerflags)
+        {
+            p.second.playerflags = 0;
+
+            // possibly true if an hunter never moved but found a gem (spawned at gem position)?
+            if (!p.second.playernameaddress.empty())
+            {
+                if (tmp_reward_addr_set)
+                {
+                    if (p.second.playernameaddress == p.second.address)
+                    {
+                        // connect to storage if reward address is set and same as name address
+                        tmp_disconnect_storage = false;
+                        Huntermsg_cache_address = p.second.playernameaddress;
+                    }
+                    else
+                    {
+                        // reward address different than name address, found gems will go to reward address
+                        tmp_disconnect_storage = true;
+                        Huntermsg_cache_address = p.second.address;
+                    }
+                }
+                // no reward address: disconnect, gems stored with playernameaddress
+                else
+                {
+                    tmp_disconnect_storage = true;
+                    Huntermsg_cache_address = p.second.playernameaddress;
+                }
+
+
+                if (true)
+                {
+                    // already have a storage
+                    // was:              if (outState.vault.count(Huntermsg_cache_address) > 0)
+                    std::map<std::string, StorageVault>::iterator mi = outState.vault.find(Huntermsg_cache_address);
+                    if (mi != outState.vault.end())
+                    {
+                        if (tmp_new_gems)
+                        {
+                            // was:                        outState.vault[Huntermsg_cache_address] += tmp_new_gems;
+                            mi->second.nGems += tmp_new_gems;
+
+                            printf("luggage test: %s added item(s) to storage %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
+                            if (tmp_disconnect_storage) printf("luggage test: storage is disconnected\n");
+                        }
+
+                        if (!tmp_disconnect_storage)
+                        {
+                            // was:                       tmp_gems = outState.gems[Huntermsg_cache_address];
+                            tmp_gems = mi->second.nGems;
+
+                            printf("luggage test: %s retrieved item(s) from storage %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
+                            printf("luggage test: %15"PRI64d" gem sats found\n", tmp_gems);
+                        }
+                    }
+                    // need storage for new gem
+                    else if (tmp_new_gems > GEM_ONETIME_STORAGE_FEE)
+                    {
+                        tmp_new_gems -= GEM_ONETIME_STORAGE_FEE;
+
+                        // was:                        outState.gems.insert(std::pair<std::string,int64>(Huntermsg_cache_address, tmp_new_gems));
+                        outState.vault.insert(std::make_pair(Huntermsg_cache_address, StorageVault(tmp_new_gems)));
+
+                        tmp_gems = tmp_new_gems;
+                        printf("luggage test: gem found, new storage for name %s, addr %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
+                    }
+                    else
+                    {
+                        printf("luggage test: there is no storage for name %s, addr %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
+                    }
+                }
+            }
+            else
+            {
+                printf("luggage test: ERROR: no addr for name %s\n", p.first.c_str());
+            }
+        }
+
+        if ((tmp_disconnect_storage) || (tmp_gems))
+        {
+            BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
+            {
+                int i = pc.first;
+                CharacterState &ch = pc.second;
+    //            int tmp_m = ch.ai_npc_role;
+
+                if (tmp_disconnect_storage)
+                {
+                    if (ch.rpg_gems_in_purse > 0)
+                    {
+                        ch.rpg_gems_in_purse = 0;
+                        printf("luggage test: storage disconnectd, name %s, idx %d\n", p.first.c_str(), i);
+                    }
+                }
+                else if (tmp_gems)
+                {
+                    ch.rpg_gems_in_purse = tmp_gems;
+                    tmp_gems = 0;
+                }
+            }
+        }
+      }
+    }
+#endif
 
     bool respawn_crown = false;
     outState.UpdateCrownState(respawn_crown);
@@ -2198,6 +2393,49 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             }
         }
     }
+#endif
+
+#ifdef PERMANENT_LUGGAGE_OR_GUI
+    // gems and storage
+    if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
+    {
+      if (((fTestNet) && (outState.nHeight % 100 == 0)) ||
+          (((!fTestNet) && (outState.nHeight % 1242 == 0))))
+      {
+        gem_visualonly_state = GEM_SPAWNED;
+        gem_cache_winner_name = "";
+
+        unsigned char *ch = outState.hashBlock.end();
+        if (*ch & 4)
+        {
+            gem_visualonly_x = 10;
+            gem_visualonly_y = 250;
+        }
+        else
+        {
+            gem_visualonly_x = 491;
+            gem_visualonly_y = 251;
+        }
+#ifdef PERMANENT_LUGGAGE
+        outState.gemSpawnState = gem_visualonly_state;
+        outState.gemSpawnPos.x = gem_visualonly_x;
+        outState.gemSpawnPos.y = gem_visualonly_y;
+#endif
+      }
+      else
+      {
+#ifdef PERMANENT_LUGGAGE
+        if (outState.gemSpawnState == GEM_HARVESTING)
+            outState.gemSpawnState = GEM_UNKNOWN_HUNTER; // the hunter will keep track of their new gem,
+                                                         // and "visualonly state" will (try to) keep track of the blue icon
+#endif
+        if ((gem_visualonly_state == GEM_HARVESTING) || (gem_visualonly_state == GEM_ININVENTORY))
+            gem_visualonly_state = GEM_UNKNOWN_HUNTER;
+        else if (gem_visualonly_state == GEM_UNKNOWN_HUNTER)
+            gem_visualonly_state = 0;
+      }
+    }
+    printf("luggage test: nHeight %d, spawn state %d, xy %d %d\n", outState.nHeight, gem_visualonly_state, gem_visualonly_x, gem_visualonly_y);
 #endif
 
     return true;

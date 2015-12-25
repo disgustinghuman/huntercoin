@@ -12,6 +12,16 @@
 #include <map>
 #include <string>
 
+// gems and storage
+// uncomment this line and delete "game.dat" if you dare
+//#define PERMANENT_LUGGAGE
+#ifdef PERMANENT_LUGGAGE
+#define PERMANENT_LUGGAGE_OR_GUI
+#endif
+#ifdef GUI
+#define PERMANENT_LUGGAGE_OR_GUI
+#endif
+
 namespace Game
 {
 
@@ -115,6 +125,11 @@ struct Move
     boost::optional<std::string> message;
     boost::optional<std::string> address;
     boost::optional<std::string> addressLock;
+
+#ifdef PERMANENT_LUGGAGE
+    // gems and storage
+    boost::optional<std::string> playernameaddress;
+#endif
 
     /* For spawning moves.  */
     unsigned char color;
@@ -255,6 +270,72 @@ inline int distLInf(const Coord &c1, const Coord &c2)
     return std::max(abs(c1.x - c2.x), abs(c1.y - c2.y));
 }
 
+#ifdef PERMANENT_LUGGAGE
+// gems and storage
+struct StorageVault
+{
+    int64_t nGems;
+    int64_t nGemsLocked;
+    int gemlockfinished;
+    int vaultflags;
+    int64_t gem_reserve1;
+    int64_t gem_reserve2;
+    int64_t gem_reserve3;
+    int64_t gem_reserve4;
+    int64_t gem_reserve5;
+    int64_t gem_reserve6;
+    int gem_reserve7;
+    int gem_reserve8;
+    unsigned char gem_reserve9;
+    unsigned char gem_reserve10;
+
+    StorageVault()
+        : nGems(0), nGemsLocked(0), gemlockfinished(0), vaultflags(0),
+          gem_reserve1(0),
+          gem_reserve2(0),
+          gem_reserve3(0),
+          gem_reserve4(0),
+          gem_reserve5(0),
+          gem_reserve6(0),
+          gem_reserve7(0),
+          gem_reserve8(0),
+          gem_reserve9(0),
+          gem_reserve10(0)
+    { }
+    StorageVault(int64_t nGems_)
+        : nGems(nGems_), nGemsLocked(0), gemlockfinished(0), vaultflags(0),
+          gem_reserve1(0),
+          gem_reserve2(0),
+          gem_reserve3(0),
+          gem_reserve4(0),
+          gem_reserve5(0),
+          gem_reserve6(0),
+          gem_reserve7(0),
+          gem_reserve8(0),
+          gem_reserve9(0),
+          gem_reserve10(0)
+    { }
+
+    IMPLEMENT_SERIALIZE
+    (
+        READWRITE(nGems);
+        READWRITE(nGemsLocked);
+        READWRITE(gemlockfinished);
+        READWRITE(vaultflags);
+        READWRITE(gem_reserve1);
+        READWRITE(gem_reserve2);
+        READWRITE(gem_reserve3);
+        READWRITE(gem_reserve4);
+        READWRITE(gem_reserve5);
+        READWRITE(gem_reserve6);
+        READWRITE(gem_reserve7);
+        READWRITE(gem_reserve8);
+        READWRITE(gem_reserve9);
+        READWRITE(gem_reserve10);
+    )
+};
+#endif
+
 struct LootInfo
 {
     int64_t nAmount;
@@ -347,10 +428,16 @@ struct CharacterState
     WaypointVector waypoints;           // Waypoints (stored in reverse so removal of the first waypoint is fast)
     CollectedLootInfo loot;             // Loot collected by player but not banked yet
     unsigned char stay_in_spawn_area;   // Auto-kill players who stay in the spawn area too long
+#ifdef PERMANENT_LUGGAGE
+    int64 rpg_gems_in_purse;            // gems and storage
+#endif
 
     CharacterState ()
       : coord(0, 0), dir(0), from(0, 0),
         stay_in_spawn_area(0)
+#ifdef PERMANENT_LUGGAGE
+        ,rpg_gems_in_purse(0)
+#endif
     {}
 
     IMPLEMENT_SERIALIZE
@@ -365,6 +452,9 @@ struct CharacterState
         READWRITE(waypoints);
         READWRITE(loot);
         READWRITE(stay_in_spawn_area);
+#ifdef PERMANENT_LUGGAGE
+        READWRITE(rpg_gems_in_purse);
+#endif
     )
 
     void Spawn(unsigned nHeight, int color, RandomGenerator &rnd);
@@ -421,6 +511,12 @@ struct PlayerState
     std::string address;      // Address for receiving rewards. Empty means receive to the name address
     std::string addressLock;  // "Admin" address for player - reward address field can only be changed, if player is transferred to addressLock
 
+#ifdef PERMANENT_LUGGAGE
+    // gems and storage
+    std::string playernameaddress;
+    int playerflags;
+#endif
+
     IMPLEMENT_SERIALIZE
     (
         /* Last version change is beyond the last version where the game db
@@ -437,6 +533,11 @@ struct PlayerState
         READWRITE(address);
         READWRITE(addressLock);
 
+#ifdef PERMANENT_LUGGAGE
+        READWRITE(playernameaddress);
+        READWRITE(playerflags);
+#endif
+
         READWRITE(lockedCoins);
         if (nVersion < 1030000)
           {
@@ -450,6 +551,9 @@ struct PlayerState
     PlayerState ()
       : color(0xFF), lockedCoins(0), value(-1),
         next_character_index(0), remainingLife(-1), message_block(0)
+#ifdef PERMANENT_LUGGAGE
+      ,playerflags(0)
+#endif
     {}
 
     void SpawnCharacter(unsigned nHeight, RandomGenerator &rnd);
@@ -471,6 +575,13 @@ struct GameState
     // Minimum info is stored: color, message, message_block.
     // When converting to JSON, this array is concatenated with normal players.
     std::map<PlayerID, PlayerState> dead_players_chat;
+
+#ifdef PERMANENT_LUGGAGE
+    // gems and storage
+    std::map<std::string, StorageVault> vault;
+    Coord gemSpawnPos;
+    int gemSpawnState;
+#endif
 
     std::map<Coord, LootInfo> loot;
     std::set<Coord> hearts;
@@ -514,6 +625,14 @@ struct GameState
       READWRITE(players);
       READWRITE(dead_players_chat);
       READWRITE(loot);
+
+#ifdef PERMANENT_LUGGAGE
+      // gems and storage
+      READWRITE(vault);
+      READWRITE(gemSpawnPos);
+      READWRITE(gemSpawnState);
+#endif
+
       READWRITE(hearts);
       if (nVersion >= 1030000)
         READWRITE(banks);
@@ -796,6 +915,26 @@ extern int pmon_my_foecontact_age[PMON_MY_MAX];
 extern int pmon_my_idlecount[PMON_MY_MAX];
 extern bool pmon_name_pending_start();
 extern bool pmon_name_pending();
+#endif
+
+#ifdef PERMANENT_LUGGAGE_OR_GUI
+// gems and storage
+#define GEM_SPAWNED 1
+#define GEM_HARVESTING 2
+#define GEM_ININVENTORY 3
+#define GEM_UNKNOWN_HUNTER 4
+#define GEM_ALLOW_SPAWN(T,H) ((T)&&(H>315500) || (H>1030000))
+extern int gem_visualonly_state;
+extern int gem_visualonly_x;
+extern int gem_visualonly_y;
+extern std::string gem_cache_winner_name; // visualonly unless state was set to GEM_HARVESTING
+#endif
+
+#ifdef PERMANENT_LUGGAGE
+#define GEM_NORMAL_VALUE 102000000
+#define GEM_ONETIME_STORAGE_FEE 2000000
+
+extern std::string Huntermsg_cache_address;
 #endif
 
 
