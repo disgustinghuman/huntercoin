@@ -97,7 +97,32 @@ public:
     bool IsValid(const CTransaction& tx, Move &outMove)
     {
         if (tx.nVersion != NAMECOIN_TX_VERSION)
-          return true;
+        {
+#ifdef PERMANENT_LUGGAGE
+            // gems and storage
+            for (unsigned int i = 0; i < tx.vout.size(); i++)
+            {
+                const CTxOut& txout = tx.vout[i];
+                int64 nSingleValueOut = txout.nValue;
+                std::string address;
+                CScript script(txout.scriptPubKey);
+                if (ExtractDestination(script, address))
+                {
+                    if (pstate->vault.count(address) > 0)
+                        printf("luggage test: storage address %s received payment:", address.c_str());
+                    else
+                        printf("luggage test: address %s received payment:", address.c_str());
+
+                    printf(" %15"PRI64d" \n", nSingleValueOut);
+
+                    // 0 when mining?
+                    printf("luggage test: block hash %s\n", pstate->hashBlock.GetHex ().c_str ());
+                }
+            }
+#endif
+
+            return true;
+        }
 
         std::vector<vchType> vvchArgs;
         int op, nOut;

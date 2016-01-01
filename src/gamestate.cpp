@@ -2399,14 +2399,18 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
     // gems and storage
     if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
     {
+      char buf[2] = {'/0', '/0'};
+      std::string s = outState.hashBlock.ToString();
+      buf[0] = s.at(s.length() - 1);
+      int h = strtol(buf, NULL, 16);
+
       if (((fTestNet) && (outState.nHeight % 100 == 0)) ||
           (((!fTestNet) && (outState.nHeight % 1242 == 0))))
       {
         gem_visualonly_state = GEM_SPAWNED;
         gem_cache_winner_name = "";
 
-        unsigned char *ch = outState.hashBlock.end();
-        if (*ch & 4)
+        if (h & 4)
         {
             gem_visualonly_x = 10;
             gem_visualonly_y = 250;
@@ -2434,8 +2438,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         else if (gem_visualonly_state == GEM_UNKNOWN_HUNTER)
             gem_visualonly_state = 0;
       }
+      printf("luggage test: nHeight %d, hex digit %d, spawn state %d, xy %d %d\n", outState.nHeight, h, gem_visualonly_state, gem_visualonly_x, gem_visualonly_y);
     }
-    printf("luggage test: nHeight %d, spawn state %d, xy %d %d\n", outState.nHeight, gem_visualonly_state, gem_visualonly_x, gem_visualonly_y);
 #endif
 
     return true;

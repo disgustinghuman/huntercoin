@@ -1639,9 +1639,10 @@ name_pending (const Array& params, bool fHelp)
 {
 #ifdef GUI
     // pending tx monitor -- main loop
-    pmon_go = 0;
-    if (params.size () == 1)
+    if ((!fHelp) && (params.size () == 1))
     {
+        pmon_go = 0;
+
         std::string pmon_param = params[0].get_str();
         pmon_go = atoi(pmon_param.c_str());
 

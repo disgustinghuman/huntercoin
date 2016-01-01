@@ -923,7 +923,7 @@ extern bool pmon_name_pending();
 #define GEM_HARVESTING 2
 #define GEM_ININVENTORY 3
 #define GEM_UNKNOWN_HUNTER 4
-#define GEM_ALLOW_SPAWN(T,H) ((T)&&(H>315500) || (H>1030000))
+#define GEM_ALLOW_SPAWN(T,H) (((T)&&(H>315500)) || (H>1030000))
 extern int gem_visualonly_state;
 extern int gem_visualonly_x;
 extern int gem_visualonly_y;
