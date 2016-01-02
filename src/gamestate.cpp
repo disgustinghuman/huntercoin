@@ -2403,11 +2403,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
       std::string s = outState.hashBlock.ToString();
       buf[0] = s.at(s.length() - 1);
       int h = strtol(buf, NULL, 16);
-      // todo: match old behavior on next gamestate update
-      // if ((!fTestNet) && (outState.nHeight < 1035000)) h = 0;
 
-      if (((fTestNet) && (outState.nHeight % 100 == 0)) ||
-          (((!fTestNet) && (outState.nHeight % 1242 == 0))))
+      if ( ((fTestNet) && (outState.nHeight % 100 == 0)) ||
+          (((!fTestNet) && (outState.nHeight % 1242 == 0))) ||
+          (((!fTestNet) && (outState.nHeight == 1031000))) ) // special case to match behavior of old bugged version
       {
         gem_visualonly_state = GEM_SPAWNED;
         gem_cache_winner_name = "";
