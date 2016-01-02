@@ -2399,10 +2399,12 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
     // gems and storage
     if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
     {
-      char buf[2] = {'/0', '/0'};
+      char buf[2] = { '\0', '\0' };
       std::string s = outState.hashBlock.ToString();
       buf[0] = s.at(s.length() - 1);
       int h = strtol(buf, NULL, 16);
+      // todo: match old behavior on next gamestate update
+      // if ((!fTestNet) && (outState.nHeight < 1035000)) h = 0;
 
       if (((fTestNet) && (outState.nHeight % 100 == 0)) ||
           (((!fTestNet) && (outState.nHeight % 1242 == 0))))
