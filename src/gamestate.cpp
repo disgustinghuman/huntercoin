@@ -2169,7 +2169,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         {
                             // was:                        outState.vault[Huntermsg_cache_address] += tmp_new_gems;
                             mi->second.nGems += tmp_new_gems;
-
+#ifdef PERMANENT_LUGGAGE
+                            mi->second.huntername = p.first;
+#endif
                             printf("luggage test: %s added item(s) to storage %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
                             if (tmp_disconnect_storage) printf("luggage test: storage is disconnected\n");
                         }
@@ -2190,7 +2192,21 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                         // was:                        outState.gems.insert(std::pair<std::string,int64>(Huntermsg_cache_address, tmp_new_gems));
                         outState.vault.insert(std::make_pair(Huntermsg_cache_address, StorageVault(tmp_new_gems)));
+#ifdef PERMANENT_LUGGAGE
+                        std::map<std::string, StorageVault>::iterator mi2 = outState.vault.find(Huntermsg_cache_address);
+                        if (mi2 != outState.vault.end())
+                        {
+                            mi2->second.huntername = p.first;
+                        }
 
+                        // probably faster version:
+//                        std::pair<std::map<std::string, StorageVault>::iterator,bool> ret;
+//                        ret = outState.vault.insert(std::make_pair(Huntermsg_cache_address, StorageVault(tmp_new_gems)));
+//                        if (ret.second == true)
+//                        {
+//                            ret.first->second.huntername = p.first;
+//                        }
+#endif
                         tmp_gems = tmp_new_gems;
                         printf("luggage test: gem found, new storage for name %s, addr %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
                     }
@@ -2212,14 +2228,13 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             {
                 int i = pc.first;
                 CharacterState &ch = pc.second;
-    //            int tmp_m = ch.ai_npc_role;
 
                 if (tmp_disconnect_storage)
                 {
                     if (ch.rpg_gems_in_purse > 0)
                     {
                         ch.rpg_gems_in_purse = 0;
-                        printf("luggage test: storage disconnectd, name %s, idx %d\n", p.first.c_str(), i);
+                        printf("luggage test: storage disconnected, name %s, idx %d\n", p.first.c_str(), i);
                     }
                 }
                 else if (tmp_gems)
@@ -2404,23 +2419,16 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
       buf[0] = s.at(s.length() - 1);
       int h = strtol(buf, NULL, 16);
 
-      if ( ((fTestNet) && (outState.nHeight % 100 == 0)) ||
-          (((!fTestNet) && (outState.nHeight % 1242 == 0))) ||
-          (((!fTestNet) && (outState.nHeight == 1031000))) ) // special case to match behavior of old bugged version
+      if ((GEM_RESET(fTestNet, outState.nHeight)) ||
+          (GEM_RESET_HOTFIX(fTestNet, outState.nHeight)))
       {
         gem_visualonly_state = GEM_SPAWNED;
         gem_cache_winner_name = "";
 
-        if (h & 4)
-        {
-            gem_visualonly_x = 10;
-            gem_visualonly_y = 250;
-        }
-        else
-        {
-            gem_visualonly_x = 491;
-            gem_visualonly_y = 251;
-        }
+        int idx_sp = (h & 4) ? 0 : 1;
+        gem_visualonly_x = gem_spawnpoint_x[idx_sp];
+        gem_visualonly_y = gem_spawnpoint_y[idx_sp];
+
 #ifdef PERMANENT_LUGGAGE
         outState.gemSpawnState = gem_visualonly_state;
         outState.gemSpawnPos.x = gem_visualonly_x;

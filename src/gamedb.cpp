@@ -98,7 +98,7 @@ public:
     {
         if (tx.nVersion != NAMECOIN_TX_VERSION)
         {
-#ifdef PERMANENT_LUGGAGE
+#ifdef PERMANENT_LUGGAGE_LOG_PAYMENTS
             // gems and storage
             for (unsigned int i = 0; i < tx.vout.size(); i++)
             {

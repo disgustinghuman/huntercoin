@@ -1948,7 +1948,37 @@ void GameMapView::updateGameMap(const GameState &gameState)
       }
     }
     if (pmon_state == PMONSTATE_SHUTDOWN)
+    {
         pmon_state = PMONSTATE_STOPPED;
+
+#ifdef PERMANENT_LUGGAGE
+        // list all players that own a storage vault
+        FILE *fp;
+        fp = fopen("adventurers.txt", "w");
+        if (fp != NULL)
+        {
+            int count = 0;
+            int64 count_volume = 0;
+            fprintf(fp, "                                           hunter\n");
+            fprintf(fp, "storage vault key                          name     gems\n");
+            fprintf(fp, "\n");
+
+            BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
+            {
+              int64 tmp_volume = st.second.nGems;
+              fprintf(fp, "%s    %10s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str());
+              count++;
+              count_volume += tmp_volume;
+            }
+            fprintf(fp, "\n");
+            fprintf(fp, "                                           total\n");
+            fprintf(fp, "\n");
+            fprintf(fp, "                                             %d    %s\n", count, FormatMoney(count_volume).c_str());
+
+            fclose(fp);
+        }
+#endif
+    }
 
 
     Coord prev_coord;
@@ -1998,6 +2028,15 @@ void GameMapView::updateGameMap(const GameState &gameState)
     {
         gameMapCache->AddPlayer("Tia'tha", TILE_SIZE * gem_visualonly_x, TILE_SIZE * gem_visualonly_y, 1 + 0, 5, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
     }
+#ifdef PERMANENT_LUGGAGE
+    else
+    {
+        QString qs = QString::fromStdString("Tia'tha 'next gem at ");
+        qs += QString::number(gameState.nHeight - (gameState.nHeight % GEM_RESET_INTERVAL(fTestNet)) + GEM_RESET_INTERVAL(fTestNet));
+        qs += QString::fromStdString("'");
+        gameMapCache->AddPlayer(qs, TILE_SIZE * 128, TILE_SIZE * 486, 1 + 0, 5, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
+    }
+#endif
 
 
     gameMapCache->EndCachedScene();

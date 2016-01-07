@@ -504,6 +504,14 @@
         <file alias="5_7">res/gamemap/sprites/5_7.png</file>
         <file alias="5_8">res/gamemap/sprites/5_8.png</file>
         <file alias="5_9">res/gamemap/sprites/5_9.png</file>
+        <file alias="6_1">res/gamemap/sprites/6_1.png</file>
+        <file alias="6_2">res/gamemap/sprites/6_2.png</file>
+        <file alias="6_3">res/gamemap/sprites/6_3.png</file>
+        <file alias="6_4">res/gamemap/sprites/6_4.png</file>
+        <file alias="6_6">res/gamemap/sprites/6_6.png</file>
+        <file alias="6_7">res/gamemap/sprites/6_7.png</file>
+        <file alias="6_8">res/gamemap/sprites/6_8.png</file>
+        <file alias="6_9">res/gamemap/sprites/6_9.png</file>
         <file alias="coin">res/gamemap/sprites/coin.png</file>
         <file alias="heart">res/gamemap/sprites/heart.png</file>
         <file alias="crown">res/gamemap/sprites/crown.png</file>

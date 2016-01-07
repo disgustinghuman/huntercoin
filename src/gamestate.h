@@ -15,6 +15,7 @@
 // gems and storage
 // uncomment this line and delete "game.dat" if you dare
 //#define PERMANENT_LUGGAGE
+//#define PERMANENT_LUGGAGE_LOG_PAYMENTS
 #ifdef PERMANENT_LUGGAGE
 #define PERMANENT_LUGGAGE_OR_GUI
 #endif
@@ -288,6 +289,7 @@ struct StorageVault
     int gem_reserve8;
     unsigned char gem_reserve9;
     unsigned char gem_reserve10;
+    std::string huntername;
 
     StorageVault()
         : nGems(0), nGemsLocked(0), gemlockfinished(0), vaultflags(0),
@@ -332,6 +334,7 @@ struct StorageVault
         READWRITE(gem_reserve8);
         READWRITE(gem_reserve9);
         READWRITE(gem_reserve10);
+        READWRITE(huntername);
     )
 };
 #endif
@@ -581,6 +584,18 @@ struct GameState
     std::map<std::string, StorageVault> vault;
     Coord gemSpawnPos;
     int gemSpawnState;
+
+    int64_t feed_nextexp_price;
+    int64_t feed_prevexp_price;
+
+    int64_t feed_reward_dividend;
+    int64_t feed_reward_divisor;
+    int64_t feed_reward_remaining;
+    int64_t npc_mm_remaining;
+    int64_t npc_other_remaining;
+    int64_t unknown_remaining;
+    int64_t feed_reserve1;
+    int64_t feed_reserve2;
 #endif
 
     std::map<Coord, LootInfo> loot;
@@ -631,6 +646,18 @@ struct GameState
       READWRITE(vault);
       READWRITE(gemSpawnPos);
       READWRITE(gemSpawnState);
+
+      READWRITE(feed_nextexp_price);
+      READWRITE(feed_prevexp_price);
+
+      READWRITE(feed_reward_dividend);
+      READWRITE(feed_reward_divisor);
+      READWRITE(feed_reward_remaining);
+      READWRITE(npc_mm_remaining);
+      READWRITE(npc_other_remaining);
+      READWRITE(unknown_remaining);
+      READWRITE(feed_reserve1);
+      READWRITE(feed_reserve2);
 #endif
 
       READWRITE(hearts);
@@ -924,9 +951,15 @@ extern bool pmon_name_pending();
 #define GEM_ININVENTORY 3
 #define GEM_UNKNOWN_HUNTER 4
 #define GEM_ALLOW_SPAWN(T,H) (((T)&&(H>315500)) || (H>1030000))
+#define GEM_RESET_INTERVAL(T) (T?100:1242)
+#define GEM_RESET(T,H) (((T)&&(H%100==0)) || ((!T)&&(H%1242==0)))
+#define GEM_RESET_HOTFIX(T,H) ((!T) && ((H==1031000)||(H==1032330)||(H==1033660))) // match behavior of old bugged version
 extern int gem_visualonly_state;
 extern int gem_visualonly_x;
 extern int gem_visualonly_y;
+#define GEM_NUM_SPAWNPOINTS 2
+extern int gem_spawnpoint_x[GEM_NUM_SPAWNPOINTS];
+extern int gem_spawnpoint_y[GEM_NUM_SPAWNPOINTS];
 extern std::string gem_cache_winner_name; // visualonly unless state was set to GEM_HARVESTING
 #endif
 
