@@ -2426,6 +2426,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         {
             feedcache_status = FEEDCACHE_NORMAL;
             if (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 0) feedcache_status = FEEDCACHE_EXPIRY;
+
+            outState.upgrade_test += 1;
         }
         else if (outState.nHeight == AUX_MINHEIGHT_FEED(fTestNet)) // initialize
         {
@@ -2433,6 +2435,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             outState.feed_nextexp_price = 200000; // 2 (dollar) cent
             outState.feed_reward_remaining = 100000000; // 1 gem
             outState.auction_settle_price = 10000000000; // 100 coins
+
+            outState.upgrade_test += 1;
         }
         else
         {
@@ -2444,7 +2448,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             outState.feed_reward_dividend = 0;
             outState.feed_reward_divisor = 0;
             outState.feed_reward_remaining = 0;
-            outState.upgrade_test = 90378475235838567;
+            outState.upgrade_test = outState.nHeight;
             outState.npc_other_remaining = 0;
             outState.auction_settle_price = 0;
             outState.auction_last_price = 0;

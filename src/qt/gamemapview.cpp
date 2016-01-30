@@ -1988,13 +1988,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
         fp = fopen("auction.txt", "w");
         if (fp != NULL)
         {
-          if (gameState.upgrade_test != 90378475235838567)
-          {
-            fprintf(fp, "Error: gamestate.dat was used with an old version of this client after block %d (testnet) or block %d (mainnet)\n", AUX_MINHEIGHT_FEED(true), AUX_MINHEIGHT_FEED(false));
-          }
-          else if (gameState.nHeight < AUX_MINHEIGHT_FEED(fTestNet))
+          if (gameState.nHeight < AUX_MINHEIGHT_FEED(fTestNet))
           {
             fprintf(fp, "Closed until block %d\n", AUX_MINHEIGHT_FEED(fTestNet));
+          }
+          else if (gameState.upgrade_test != gameState.nHeight)
+          {
+            fprintf(fp, "Error: gamestate.dat was used with an old version of this client after block %d (testnet) or block %d (mainnet)\n", AUX_MINHEIGHT_FEED(true), AUX_MINHEIGHT_FEED(false));
           }
           else
           {
