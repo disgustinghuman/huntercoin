@@ -14,8 +14,9 @@
 
 // gems and storage
 // uncomment this line and delete "game.dat" if you dare
-//#define PERMANENT_LUGGAGE
-//#define PERMANENT_LUGGAGE_LOG_PAYMENTS
+#define PERMANENT_LUGGAGE
+#define PERMANENT_LUGGAGE_LOG_PAYMENTS
+#define PERMANENT_LUGGAGE_AUCTION
 #ifdef PERMANENT_LUGGAGE
 #define PERMANENT_LUGGAGE_OR_GUI
 #endif
@@ -279,41 +280,41 @@ struct StorageVault
     int64_t nGemsLocked;
     int gemlockfinished;
     int vaultflags;
-    int64_t gem_reserve1;
-    int64_t gem_reserve2;
-    int64_t gem_reserve3;
+    int64_t feed_price;
+    int64_t auction_ask_size;
+    int64_t auction_ask_price;
     int64_t gem_reserve4;
     int64_t gem_reserve5;
     int64_t gem_reserve6;
-    int gem_reserve7;
-    int gem_reserve8;
+    int feed_chronon;
+    int auction_ask_chronon;
     unsigned char gem_reserve9;
     unsigned char gem_reserve10;
     std::string huntername;
 
     StorageVault()
         : nGems(0), nGemsLocked(0), gemlockfinished(0), vaultflags(0),
-          gem_reserve1(0),
-          gem_reserve2(0),
-          gem_reserve3(0),
+          feed_price(0),
+          auction_ask_size(0),
+          auction_ask_price(0),
           gem_reserve4(0),
           gem_reserve5(0),
           gem_reserve6(0),
-          gem_reserve7(0),
-          gem_reserve8(0),
+          feed_chronon(0),
+          auction_ask_chronon(0),
           gem_reserve9(0),
           gem_reserve10(0)
     { }
     StorageVault(int64_t nGems_)
         : nGems(nGems_), nGemsLocked(0), gemlockfinished(0), vaultflags(0),
-          gem_reserve1(0),
-          gem_reserve2(0),
-          gem_reserve3(0),
+          feed_price(0),
+          auction_ask_size(0),
+          auction_ask_price(0),
           gem_reserve4(0),
           gem_reserve5(0),
           gem_reserve6(0),
-          gem_reserve7(0),
-          gem_reserve8(0),
+          feed_chronon(0),
+          auction_ask_chronon(0),
           gem_reserve9(0),
           gem_reserve10(0)
     { }
@@ -324,14 +325,14 @@ struct StorageVault
         READWRITE(nGemsLocked);
         READWRITE(gemlockfinished);
         READWRITE(vaultflags);
-        READWRITE(gem_reserve1);
-        READWRITE(gem_reserve2);
-        READWRITE(gem_reserve3);
+        READWRITE(feed_price);
+        READWRITE(auction_ask_size);
+        READWRITE(auction_ask_price);
         READWRITE(gem_reserve4);
         READWRITE(gem_reserve5);
         READWRITE(gem_reserve6);
-        READWRITE(gem_reserve7);
-        READWRITE(gem_reserve8);
+        READWRITE(feed_chronon);
+        READWRITE(auction_ask_chronon);
         READWRITE(gem_reserve9);
         READWRITE(gem_reserve10);
         READWRITE(huntername);
@@ -591,11 +592,11 @@ struct GameState
     int64_t feed_reward_dividend;
     int64_t feed_reward_divisor;
     int64_t feed_reward_remaining;
-    int64_t npc_mm_remaining;
+    int64_t upgrade_test;
     int64_t npc_other_remaining;
-    int64_t unknown_remaining;
-    int64_t feed_reserve1;
-    int64_t feed_reserve2;
+    int64_t auction_settle_price;
+    int64_t auction_last_price;
+    int64_t auction_last_chronon;
 #endif
 
     std::map<Coord, LootInfo> loot;
@@ -653,11 +654,11 @@ struct GameState
       READWRITE(feed_reward_dividend);
       READWRITE(feed_reward_divisor);
       READWRITE(feed_reward_remaining);
-      READWRITE(npc_mm_remaining);
+      READWRITE(upgrade_test);
       READWRITE(npc_other_remaining);
-      READWRITE(unknown_remaining);
-      READWRITE(feed_reserve1);
-      READWRITE(feed_reserve2);
+      READWRITE(auction_settle_price);
+      READWRITE(auction_last_price);
+      READWRITE(auction_last_chronon);
 #endif
 
       READWRITE(hearts);
@@ -961,6 +962,7 @@ extern int gem_visualonly_y;
 extern int gem_spawnpoint_x[GEM_NUM_SPAWNPOINTS];
 extern int gem_spawnpoint_y[GEM_NUM_SPAWNPOINTS];
 extern std::string gem_cache_winner_name; // visualonly unless state was set to GEM_HARVESTING
+extern int gem_log_height;
 #endif
 
 #ifdef PERMANENT_LUGGAGE
@@ -968,6 +970,39 @@ extern std::string gem_cache_winner_name; // visualonly unless state was set to 
 #define GEM_ONETIME_STORAGE_FEE 2000000
 
 extern std::string Huntermsg_cache_address;
+
+#ifdef PERMANENT_LUGGAGE_AUCTION
+#define AUCTION_BID_PRIORITY_TIMEOUT 15
+#define AUCTION_MIN_SIZE 10000000
+#define AUCTION_DUTCHAUCTION_INTERVAL 100
+extern int64 auctioncache_bid_price;
+extern int64 auctioncache_bid_size;
+extern int auctioncache_bid_chronon;
+extern std::string auctioncache_bid_name;
+extern int64 auctioncache_bestask_price;
+extern int64 auctioncache_bestask_size;
+extern int auctioncache_bestask_chronon;
+extern std::string auctioncache_bestask_key;
+
+#define PAYMENTCACHE_MAX 1000
+extern int paymentcache_idx;
+extern uint256 paymentcache_instate_blockhash;
+extern int64 paymentcache_amount[PAYMENTCACHE_MAX];
+extern std::string paymentcache_vault_addr[PAYMENTCACHE_MAX];
+
+#define AUX_MINHEIGHT_FEED(T) (T?317500:1200000)
+#define AUX_EXPIRY_INTERVAL(T) (T?100:10000)
+#define VAULTFLAG_FEED_REWARD 1
+#define FEEDCACHE_NORMAL 1
+#define FEEDCACHE_EXPIRY 2
+extern int64 feedcache_volume_total;
+extern int64 feedcache_volume_participation;
+extern int64 feedcache_volume_bull;
+extern int64 feedcache_volume_bear;
+extern int64 feedcache_volume_neutral;
+extern int64 feedcache_volume_reward;
+extern int feedcache_status;
+#endif
 #endif
 
 

@@ -98,7 +98,7 @@ public:
     {
         if (tx.nVersion != NAMECOIN_TX_VERSION)
         {
-#ifdef PERMANENT_LUGGAGE_LOG_PAYMENTS
+#ifdef PERMANENT_LUGGAGE_AUCTION
             // gems and storage
             for (unsigned int i = 0; i < tx.vout.size(); i++)
             {
@@ -109,14 +109,23 @@ public:
                 if (ExtractDestination(script, address))
                 {
                     if (pstate->vault.count(address) > 0)
-                        printf("luggage test: storage address %s received payment:", address.c_str());
+                    {
+                        if (paymentcache_idx < PAYMENTCACHE_MAX)
+                        {
+                            paymentcache_vault_addr[paymentcache_idx] = address;
+                            paymentcache_amount[paymentcache_idx] = nSingleValueOut;
+                            paymentcache_idx++;
+                        }
+                        printf("luggage test: storage address %s received payment: %15"PRI64d" ", address.c_str(), nSingleValueOut);
+                        printf(" height %d, block hash %s\n", pstate->nHeight, pstate->hashBlock.GetHex().c_str());
+                    }
+#ifdef PERMANENT_LUGGAGE_LOG_PAYMENTS
                     else
-                        printf("luggage test: address %s received payment:", address.c_str());
-
-                    printf(" %15"PRI64d" \n", nSingleValueOut);
-
-                    // 0 when mining?
-                    printf("luggage test: block hash %s\n", pstate->hashBlock.GetHex ().c_str ());
+                    {
+                        printf("luggage test: address %s received payment: %15"PRI64d" ", address.c_str(), nSingleValueOut);
+                        printf(" height %d, block hash %s\n", pstate->nHeight, pstate->hashBlock.GetHex().c_str());
+                    }
+#endif
                 }
             }
 #endif
@@ -319,6 +328,11 @@ PerformStep (CNameDB& nameDb, const GameState& inState, const CBlock* block,
     StepData stepData;
     InitStepData(stepData, inState);
     stepData.newHash = block->GetHash();
+
+#ifdef PERMANENT_LUGGAGE_AUCTION
+    paymentcache_instate_blockhash = inState.hashBlock;
+    paymentcache_idx = 0;
+#endif
 
     GameStepValidator gameStepValidator(&inState);
     // Create moves for all move transactions

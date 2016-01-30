@@ -949,6 +949,102 @@ GetDirection (const Coord& c1, const Coord& c2)
 // gems and storage
 #ifdef PERMANENT_LUGGAGE
 std::string Huntermsg_cache_address;
+
+#ifdef PERMANENT_LUGGAGE_AUCTION
+int64 auctioncache_bid_price;
+int64 auctioncache_bid_size;
+int auctioncache_bid_chronon;
+std::string auctioncache_bid_name;
+int64 auctioncache_bestask_price;
+int64 auctioncache_bestask_size;
+int auctioncache_bestask_chronon;
+std::string auctioncache_bestask_key;
+
+int paymentcache_idx;
+uint256 paymentcache_instate_blockhash;
+int64 paymentcache_amount[PAYMENTCACHE_MAX];
+std::string paymentcache_vault_addr[PAYMENTCACHE_MAX];
+
+int64 feedcache_volume_total;
+int64 feedcache_volume_participation;
+int64 feedcache_volume_bull;
+int64 feedcache_volume_bear;
+int64 feedcache_volume_neutral;
+int64 feedcache_volume_reward;
+int feedcache_status;
+
+static int64 feedcache_pricetick_up(int64 old)
+{
+    int64 tick;
+
+    if (old < 10000) return 10000;
+
+    if (old < 20000) tick = 100;
+    else if (old < 50000) tick = 200;
+    else if (old < 100000) tick = 500;
+    else if (old < 200000) tick = 1000;
+    else if (old < 500000) tick = 2000;
+    else if (old < 1000000) tick = 5000;
+    else if (old < 2000000) tick = 10000;
+    else if (old < 5000000) tick = 20000;
+    else if (old < 10000000) tick = 50000;
+    else if (old < 20000000) tick = 100000;
+    else if (old < 50000000) tick = 200000;
+    else if (old < 100000000) tick = 500000;
+    else if (old < 200000000) tick = 1000000;
+    else if (old < 500000000) tick = 2000000;
+    else if (old < 1000000000) tick = 5000000;
+    else tick = 10000000;
+
+    if ((old % tick) > 0)
+        old -= (old % tick);
+
+    return (old + tick);
+}
+static int64 auctioncache_pricetick_up(int64 old)
+{
+    return (feedcache_pricetick_up(old / 10000) * 10000);
+}
+static int64 feedcache_pricetick_down(int64 old)
+{
+    int64 tick;
+
+    if (old <= 10000) return 10000;
+
+    if (old <= 20000) tick = 100;
+    else if (old <= 50000) tick = 200;
+    else if (old <= 100000) tick = 500;
+    else if (old <= 200000) tick = 1000;
+    else if (old <= 500000) tick = 2000;
+    else if (old <= 1000000) tick = 5000;
+    else if (old <= 2000000) tick = 10000;
+    else if (old <= 5000000) tick = 20000;
+    else if (old <= 10000000) tick = 50000;
+    else if (old <= 20000000) tick = 100000;
+    else if (old <= 50000000) tick = 200000;
+    else if (old <= 100000000) tick = 500000;
+    else if (old <= 200000000) tick = 1000000;
+    else if (old <= 500000000) tick = 2000000;
+    else if (old <= 1000000000) tick = 5000000;
+    else tick = 10000000;
+
+    if ((old % tick) > 0)
+    {
+        old -= (old % tick);
+        return old;
+    }
+
+    return (old - tick);
+}
+static int64 auctioncache_pricetick_down(int64 old)
+{
+    return (feedcache_pricetick_down(old / 10000) * 10000);
+}
+static int64 auctioncache_pricetick_snap(int64 old)
+{
+    return (auctioncache_pricetick_down(auctioncache_pricetick_up(old)));
+}
+#endif
 #endif
 
 
@@ -2069,6 +2165,216 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         if (!m.IsSpawn())
             m.ApplyWaypoints(outState);
 
+
+#ifdef PERMANENT_LUGGAGE_AUCTION
+    if (outState.nHeight >= AUX_MINHEIGHT_FEED(fTestNet))
+    {
+        auctioncache_bid_price = 0;
+        auctioncache_bid_size = 0;
+        auctioncache_bid_chronon = 0;
+        auctioncache_bid_name = "";
+        auctioncache_bestask_price = 0;
+        auctioncache_bestask_size = 0;
+        auctioncache_bestask_chronon = 0;
+        auctioncache_bestask_key = "";
+
+        // get best ask
+//        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+        BOOST_FOREACH( PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+        {
+            int64 tmp_size = st.second.auction_ask_size;
+            int64 tmp_price = st.second.auction_ask_price;
+            int64 tmp_chronon = st.second.auction_ask_chronon;
+            if ((tmp_size) && (tmp_price))
+            {
+                if (outState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL == 0)
+                {
+                    tmp_price = auctioncache_pricetick_down(tmp_price);
+                    st.second.auction_ask_price = tmp_price;
+                }
+
+                if ((auctioncache_bestask_price == 0) || (tmp_price < auctioncache_bestask_price) || ((tmp_price == auctioncache_bestask_price) && (tmp_chronon < auctioncache_bestask_chronon)))
+                {
+                    auctioncache_bestask_price = tmp_price;
+                    auctioncache_bestask_size = tmp_size;
+                    auctioncache_bestask_chronon = tmp_chronon;
+                    auctioncache_bestask_key = st.first;
+                }
+            }
+        }
+        if (outState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL == 0)
+        {
+            if ((auctioncache_bestask_price == 0) || (auctioncache_bestask_price > outState.auction_settle_price))
+                outState.auction_settle_price = auctioncache_pricetick_up(outState.auction_settle_price);
+            else if (auctioncache_bestask_price < outState.auction_settle_price)
+                outState.auction_settle_price = auctioncache_pricetick_down(outState.auction_settle_price);
+        }
+
+        // best ask is reserved for the "hunter" who posted the oldest bid that is not older than AUCTION_BID_PRIORITY_TIMEOUT
+        BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
+        {
+            if ((p.second.message_block >= outState.nHeight - AUCTION_BID_PRIORITY_TIMEOUT) && (p.second.message_block <= outState.nHeight - 1))
+            {
+                std::string s_amount = "";
+                std::string s_price = "";
+                int64 tmp_amount = 0;
+                int64 tmp_price = 0;
+
+                int l = p.second.message.length();
+                int lbid2 = p.second.message.find("GEM:HUC set bid ");
+                int lat3 = p.second.message.find(" at ");
+
+                if ((lbid2 == 0) && (lat3 >= 17) && (l >= 21))
+                {
+                    s_amount = p.second.message.substr(16, lat3 - 16);
+                    s_price = p.second.message.substr(lat3 + 4);
+                    if ((ParseMoney(s_amount, tmp_amount)) &&
+                        (ParseMoney(s_price, tmp_price)))
+                    {
+                        if ((auctioncache_bid_chronon == 0) || (p.second.message_block < auctioncache_bid_chronon))
+                        {
+                            // fill or kill
+//                            if ((tmp_price >= auctioncache_bestask_price) && (tmp_amount >= AUCTION_MIN_SIZE))
+                            if ((tmp_price >= auctioncache_bestask_price) && (tmp_amount >= AUCTION_MIN_SIZE) && (p.second.message_block > outState.auction_last_chronon))
+                            {
+                                tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
+
+                                auctioncache_bid_chronon = p.second.message_block;
+                                auctioncache_bid_price = auctioncache_bestask_price;
+                                auctioncache_bid_size = tmp_amount <= auctioncache_bestask_size ? tmp_amount : auctioncache_bestask_size;
+                                auctioncache_bid_name = p.first;
+                                printf("parsing message: bid can fill: hunter %s: %s at %s\n", p.first.c_str(), FormatMoney(tmp_amount).c_str(), FormatMoney(tmp_price).c_str());
+                            }
+                            else
+                            {
+                                printf("parsing message: bid autocanceled: hunter %s: %s at %s\n", p.first.c_str(), FormatMoney(tmp_amount).c_str(), FormatMoney(tmp_price).c_str());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
+        {
+            // check payments for auction
+            if (auctioncache_bid_chronon > outState.auction_last_chronon)
+            {
+              if (paymentcache_idx > 0)
+              {
+                if (paymentcache_instate_blockhash == inState.hashBlock)
+                {
+                  printf("parsing message: scanning payments: hunter %s, %s at %s\n", auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
+
+                  for (int i = 0; i < paymentcache_idx; i++)
+                  {
+                    if ((paymentcache_vault_addr[i] == auctioncache_bestask_key) &&
+                        (paymentcache_amount[i] >= auctioncache_bestask_price * auctioncache_bid_size / COIN))
+                    {
+                        outState.auction_last_price = auctioncache_bestask_price;
+                        outState.auction_last_chronon = outState.nHeight;
+
+                        std::map<std::string, StorageVault>::iterator mi = outState.vault.find(auctioncache_bestask_key);
+                        if (mi != outState.vault.end())
+                        {
+                            mi->second.nGems -= auctioncache_bid_size;
+                            mi->second.auction_ask_size -= auctioncache_bid_size;
+                            if (mi->second.auction_ask_size <= 0)
+                            {
+                                mi->second.auction_ask_price = 0;
+                                mi->second.auction_ask_size = 0;
+                            }
+                        }
+
+                        printf("parsing message: payment received\n");
+                    }
+                  }
+                }
+                else
+                {
+                    printf("parsing message: wrong block hash: hunter %s, %s at %s\n", auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
+                }
+              }
+              else
+              {
+                  printf("parsing message: waiting for payment: hunter %s, %s at %s\n", auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
+              }
+            }
+
+            // parse last message (auction sell orders, price feed)
+            if (p.second.message_block == outState.nHeight - 1) //message for current block is only available after ApplyCommon
+            {
+                std::map<std::string, StorageVault>::iterator mi = outState.vault.find(p.second.playernameaddress);
+                if (mi != outState.vault.end())
+                {
+                    std::string s_amount = "";
+                    std::string s_price = "";
+                    std::string s_feed = "";
+                    int64 tmp_amount = 0;
+                    int64 tmp_price = 0;
+                    int64 tmp_feed = 0;
+
+                    int l = p.second.message.length();
+                    int lat3 = p.second.message.find(" at ");
+
+                    int lfeed1 = p.second.message.find("HUC:USD feed price ");
+                    int lask2 = p.second.message.find("GEM:HUC set ask ");
+
+                    printf("parsing message: found storage: l=%d l1=%d l2=%d\n", l, lfeed1, lask2);
+
+                    if ((lask2 == 0) && (lat3 >= 17) && (l >= 21))
+                    {
+                        s_amount = p.second.message.substr(16, lat3 - 16);
+                        s_price = p.second.message.substr(lat3 + 4);
+                        {
+                            if ((ParseMoney(s_amount, tmp_amount)) &&
+                                (ParseMoney(s_price, tmp_price)))
+                            {
+                                printf("parsing message: ask: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
+
+                                tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
+                                if (tmp_amount == 0)
+                                    tmp_price = 0; // size 0 == cancel
+                                else
+                                    tmp_price = auctioncache_pricetick_down(auctioncache_pricetick_up(tmp_price)); // snap to grid
+
+                                if (((auctioncache_bid_price < mi->second.auction_ask_price) || (mi->second.auction_ask_price == 0)) &&
+                                    ((auctioncache_bid_price < tmp_price) || (tmp_price == 0)))
+                                {
+                                    mi->second.auction_ask_size = tmp_amount;
+                                    mi->second.auction_ask_price = tmp_price;
+                                    mi->second.auction_ask_chronon = outState.nHeight;
+                                }
+                                else
+                                {
+                                    printf("parsing message: order already executing\n");
+                                }
+                            }
+                        }
+                    }
+
+                    if ((lfeed1 == 0) && (l >= 21)) // assume price is something like "0.x"
+                    {
+                        printf("parsing message: possible price feed\n");
+
+                        s_feed = p.second.message.substr(19);
+                        if (ParseMoney(s_feed, tmp_feed))
+                        {
+                            printf("parsing message: feed=%15"PRI64d" \n", tmp_feed);
+
+                            tmp_feed = feedcache_pricetick_down(feedcache_pricetick_up(tmp_feed)); // snap to grid
+                            mi->second.feed_price = tmp_feed;
+                            mi->second.feed_chronon = outState.nHeight;
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+#endif
+
+
     // For all alive players perform path-finding
     BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
         BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
@@ -2107,7 +2413,141 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             pc.second.MoveTowardsWaypoint();
         }
 
-    // gems and storage
+
+#ifdef PERMANENT_LUGGAGE_AUCTION
+    // process price feed
+    if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
+    {
+        feedcache_volume_total = feedcache_volume_participation = 0;
+        feedcache_volume_bull = feedcache_volume_bear = feedcache_volume_neutral = 0;
+        feedcache_volume_reward = 0;
+
+        if (outState.nHeight > AUX_MINHEIGHT_FEED(fTestNet))
+        {
+            feedcache_status = FEEDCACHE_NORMAL;
+            if (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 0) feedcache_status = FEEDCACHE_EXPIRY;
+        }
+        else if (outState.nHeight == AUX_MINHEIGHT_FEED(fTestNet)) // initialize
+        {
+            feedcache_status = FEEDCACHE_EXPIRY;
+            outState.feed_nextexp_price = 200000; // 2 (dollar) cent
+            outState.feed_reward_remaining = 100000000; // 1 gem
+            outState.auction_settle_price = 10000000000; // 100 coins
+        }
+        else
+        {
+            feedcache_status = 0;
+
+            // todo: move to GameState::GameState()
+            outState.feed_nextexp_price = 0;
+            outState.feed_prevexp_price = 0;
+            outState.feed_reward_dividend = 0;
+            outState.feed_reward_divisor = 0;
+            outState.feed_reward_remaining = 0;
+            outState.upgrade_test = 90378475235838567;
+            outState.npc_other_remaining = 0;
+            outState.auction_settle_price = 0;
+            outState.auction_last_price = 0;
+            outState.auction_last_chronon = 0;
+        }
+
+        int tmp_oldexp_chronon = outState.nHeight - (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet));
+        if (feedcache_status == FEEDCACHE_EXPIRY)
+            tmp_oldexp_chronon = outState.nHeight - AUX_EXPIRY_INTERVAL(fTestNet);
+        int tmp_newexp_chronon = tmp_oldexp_chronon + AUX_EXPIRY_INTERVAL(fTestNet);
+
+        if (feedcache_status == FEEDCACHE_EXPIRY)
+        {
+            outState.feed_prevexp_price = outState.feed_nextexp_price;
+        }
+
+        // distribute reward
+        if ((feedcache_status == FEEDCACHE_NORMAL) && (outState.nHeight == tmp_oldexp_chronon + 50))
+        {
+            BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+            {
+                if ((st.second.vaultflags & VAULTFLAG_FEED_REWARD) && (outState.feed_reward_divisor > 0))
+                {
+                    st.second.vaultflags -= VAULTFLAG_FEED_REWARD;
+
+                    int64 reward = st.second.nGems * outState.feed_reward_dividend / outState.feed_reward_divisor;
+                    if (reward < outState.feed_reward_remaining)
+                    {
+                        reward -= (reward % 1000000);
+                        st.second.nGems += reward;
+                        outState.feed_reward_remaining -= reward;
+                    }
+                }
+            }
+        }
+
+        if (feedcache_status == FEEDCACHE_NORMAL)
+        {
+            BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+            {
+                int64 tmp_price = st.second.feed_price;
+                int64 tmp_volume = st.second.nGems;
+                if (tmp_volume > 0)
+                {
+                    feedcache_volume_total += tmp_volume;
+                    if ((tmp_price > 0) && (st.second.feed_chronon > tmp_oldexp_chronon))
+                    {
+                        feedcache_volume_participation += tmp_volume;
+
+                        if (tmp_price > outState.feed_nextexp_price)
+                            feedcache_volume_bull += tmp_volume;
+                        else if (tmp_price < outState.feed_nextexp_price)
+                            feedcache_volume_bear += tmp_volume;
+                        else
+                            feedcache_volume_neutral += tmp_volume;
+                    }
+                }
+            }
+        }
+        if (feedcache_status == FEEDCACHE_EXPIRY)
+        {
+          BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+          {
+            int64 tmp_price = st.second.feed_price;
+            int64 tmp_volume = st.second.nGems;
+            if ((tmp_volume > 0) && ((st.second.feed_chronon > tmp_oldexp_chronon)))
+            {
+                if ((tmp_price > outState.feed_nextexp_price * 0.95) &&
+                    (tmp_price < outState.feed_nextexp_price * 1.05))
+                {
+                    st.second.vaultflags |= VAULTFLAG_FEED_REWARD;
+                    feedcache_volume_reward += tmp_volume;
+                }
+            }
+          }
+        }
+
+        // update median feed price
+        if (feedcache_status == FEEDCACHE_NORMAL)
+        {
+            if (feedcache_volume_bull > feedcache_volume_bear + feedcache_volume_neutral)
+                outState.feed_nextexp_price = feedcache_pricetick_up(outState.feed_nextexp_price);
+            else if (feedcache_volume_bear > feedcache_volume_bull + feedcache_volume_neutral)
+                outState.feed_nextexp_price = feedcache_pricetick_down(outState.feed_nextexp_price);
+        }
+
+        if (feedcache_status)
+        {
+            // total feed reward: 1/3 of gems that spawn on map
+            //      v--- should be the same on mainnet when enabled
+            if ((fTestNet) && (outState.nHeight % GEM_RESET_INTERVAL(fTestNet) == 0))
+                outState.feed_reward_remaining += 34000000;
+        }
+        if (feedcache_status == FEEDCACHE_EXPIRY)
+        {
+//            outState.feed_reward_dividend = outState.feed_reward_remaining / COIN / 2; // distribute half of your gems
+//            outState.feed_reward_divisor = feedcache_volume_reward / COIN;
+            outState.feed_reward_dividend = outState.feed_reward_remaining / CENT / 2; // distribute half of your gems
+            outState.feed_reward_divisor = feedcache_volume_reward / CENT;
+        }
+    }
+#endif
+
 #ifdef PERMANENT_LUGGAGE
     if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
     {
@@ -2127,7 +2567,15 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             p.second.playerflags |= 4;
             tmp_new_gems = GEM_NORMAL_VALUE;
         }
-
+#ifdef PERMANENT_LUGGAGE_AUCTION
+        // bought a gem
+        if ((outState.auction_last_chronon == outState.nHeight) &&
+            (auctioncache_bid_name == p.first))
+        {
+            p.second.playerflags |= 8;
+            tmp_new_gems = auctioncache_bid_size;
+        }
+#endif
         if (p.second.playerflags)
         {
             p.second.playerflags = 0;
@@ -2169,9 +2617,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         {
                             // was:                        outState.vault[Huntermsg_cache_address] += tmp_new_gems;
                             mi->second.nGems += tmp_new_gems;
-#ifdef PERMANENT_LUGGAGE
                             mi->second.huntername = p.first;
-#endif
+
                             printf("luggage test: %s added item(s) to storage %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
                             if (tmp_disconnect_storage) printf("luggage test: storage is disconnected\n");
                         }
@@ -2192,7 +2639,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                         // was:                        outState.gems.insert(std::pair<std::string,int64>(Huntermsg_cache_address, tmp_new_gems));
                         outState.vault.insert(std::make_pair(Huntermsg_cache_address, StorageVault(tmp_new_gems)));
-#ifdef PERMANENT_LUGGAGE
+
                         std::map<std::string, StorageVault>::iterator mi2 = outState.vault.find(Huntermsg_cache_address);
                         if (mi2 != outState.vault.end())
                         {
@@ -2206,7 +2653,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 //                        {
 //                            ret.first->second.huntername = p.first;
 //                        }
-#endif
+
                         tmp_gems = tmp_new_gems;
                         printf("luggage test: gem found, new storage for name %s, addr %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
                     }

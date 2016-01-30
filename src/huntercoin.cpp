@@ -1159,6 +1159,7 @@ int gem_visualonly_y = 250;
 int gem_spawnpoint_x[GEM_NUM_SPAWNPOINTS] = {10, 491};
 int gem_spawnpoint_y[GEM_NUM_SPAWNPOINTS] = {250, 251};
 std::string gem_cache_winner_name;
+int gem_log_height;
 #endif
 
 #ifdef GUI
