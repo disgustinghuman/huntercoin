@@ -14,11 +14,12 @@
 
 // gems and storage
 // uncomment this line and delete "game.dat" if you dare
-#define PERMANENT_LUGGAGE
-#define PERMANENT_LUGGAGE_LOG_PAYMENTS
-#define PERMANENT_LUGGAGE_AUCTION
+//#define PERMANENT_LUGGAGE
+
 #ifdef PERMANENT_LUGGAGE
 #define PERMANENT_LUGGAGE_OR_GUI
+#define PERMANENT_LUGGAGE_AUCTION
+//#define PERMANENT_LUGGAGE_LOG_PAYMENTS
 #endif
 #ifdef GUI
 #define PERMANENT_LUGGAGE_OR_GUI

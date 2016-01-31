@@ -1951,7 +1951,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
     if (pmon_state == PMONSTATE_SHUTDOWN)
         pmon_state = PMONSTATE_STOPPED;
 
-    if (gameState.nHeight > gem_log_height)
+    if ((pmon_go) && (gameState.nHeight > gem_log_height))
     {
         gem_log_height = gameState.nHeight;
 #ifdef PERMANENT_LUGGAGE

@@ -2432,7 +2432,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         else if (outState.nHeight == AUX_MINHEIGHT_FEED(fTestNet)) // initialize
         {
             feedcache_status = FEEDCACHE_EXPIRY;
-            outState.feed_nextexp_price = 200000; // 2 (dollar) cent
+            outState.feed_nextexp_price = 200000; // 0.002 dollar, could start from 0 but would take longer to indicate actual price level
             outState.feed_reward_remaining = 100000000; // 1 gem
             outState.auction_settle_price = 10000000000; // 100 coins
 
