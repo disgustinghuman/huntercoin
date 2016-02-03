@@ -19,6 +19,7 @@
 #ifdef PERMANENT_LUGGAGE
 #define PERMANENT_LUGGAGE_OR_GUI
 #define PERMANENT_LUGGAGE_AUCTION
+#define PERMANENT_LUGGAGE_LREWARD
 //#define PERMANENT_LUGGAGE_LOG_PAYMENTS
 #endif
 #ifdef GUI
@@ -594,7 +595,7 @@ struct GameState
     int64_t feed_reward_divisor;
     int64_t feed_reward_remaining;
     int64_t upgrade_test;
-    int64_t npc_other_remaining;
+    int64_t liquidity_reward_remaining;
     int64_t auction_settle_price;
     int64_t auction_last_price;
     int64_t auction_last_chronon;
@@ -656,7 +657,7 @@ struct GameState
       READWRITE(feed_reward_divisor);
       READWRITE(feed_reward_remaining);
       READWRITE(upgrade_test);
-      READWRITE(npc_other_remaining);
+      READWRITE(liquidity_reward_remaining);
       READWRITE(auction_settle_price);
       READWRITE(auction_last_price);
       READWRITE(auction_last_chronon);
@@ -991,7 +992,7 @@ extern uint256 paymentcache_instate_blockhash;
 extern int64 paymentcache_amount[PAYMENTCACHE_MAX];
 extern std::string paymentcache_vault_addr[PAYMENTCACHE_MAX];
 
-#define AUX_MINHEIGHT_FEED(T) (T?317500:1200000)
+#define AUX_MINHEIGHT_FEED(T) (T?317500:1090000)
 #define AUX_EXPIRY_INTERVAL(T) (T?100:10000)
 #define VAULTFLAG_FEED_REWARD 1
 #define FEEDCACHE_NORMAL 1

@@ -973,11 +973,15 @@ int64 feedcache_volume_neutral;
 int64 feedcache_volume_reward;
 int feedcache_status;
 
+// min and max price for feedcache: 0.0001 and 100 (dollar)
+// min and max price for auctioncache: 1 and 1000000 (coins)
+// (high numbers can crash the node/database, even if stored only as string in the blockchain)
 static int64 feedcache_pricetick_up(int64 old)
 {
     int64 tick;
 
     if (old < 10000) return 10000;
+    if (old >= 10000000000) return 10000000000;
 
     if (old < 20000) tick = 100;
     else if (old < 50000) tick = 200;
@@ -1010,6 +1014,7 @@ static int64 feedcache_pricetick_down(int64 old)
     int64 tick;
 
     if (old <= 10000) return 10000;
+    if (old > 10000000000) return 10000000000;
 
     if (old <= 20000) tick = 100;
     else if (old <= 50000) tick = 200;
@@ -2332,6 +2337,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             {
                                 printf("parsing message: ask: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
 
+                                if (tmp_amount > mi->second.nGems)
+                                    tmp_amount = mi->second.nGems;
+
                                 tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
                                 if (tmp_amount == 0)
                                     tmp_price = 0; // size 0 == cancel
@@ -2434,6 +2442,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             feedcache_status = FEEDCACHE_EXPIRY;
             outState.feed_nextexp_price = 200000; // 0.002 dollar, could start from 0 but would take longer to indicate actual price level
             outState.feed_reward_remaining = 100000000; // 1 gem
+            outState.liquidity_reward_remaining = 100000000; // 1 gem
             outState.auction_settle_price = 10000000000; // 100 coins
 
             outState.upgrade_test += 1;
@@ -2449,7 +2458,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             outState.feed_reward_divisor = 0;
             outState.feed_reward_remaining = 0;
             outState.upgrade_test = outState.nHeight;
-            outState.npc_other_remaining = 0;
+            outState.liquidity_reward_remaining = 0;
             outState.auction_settle_price = 0;
             outState.auction_last_price = 0;
             outState.auction_last_chronon = 0;
@@ -2537,10 +2546,12 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
         if (feedcache_status)
         {
-            // total feed reward: 1/3 of gems that spawn on map
-            //      v--- should be the same on mainnet when enabled
-            if ((fTestNet) && (outState.nHeight % GEM_RESET_INTERVAL(fTestNet) == 0))
+            // reward for price feed, and reward for providing liquidity: each 1/3 of gems that spawn on map
+            if (outState.nHeight % GEM_RESET_INTERVAL(fTestNet) == 0)
+            {
                 outState.feed_reward_remaining += 34000000;
+                outState.liquidity_reward_remaining += 34000000;
+            }
         }
         if (feedcache_status == FEEDCACHE_EXPIRY)
         {
@@ -2578,6 +2589,19 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         {
             p.second.playerflags |= 8;
             tmp_new_gems = auctioncache_bid_size;
+#ifdef PERMANENT_LUGGAGE_LREWARD
+            // liquidity reward
+            if ((auctioncache_bestask_price == outState.auction_settle_price) && (auctioncache_bestask_chronon < outState.nHeight - GEM_RESET_INTERVAL(fTestNet)))
+            {
+                int64 tmp_r = outState.liquidity_reward_remaining;
+                if (tmp_new_gems < tmp_r) tmp_r = tmp_new_gems;
+                tmp_r /= 10;
+                tmp_r -= (tmp_r % CENT);
+
+                tmp_new_gems += tmp_r;
+                outState.liquidity_reward_remaining -= tmp_r;
+            }
+#endif
         }
 #endif
         if (p.second.playerflags)

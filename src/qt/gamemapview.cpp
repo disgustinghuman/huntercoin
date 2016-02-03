@@ -1962,23 +1962,23 @@ void GameMapView::updateGameMap(const GameState &gameState)
         {
             int count = 0;
             int64 count_volume = 0;
-            fprintf(fp, "\n Inventory (chronon %d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
-            fprintf(fp, " -----------------------------------\n\n");
-            fprintf(fp, "                                           hunter\n");
-            fprintf(fp, "storage vault key                          name     gems\n");
+            fprintf(fp, "\n Inventory (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
+            fprintf(fp, " ------------------------------------\n\n");
+            fprintf(fp, "                                          hunter\n");
+            fprintf(fp, "storage vault key                           name     gems\n");
             fprintf(fp, "\n");
 
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
               int64 tmp_volume = st.second.nGems;
-              fprintf(fp, "%s    %10s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str());
+              fprintf(fp, "%s    %10s    %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str());
               count++;
               count_volume += tmp_volume;
             }
             fprintf(fp, "\n");
             fprintf(fp, "                                           total\n");
             fprintf(fp, "\n");
-            fprintf(fp, "                                             %d    %s\n", count, FormatMoney(count_volume).c_str());
+            fprintf(fp, "                                           %4d     %5s\n", count, FormatMoney(count_volume).c_str());
 
             fclose(fp);
         }
@@ -1998,33 +1998,48 @@ void GameMapView::updateGameMap(const GameState &gameState)
           }
           else
           {
-            fprintf(fp, "\n Continuous dutch auction (chronon %d, %s, next down tick in %d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
-            fprintf(fp, " ------------------------------------------------------------------------\n\n");
-            fprintf(fp, "                                           hunter           ask\n");
-            fprintf(fp, "storage vault key                          name     gems    price    chronon\n");
+            fprintf(fp, "\n Continuous dutch auction (chronon %7d, %s, next down tick in %2d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
+            fprintf(fp, " -------------------------------------------------------------------------\n\n");
+            fprintf(fp, "                                     hunter                ask\n");
+            fprintf(fp, "storage vault key                    name        gems      price    chronon\n");
             fprintf(fp, "\n");
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
               if (st.second.auction_ask_price > 0)
-                  fprintf(fp, "%s    %10s    %s at %s    %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+                  fprintf(fp, "%s   %-10s %5s at %9s   %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
             }
             if (auctioncache_bestask_price > 0)
             {
-                fprintf(fp, "\n");
-                fprintf(fp, "best ask\n");
-                fprintf(fp, "%s                  %s at %s    %d\n", auctioncache_bestask_key.c_str(), FormatMoney(auctioncache_bestask_size).c_str(), FormatMoney(auctioncache_bestask_price).c_str(), auctioncache_bestask_chronon);
+                int64 tmp_r = 0;
+#ifdef PERMANENT_LUGGAGE_LREWARD
+                if ((auctioncache_bestask_price == gameState.auction_settle_price) && (auctioncache_bestask_chronon < gameState.nHeight - GEM_RESET_INTERVAL(fTestNet)))
+                {
+                    tmp_r = gameState.liquidity_reward_remaining;
+                    if (auctioncache_bestask_size < tmp_r) tmp_r = auctioncache_bestask_size;
+                    tmp_r /= 10;
+                    tmp_r -= (tmp_r % 1000000);
+                }
+                if (tmp_r)
+                {
+                    fprintf(fp, "\n");
+                    fprintf(fp, "best ask, good for liquidity rebate:            %5s\n", FormatMoney(tmp_r).c_str());
+                    fprintf(fp, "    total fund for liquidity rebate:            %5s\n", FormatMoney(gameState.liquidity_reward_remaining).c_str());
+                }
+                else
+#endif
+                    fprintf(fp, "\nbest ask\n");
+
+                fprintf(fp, "%s              %5s at %9s   %d\n", auctioncache_bestask_key.c_str(), FormatMoney(auctioncache_bestask_size).c_str(), FormatMoney(auctioncache_bestask_price).c_str(), auctioncache_bestask_chronon);
             }
             if (gameState.auction_last_price > 0)
             {
                 fprintf(fp, "\n");
-                fprintf(fp, "last price\n");
-                fprintf(fp, "                                                            %s    %d\n", FormatMoney(gameState.auction_last_price).c_str(), (int)gameState.auction_last_chronon);
+                fprintf(fp, "last price                                               %9s   %d\n", FormatMoney(gameState.auction_last_price).c_str(), (int)gameState.auction_last_chronon);
             }
             if (gameState.auction_settle_price > 0)
             {
                 fprintf(fp, "\n");
-                fprintf(fp, "settlement price\n");
-                fprintf(fp, "                                                            %s    %d\n", FormatMoney(gameState.auction_settle_price).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
+                fprintf(fp, "settlement price                                         %9s   %d\n", FormatMoney(gameState.auction_settle_price).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
                 fprintf(fp, "\n");
                 fprintf(fp, "->chat message to sell minimum size at settlement:\n");
                 fprintf(fp, "GEM:HUC set ask %s at %s\n", FormatMoney(AUCTION_MIN_SIZE).c_str(), FormatMoney(gameState.auction_settle_price).c_str());
@@ -2032,24 +2047,23 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
             if (auctioncache_bid_price > 0)
             {
-                fprintf(fp, "\n\n");
-                fprintf(fp, "active bid (has trade priority until timeout)\n");
-                fprintf(fp, "                                           hunter\n");
-                fprintf(fp, "status                                     name     gems\n");
+                fprintf(fp, "\n\nactive bid\n");
+                fprintf(fp, "                                     hunter\n");
+                fprintf(fp, "status                               name         gems\n");
                 fprintf(fp, "\n");
                 if(gameState.auction_last_chronon >= auctioncache_bid_chronon)
                 {
-                    fprintf(fp, "done                                  %10s    %s at %s\n", auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
+                    fprintf(fp, "done                                 %-10s %5s at %9s\n", auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
                 }
                 else if (gameState.nHeight >= auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT - 5)
                 {
-                    fprintf(fp, "waiting for timeout %d            %10s    %s at %s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
+                    fprintf(fp, "waiting for timeout %-7d          %-10s %5s at %9s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
                 }
                 else
                 {
-                    fprintf(fp, "manual mode, timeout %d           %10s    %s at %s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
+                    fprintf(fp, "manual mode, timeout %-7d         %-10s %5s at %9s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
                     fprintf(fp, "\n");
-                    fprintf(fp, "console command to buy:\n");
+                    fprintf(fp, "->console command to buy: (only %s can buy until timeout)\n", auctioncache_bid_name.c_str());
                     fprintf(fp, "sendtoaddress %s %s\n", auctioncache_bestask_key.c_str(), FormatMoney(auctioncache_bid_size * auctioncache_bid_price / 100000000).c_str());
                 }
             }
@@ -2067,8 +2081,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
             int tmp_newexp_chronon = tmp_oldexp_chronon + AUX_EXPIRY_INTERVAL(fTestNet);
             fprintf(fp, "\n\n HUC:USD price feed\n");
             fprintf(fp, " ------------------\n");
-            fprintf(fp, "                                           hunter\n");
-            fprintf(fp, "storage vault key                          name       HUC:USD     updated     weight\n");
+            fprintf(fp, "                                     hunter\n");
+            fprintf(fp, "storage vault key                    name         HUC:USD    updated    weight\n");
             fprintf(fp, "\n");
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
@@ -2077,20 +2091,20 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 if ((tmp_volume > 0) && (st.second.feed_price > 0))
                 {
                     if (tmp_chronon > tmp_oldexp_chronon)
-                        fprintf(fp, "%s    %10s      %s      %d      %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon, FormatMoney(tmp_volume).c_str());
+                        fprintf(fp, "%s   %-10s   %-7s   %7d     %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon, FormatMoney(tmp_volume).c_str());
                     else if (st.second.vaultflags & VAULTFLAG_FEED_REWARD)
-                        fprintf(fp, "%s    %10s      %s      %d      *REWARD*\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon);
+                        fprintf(fp, "%s   %-10s   %-7s   %7d     *REWARD*\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon);
                     else
-                        fprintf(fp, "%s    %10s      %s      %d      stale\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon);
+                        fprintf(fp, "%s   %-10s   %-7s   %7d     stale\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon);
                 }
             }
             fprintf(fp, "\n");
             fprintf(fp, "->example chat message to feed HUC price:\n");
             fprintf(fp, "HUC:USD feed price %s\n", FormatMoney(gameState.feed_nextexp_price).c_str());
             fprintf(fp, "\n");
-            fprintf(fp, "median feed                                                       chronon\n\n");
-            fprintf(fp, "previous                                              %s      %d\n", FormatMoney(gameState.feed_prevexp_price).c_str(), tmp_oldexp_chronon);
-            fprintf(fp, "pending                                               %s      %d\n", FormatMoney(gameState.feed_nextexp_price).c_str(), tmp_newexp_chronon);
+            fprintf(fp, "median feed                                                  chronon\n\n");
+            fprintf(fp, "previous                                          %-7s    %d\n", FormatMoney(gameState.feed_prevexp_price).c_str(), tmp_oldexp_chronon);
+            fprintf(fp, "pending                                           %-7s    %d\n", FormatMoney(gameState.feed_nextexp_price).c_str(), tmp_newexp_chronon);
             // quota is in coins, not sats
             int tmp_dividend = gameState.feed_reward_dividend;
             int tmp_divisor = gameState.feed_reward_divisor;
