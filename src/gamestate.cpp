@@ -462,7 +462,7 @@ void Move::ApplyCommon(GameState &state) const
         // gems and storage -- schedule to process reward address change next block
         if (GEM_ALLOW_SPAWN(fTestNet, state.nHeight))
         {
-          pl.playerflags |= 1;
+          pl.playerflags |= PLAYER_SET_REWARDADDRESS;
           printf("luggage test: player %s set reward address to %s\n", mi->first.c_str(), pl.address.c_str());
         }
 #endif
@@ -475,7 +475,7 @@ void Move::ApplyCommon(GameState &state) const
     if ((playernameaddress) && (*playernameaddress != pl.playernameaddress))
     {
         pl.playernameaddress = *playernameaddress;
-        pl.playerflags |= 2;
+        pl.playerflags |= PLAYER_TRANSFERRED;
         printf("luggage test: player %s transferred to %s\n", mi->first.c_str(), pl.playernameaddress.c_str());
     }
 #endif
@@ -1045,10 +1045,10 @@ static int64 auctioncache_pricetick_down(int64 old)
 {
     return (feedcache_pricetick_down(old / 10000) * 10000);
 }
-static int64 auctioncache_pricetick_snap(int64 old)
-{
-    return (auctioncache_pricetick_down(auctioncache_pricetick_up(old)));
-}
+//static int64 auctioncache_pricetick_snap(int64 old)
+//{
+//    return (auctioncache_pricetick_down(auctioncache_pricetick_up(old)));
+//}
 #endif
 #endif
 
@@ -2307,6 +2307,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             }
 
             // parse last message (auction sell orders, price feed)
+            if (!(p.second.playerflags & PLAYER_SUSPEND))
             if (p.second.message_block == outState.nHeight - 1) //message for current block is only available after ApplyCommon
             {
                 std::map<std::string, StorageVault>::iterator mi = outState.vault.find(p.second.playernameaddress);
@@ -2579,7 +2580,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         if ((outState.gemSpawnState == GEM_HARVESTING) &&
             (gem_cache_winner_name == p.first))
         {
-            p.second.playerflags |= 4;
+            p.second.playerflags |= PLAYER_FOUND_ITEM;
             tmp_new_gems = GEM_NORMAL_VALUE;
         }
 #ifdef PERMANENT_LUGGAGE_AUCTION
@@ -2587,15 +2588,18 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         if ((outState.auction_last_chronon == outState.nHeight) &&
             (auctioncache_bid_name == p.first))
         {
-            p.second.playerflags |= 8;
+            p.second.playerflags |= PLAYER_BOUGHT_ITEM;
             tmp_new_gems = auctioncache_bid_size;
 #ifdef PERMANENT_LUGGAGE_LREWARD
             // liquidity reward
-            if ((auctioncache_bestask_price == outState.auction_settle_price) && (auctioncache_bestask_chronon < outState.nHeight - GEM_RESET_INTERVAL(fTestNet)))
+            // 2% when filling the best ask (if best ask was not modified for almost a day on maínnet)
+            // but 10% if best ask price is not higher than collateral value (dragging it down)
+            if (auctioncache_bestask_chronon < outState.nHeight - GEM_RESET_INTERVAL(fTestNet))
             {
                 int64 tmp_r = outState.liquidity_reward_remaining;
                 if (tmp_new_gems < tmp_r) tmp_r = tmp_new_gems;
                 tmp_r /= 10;
+                if (auctioncache_bestask_price > outState.auction_settle_price) tmp_r /= 5;
                 tmp_r -= (tmp_r % CENT);
 
                 tmp_new_gems += tmp_r;
@@ -2606,8 +2610,12 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 #endif
         if (p.second.playerflags)
         {
-            p.second.playerflags = 0;
-
+          int f_pf = 0;
+          if      (p.second.playerflags & PLAYER_TRANSFERRED2) f_pf = PLAYER_TRANSFERRED3;
+          else if (p.second.playerflags & PLAYER_TRANSFERRED1) f_pf = PLAYER_TRANSFERRED2;
+          else if (p.second.playerflags & PLAYER_TRANSFERRED)  f_pf = PLAYER_TRANSFERRED1;
+          if (p.second.playerflags & PLAYER_DO_PURSE)
+          {
             // possibly true if an hunter never moved but found a gem (spawned at gem position)?
             if (!p.second.playernameaddress.empty())
             {
@@ -2695,6 +2703,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             {
                 printf("luggage test: ERROR: no addr for name %s\n", p.first.c_str());
             }
+          }
+          p.second.playerflags = f_pf;
         }
 
         if ((tmp_disconnect_storage) || (tmp_gems))

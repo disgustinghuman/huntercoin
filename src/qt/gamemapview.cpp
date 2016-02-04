@@ -1669,14 +1669,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
             }
 #ifdef PERMANENT_LUGGAGE
             int64 tmp_in_purse = characterState.rpg_gems_in_purse;
-            if (tmp_in_purse >= 100000000)
-            {
-                entry.icon_a1 = 453;
-            }
+            if (pl.playerflags & PLAYER_SUSPEND)
+                entry.name += QString::fromStdString(" (recently transferred)");
+
             if (tmp_in_purse > 0)
             {
+                if (tmp_in_purse >= 100000000)
+                    entry.icon_a1 = 453;
                 entry.name += QString::fromStdString(" ");
-                // entry.name += QString::number(tmp_in_purse);
                 entry.name += QString::fromStdString(FormatMoney(tmp_in_purse));
                 entry.name += QString::fromStdString("gems");
             }
@@ -2012,11 +2012,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
             {
                 int64 tmp_r = 0;
 #ifdef PERMANENT_LUGGAGE_LREWARD
-                if ((auctioncache_bestask_price == gameState.auction_settle_price) && (auctioncache_bestask_chronon < gameState.nHeight - GEM_RESET_INTERVAL(fTestNet)))
+                if (auctioncache_bestask_chronon < gameState.nHeight - GEM_RESET_INTERVAL(fTestNet))
                 {
                     tmp_r = gameState.liquidity_reward_remaining;
                     if (auctioncache_bestask_size < tmp_r) tmp_r = auctioncache_bestask_size;
                     tmp_r /= 10;
+                    if (auctioncache_bestask_price > gameState.auction_settle_price) tmp_r /= 5;
                     tmp_r -= (tmp_r % 1000000);
                 }
                 if (tmp_r)
