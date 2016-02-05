@@ -190,6 +190,20 @@ public:
 
         std::string addressLock = m.AddressOperationPermission(*pstate);
 
+#ifdef GUI
+        // pending tx monitor
+        if ((pmon_tx_count) && (pmon_why_validate == WHYVALIDATE_CONNECTBLOCK))
+        {
+            for (int k2 = 0; k2 < pmon_tx_count; k2++)
+            {
+                if (pmon_tx_names[k2] == sName)
+                {
+                    pmon_tx_names[k2] = "";
+                    break;
+                }
+            }
+        }
+#endif
 #ifdef PERMANENT_LUGGAGE
         // gems and storage
         if (GEM_ALLOW_SPAWN(fTestNet, pstate->nHeight))

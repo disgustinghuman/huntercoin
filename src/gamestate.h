@@ -934,6 +934,7 @@ extern int pmon_all_next_x[PMON_ALL_MAX];
 extern int pmon_all_next_y[PMON_ALL_MAX];
 extern int pmon_all_color[PMON_ALL_MAX];
 extern int pmon_all_color[PMON_ALL_MAX];
+extern int pmon_all_tx_age[PMON_ALL_MAX];
 extern bool pmon_all_cache_isinmylist[PMON_ALL_MAX];
 extern int pmon_all_count;
 #define PMON_MY_MAX 30
@@ -945,6 +946,19 @@ extern int pmon_my_foecontact_age[PMON_MY_MAX];
 extern int pmon_my_idlecount[PMON_MY_MAX];
 extern bool pmon_name_pending_start();
 extern bool pmon_name_pending();
+
+#define WHYVALIDATE_UNKNOWN 0
+#define WHYVALIDATE_CONNECTBLOCK 1
+extern int pmon_why_validate;
+
+extern int pmon_need_bank_idx;
+extern int pmon_my_bankstate[PMON_MY_MAX];
+extern int pmon_my_bankdist[PMON_MY_MAX];
+extern int pmon_my_bank_x[PMON_MY_MAX];
+extern int pmon_my_bank_y[PMON_MY_MAX];
+
+extern int pmon_config_bankdist;
+extern int pmon_config_zoom;
 #endif
 
 #ifdef PERMANENT_LUGGAGE_OR_GUI

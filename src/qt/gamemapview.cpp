@@ -1596,13 +1596,24 @@ void GameMapView::updateGameMap(const GameState &gameState)
     banks.clear ();
     BOOST_FOREACH (const PAIRTYPE(Coord, unsigned)& b, gameState.banks)
       {
-        QGraphicsRectItem* r
-          = scene->addRect (TILE_SIZE * b.first.x, TILE_SIZE * b.first.y,
-                            TILE_SIZE, TILE_SIZE,
-                            Qt::NoPen, QColor (255, 255, 255, bankOpacity));
-
 
         // better GUI -- banks
+        int tmp_rect_idx = bank_idx;
+        int tmp_rect_x = b.first.x;
+        int tmp_rect_y = b.first.y;
+        int tmp_opacity = bankOpacity;
+
+        // steal some rectangles from banks to highlight my hunter positions
+        if ((zoomFactor < (double)pmon_config_zoom/(double)100) && (tmp_rect_idx < PMON_MY_MAX) && (pmon_my_idx[tmp_rect_idx] >= 0) && (pmon_my_idx[tmp_rect_idx] < PMON_ALL_MAX))
+        {
+            tmp_rect_x = pmon_all_x[pmon_my_idx[tmp_rect_idx]];
+            tmp_rect_y = pmon_all_y[pmon_my_idx[tmp_rect_idx]];
+            tmp_opacity = 255;
+        }
+        QGraphicsRectItem* r
+         = scene->addRect (TILE_SIZE * tmp_rect_x, TILE_SIZE * tmp_rect_y,
+                           TILE_SIZE, TILE_SIZE,
+                           Qt::NoPen, QColor (255, 255, 255, tmp_opacity));
         if (bank_idx < 75)
         {
             bank_xpos[bank_idx] = b.first.x;
@@ -1706,14 +1717,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                 // pending waypoints/destruct
                 int pending_tx_idx = -1;
-                int wp_age = 0;
+                int wp_age = pmon_all_tx_age[pmon_all_count] = 0;
 
                 for (int k = 0; k < pmon_tx_count; k++)
                 {
                     if (chid.ToString() == pmon_tx_names[k])
                     {
                         pending_tx_idx = k;
-                        wp_age = pmon_tx_age[k];
+                        wp_age = pmon_all_tx_age[pmon_all_count] = pmon_tx_age[k];
 
                         break;
                     }
@@ -1795,6 +1806,48 @@ void GameMapView::updateGameMap(const GameState &gameState)
                             }
                         }
 
+                        // find a (directly reachable) bank
+                        pmon_my_bankdist[m] = 10000;
+                        if (pending_tx_idx == -1)
+                          if (pmon_my_foecontact_age[m] == 0)
+                            for (int b = 0; b < 75; b++)
+                        {
+                            int dx = (abs(bank_xpos[b] - coord.x));
+                            int dy = (abs(bank_ypos[b] - coord.y));
+                            int d = dx > dy ? dx : dy;
+                            if ((d > 0) && (bank_timeleft[b] > d + 3) &&
+                                (d <= pmon_config_bankdist) && (d < pmon_my_bankdist[m]))
+                            {
+
+                                Coord tmp_bank_coord;
+                                tmp_bank_coord.x = bank_xpos[b];
+                                tmp_bank_coord.y = bank_ypos[b];
+//                              // see CheckLinearPath
+                                CharacterState tmp;
+                                tmp.from = tmp.coord = coord;
+                                tmp.waypoints.push_back(tmp_bank_coord);
+                                while (!tmp.waypoints.empty())
+                                    tmp.MoveTowardsWaypoint();
+                                if(tmp.coord == tmp_bank_coord)
+                                {
+                                    CharacterState tmp2;
+                                    Coord coord2;
+                                    coord2.x = pmon_all_next_x[pmon_all_count];
+                                    coord2.y = pmon_all_next_y[pmon_all_count];
+                                    tmp2.from = tmp2.coord = coord2;
+                                    tmp2.waypoints.push_back(tmp_bank_coord);
+                                    while (!tmp2.waypoints.empty())
+                                        tmp2.MoveTowardsWaypoint();
+                                    if(tmp2.coord == tmp_bank_coord)
+                                    {
+                                    pmon_my_bankdist[m] = d;
+                                    pmon_my_bank_x[m] = bank_xpos[b];
+                                    pmon_my_bank_y[m] = bank_ypos[b];
+                                    }
+                                }
+                            }
+                        }
+
                         // check for pending tx (to determine idle status)
                         bool tmp_has_pending_tx = false;
                         bool tmp_is_banking = gameState.IsBank(coord);
@@ -1828,6 +1881,54 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 pmon_out_of_wp_idx = -1;
                         }
 
+
+                        // notice heavy loot and nearby bank
+                        if (gameState.IsBank(coord))
+                            pmon_my_bankstate[m] = 3;
+                        else if (characterState.loot.nAmount == 0)
+                            pmon_my_bankstate[m] = 0;
+                        else if ((pmon_my_bankstate[m] >= 1) && (pmon_my_bankstate[m] <= 2) && (pending_tx_idx >= 0))
+                            pmon_my_bankstate[m] = 3;
+
+                        if ( (pmon_my_bankstate[m] != 3) && (pending_tx_idx == -1) &&
+                             ( (pmon_my_bankdist[m] <= pmon_config_bankdist) ||
+                               (characterState.loot.nAmount >= 10000000000) ||
+                               ((characterState.loot.nAmount >= 5000000000) && (pmon_my_bankdist[m] <= 10)) ) )
+                        {
+                            if (pmon_my_bankstate[m] < 2)
+                                pmon_my_bankstate[m] = pmon_my_bankdist[m] <= 15 ? 2 : 1;
+
+                            bool tmp_on_my_way = false;
+                            if ( (!characterState.waypoints.empty()) &&
+                                ((gameState.IsBank(characterState.waypoints.back())) || (gameState.IsBank(characterState.waypoints.front()))) )
+                                tmp_on_my_way = true;
+
+                            if (tmp_on_my_way)
+                            {
+                                pmon_my_bankstate[m] = 3;
+                            }
+                            else
+                            {
+                                if (pmon_need_bank_idx <= -1)
+                                    pmon_need_bank_idx = m;
+                                else if ((pmon_need_bank_idx < PMON_MY_MAX) && (pmon_my_bankdist[m] < pmon_my_bankdist[pmon_need_bank_idx]))
+                                    pmon_need_bank_idx = m;
+                            }
+
+                            if ((pmon_need_bank_idx == m) && (pmon_my_bankstate[m] != 3) && (pmon_my_bankdist[m] <= pmon_config_bankdist) &&
+                                (pmon_my_bank_x[m] >= 0) && (pmon_my_bank_y[m] >= 0))
+                            {
+                                pmon_my_bankstate[m] = 3;
+                            }
+                        }
+
+                        if ((pmon_my_bankstate[m] == 0) || (pmon_my_bankstate[m] == 3))
+                        {
+                            if (pmon_need_bank_idx == m)
+                                pmon_need_bank_idx = -1;
+                        }
+
+
                         // longest idle time in minutes
                         if (pmon_out_of_wp_idx >= 0)
                         {
@@ -1842,6 +1943,23 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 entry.name += QString::number(pmon_my_idlecount[pmon_out_of_wp_idx] * pmon_go / 60);
                                 entry.name += QString::fromStdString("min:");
                                 entry.name += QString::fromStdString(pmon_my_names[pmon_out_of_wp_idx]);
+                            }
+                        }
+                        else if ((pmon_need_bank_idx >= 0) && (pmon_need_bank_idx < PMON_MY_MAX))
+                        {
+                            if (pmon_my_bankstate[pmon_need_bank_idx] == 2)
+                                entry.name += QString::fromStdString(" Bank:");
+                            else if (pmon_my_bankstate[pmon_need_bank_idx] == 1)
+                                entry.name += QString::fromStdString(" Full:");
+                            else
+                                entry.name += QString::fromStdString(" Bank???:");
+
+                            entry.name += QString::fromStdString(pmon_my_names[pmon_need_bank_idx]);
+
+                            if (pmon_my_bankdist[pmon_need_bank_idx] <= 15)
+                            {
+                                 entry.name += QString::fromStdString(" d=");
+                                 entry.name += QString::number(pmon_my_bankdist[pmon_need_bank_idx]);
                             }
                         }
                         else if (!tmp_alarm)
@@ -1892,6 +2010,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
             pmon_my_alarm_state[m] = 0;
             pmon_my_idlecount[m] = 0;
 
+            pmon_my_bankdist[m] = 0;
+            pmon_my_bankstate[m] = 0;
+
             continue;
         }
 
@@ -1906,11 +2027,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
         {
             pmon_my_alarm_state[m] = 0;
             pmon_my_idlecount[m] = 0;
+            pmon_my_bankdist[m] = 0;
 
             if (pmon_out_of_wp_idx == m) pmon_out_of_wp_idx = -1;
+            if (pmon_need_bank_idx == m) pmon_need_bank_idx = -1;
 
             continue;
         }
+        int my_enemy_tx_age = -1;
 
         int my_next_x = pmon_all_next_x[my_idx];
         int my_next_y = pmon_all_next_y[my_idx];
@@ -1925,7 +2049,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (pmon_all_cache_isinmylist[k_all]) continue; // one of my players
 
             if ((abs(my_next_x - pmon_all_next_x[k_all]) <= 1) && (abs(my_next_y - pmon_all_next_y[k_all]) <= 1))
+            {
                 enemy_in_range = true;
+                my_enemy_tx_age = pmon_all_tx_age[k_all];
+            }
 
             if ((my_alarm_range) && (abs(my_x - pmon_all_x[k_all]) <= my_alarm_range) && (abs(my_y - pmon_all_y[k_all]) <= my_alarm_range))
             {

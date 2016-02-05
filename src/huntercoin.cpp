@@ -1184,6 +1184,7 @@ int pmon_all_y[PMON_ALL_MAX];
 int pmon_all_next_x[PMON_ALL_MAX];
 int pmon_all_next_y[PMON_ALL_MAX];
 int pmon_all_color[PMON_ALL_MAX];
+int pmon_all_tx_age[PMON_ALL_MAX];
 bool pmon_all_cache_isinmylist[PMON_ALL_MAX]; // only valid for current block
 int pmon_all_count;
 std::string pmon_my_names[PMON_MY_MAX];
@@ -1192,6 +1193,17 @@ int pmon_my_idx[PMON_MY_MAX];
 int pmon_my_alarm_state[PMON_MY_MAX];
 int pmon_my_foecontact_age[PMON_MY_MAX];
 int pmon_my_idlecount[PMON_MY_MAX];
+
+int pmon_why_validate;
+
+int pmon_need_bank_idx = -1;
+int pmon_my_bankstate[PMON_MY_MAX]; // 0..no loot  1..heavy loot  2..bank nearby  3..on my way to bank, or new pending tx
+int pmon_my_bankdist[PMON_MY_MAX];
+int pmon_my_bank_x[PMON_MY_MAX];
+int pmon_my_bank_y[PMON_MY_MAX];
+
+int pmon_config_bankdist = 20;
+int pmon_config_zoom = 25;
 
 bool pmon_name_pending_start()
 {
@@ -1210,21 +1222,26 @@ bool pmon_name_pending_start()
         pmon_my_names[i] = "";
         pmon_my_alarm_dist[i] = 0;
     }
-    for (unsigned int i = 0; i < PMON_MY_MAX; i++)
+    int i = 0;
+    for (unsigned int il = 0; il < PMON_MY_MAX + 2; il++)
     {
+        if (strcmp(my_name, "config:bank_distance") == 0)
+            pmon_config_bankdist = atoi(my_param);
+        if (strcmp(my_name, "config:overview_zoom") == 0)
+            pmon_config_zoom = atoi(my_param);
+
         if (fscanf(fp, "%50s ", my_name) < 1)
-        {
             break;
-        }
 
         if (fscanf(fp, "%50s ", my_param) < 1)
-        {
             break;
-        }
 
         pmon_my_names[i].assign(my_name);
         pmon_my_alarm_dist[i] = atoi(my_param);
         if (pmon_my_alarm_dist[i] < 0) pmon_my_alarm_dist[i] = 10;
+
+        if (i < PMON_MY_MAX - 1) i++;
+        else break;
     }
 
     if (pmon_go < 2) pmon_go = 5;
@@ -3004,8 +3021,18 @@ CHuntercoinHooks::ConnectBlock (CBlock& block, DatabaseSet& dbset,
         printf("ConnectBlock hook : non-empty vgametx, clearing and re-creating\n");
     }
 
+#ifdef GUI
+    // pending tx monitor
+    pmon_why_validate = WHYVALIDATE_CONNECTBLOCK;
+#endif
+
     if (!AdvanceGameState (dbset, pindex, &block, nFees))
         return error("Connect block hook : AdvanceGameState failed");
+
+#ifdef GUI
+    // pending tx monitor
+    pmon_why_validate = WHYVALIDATE_UNKNOWN;
+#endif
 
     // If no game transactions or already written (e.g. if block was disconnected then reconnected),
     // skip tx generation and proceed to connecting them
