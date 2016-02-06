@@ -1045,10 +1045,6 @@ static int64 auctioncache_pricetick_down(int64 old)
 {
     return (feedcache_pricetick_down(old / 10000) * 10000);
 }
-//static int64 auctioncache_pricetick_snap(int64 old)
-//{
-//    return (auctioncache_pricetick_down(auctioncache_pricetick_up(old)));
-//}
 #endif
 #endif
 
@@ -2183,7 +2179,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         auctioncache_bestask_chronon = 0;
         auctioncache_bestask_key = "";
 
-        // get best ask
+        // - process the automatic downtick (if downtick would be done elewhere, it could be "const PAIRTYPE", i.e. faster)
+        // - then cache best ask
 //        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         BOOST_FOREACH( PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         {
@@ -2215,7 +2212,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 outState.auction_settle_price = auctioncache_pricetick_down(outState.auction_settle_price);
         }
 
-        // best ask is reserved for the "hunter" who posted the oldest bid that is not older than AUCTION_BID_PRIORITY_TIMEOUT
+        // best ask is reserved for the "hunter" who posted the oldest bid that is
+        // - not older than AUCTION_BID_PRIORITY_TIMEOUT
+        // - newer than last print (outState.auction_last_chronon) because we can not process 2 at the same time
         BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
         {
             if ((p.second.message_block >= outState.nHeight - AUCTION_BID_PRIORITY_TIMEOUT) && (p.second.message_block <= outState.nHeight - 1))
@@ -2226,21 +2225,22 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 int64 tmp_price = 0;
 
                 int l = p.second.message.length();
-                int lbid2 = p.second.message.find("GEM:HUC set bid ");
+                int lbid2 = p.second.message.find("GEM:HUC set bid "); // length of "key phrase" is 16
                 int lat3 = p.second.message.find(" at ");
 
-                if ((lbid2 == 0) && (lat3 >= 17) && (l >= 21))
+//                if ((lbid2 == 0) && (lat3 >= 17) && (l >= 22) && (l <= 100))
+                if ((lbid2 == 0) && (lat3 >= 17) && (l >= lat3 + 5) && (l <= 100))
                 {
                     s_amount = p.second.message.substr(16, lat3 - 16);
                     s_price = p.second.message.substr(lat3 + 4);
                     if ((ParseMoney(s_amount, tmp_amount)) &&
                         (ParseMoney(s_price, tmp_price)))
                     {
+                        // oldest one has priority
                         if ((auctioncache_bid_chronon == 0) || (p.second.message_block < auctioncache_bid_chronon))
                         {
                             // fill or kill
-//                            if ((tmp_price >= auctioncache_bestask_price) && (tmp_amount >= AUCTION_MIN_SIZE))
-                            if ((tmp_price >= auctioncache_bestask_price) && (tmp_amount >= AUCTION_MIN_SIZE) && (p.second.message_block > outState.auction_last_chronon))
+                            if ((auctioncache_bestask_price > 0) && (tmp_price >= auctioncache_bestask_price) && (tmp_amount >= AUCTION_MIN_SIZE) && (p.second.message_block > outState.auction_last_chronon))
                             {
                                 tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
 
@@ -2262,7 +2262,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
         BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
         {
-            // check payments for auction
+            // check payments for auction and execute the trade
+            // - don't change auctioncache_bid_... and auctioncache_ask_... here
             if (auctioncache_bid_chronon > outState.auction_last_chronon)
             {
               if (paymentcache_idx > 0)
@@ -2305,6 +2306,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                   printf("parsing message: waiting for payment: hunter %s, %s at %s\n", auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
               }
             }
+            else
+            {
+                printf("parsing message: Error, bad auctioncache_bid_chronon %d\n", auctioncache_bid_chronon);
+            }
 
             // parse last message (auction sell orders, price feed)
             if (!(p.second.playerflags & PLAYER_SUSPEND))
@@ -2323,12 +2328,13 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     int l = p.second.message.length();
                     int lat3 = p.second.message.find(" at ");
 
-                    int lfeed1 = p.second.message.find("HUC:USD feed price ");
-                    int lask2 = p.second.message.find("GEM:HUC set ask ");
+                    int lask2 = p.second.message.find("GEM:HUC set ask "); // length of "key phrase" is 16
+                    int lfeed1 = p.second.message.find("HUC:USD feed price "); // length of "key phrase" is 19
 
                     printf("parsing message: found storage: l=%d l1=%d l2=%d\n", l, lfeed1, lask2);
 
-                    if ((lask2 == 0) && (lat3 >= 17) && (l >= 21))
+//                    if ((lask2 == 0) && (lat3 >= 17) && (l >= 22) && (l <= 100))
+                    if ((lask2 == 0) && (lat3 >= 17) && (l >= lat3 + 5) && (l <= 100))
                     {
                         s_amount = p.second.message.substr(16, lat3 - 16);
                         s_price = p.second.message.substr(lat3 + 4);
@@ -2338,6 +2344,12 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             {
                                 printf("parsing message: ask: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
 
+                                // - auctioncache_pricetick_... does this already
+                                // - if not enforced, numbers higher than MAX_MONEY will freeze the node
+                                if (tmp_price > 1000000 * COIN) tmp_price = 1000000 * COIN;
+                                else if (tmp_price < COIN) tmp_price = COIN;
+
+                                // this is not ripple
                                 if (tmp_amount > mi->second.nGems)
                                     tmp_amount = mi->second.nGems;
 
@@ -2347,6 +2359,11 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                 else
                                     tmp_price = auctioncache_pricetick_down(auctioncache_pricetick_up(tmp_price)); // snap to grid
 
+                                // - can modify an existing sell order if current best bid is lower, or send a new one
+                                // - make sure the new ask price doesn't interfere with the auctioncache_bid_... order (because it's already executing)
+                                // - could also rely on time priority:
+                                //   (auctioncache_bestask_chronon < mi->second.auction_ask_chronon) // our order is not first in queue
+                                //   (auctioncache_bid_price <= tmp_price)                           // there's another ask at same price level and it's at least 1 block old
                                 if (((auctioncache_bid_price < mi->second.auction_ask_price) || (mi->second.auction_ask_price == 0)) &&
                                     ((auctioncache_bid_price < tmp_price) || (tmp_price == 0)))
                                 {
@@ -2362,7 +2379,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         }
                     }
 
-                    if ((lfeed1 == 0) && (l >= 21)) // assume price is something like "0.x"
+                    if ((lfeed1 == 0) && (l >= 20) && (l <= 100))
                     {
                         printf("parsing message: possible price feed\n");
 
@@ -2370,6 +2387,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         if (ParseMoney(s_feed, tmp_feed))
                         {
                             printf("parsing message: feed=%15"PRI64d" \n", tmp_feed);
+
+                            // feedcache_pricetick_... does this already
+                            if (tmp_feed > 100 * COIN) tmp_feed = 100 * COIN;
+                            else if (tmp_feed < 10000) tmp_feed = 10000;
 
                             tmp_feed = feedcache_pricetick_down(feedcache_pricetick_up(tmp_feed)); // snap to grid
                             mi->second.feed_price = tmp_feed;
@@ -2611,9 +2632,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         if (p.second.playerflags)
         {
           int f_pf = 0;
-          if      (p.second.playerflags & PLAYER_TRANSFERRED2) f_pf = PLAYER_TRANSFERRED3;
+          if (p.second.playerflags & PLAYER_TRANSFERRED)  f_pf = PLAYER_TRANSFERRED1;
           else if (p.second.playerflags & PLAYER_TRANSFERRED1) f_pf = PLAYER_TRANSFERRED2;
-          else if (p.second.playerflags & PLAYER_TRANSFERRED)  f_pf = PLAYER_TRANSFERRED1;
+          else if (p.second.playerflags & PLAYER_TRANSFERRED2) f_pf = PLAYER_TRANSFERRED3;
           if (p.second.playerflags & PLAYER_DO_PURSE)
           {
             // possibly true if an hunter never moved but found a gem (spawned at gem position)?
