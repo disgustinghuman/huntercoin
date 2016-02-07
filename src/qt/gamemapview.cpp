@@ -2127,8 +2127,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
           {
             fprintf(fp, "\n Continuous dutch auction (chronon %7d, %s, next down tick in %2d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
             fprintf(fp, " -------------------------------------------------------------------------\n\n");
-            fprintf(fp, "                                     hunter                ask\n");
-            fprintf(fp, "storage vault key                    name        gems      price    chronon\n");
+            fprintf(fp, "                                     hunter                 ask\n");
+            fprintf(fp, "storage vault key                    name        gems       price    chronon\n");
             fprintf(fp, "\n");
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
@@ -2177,7 +2177,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
             {
                 fprintf(fp, "\n\nactive bid\n");
                 fprintf(fp, "                                     hunter\n");
-                fprintf(fp, "status                               name         gems\n");
+                fprintf(fp, "status                               name        gems\n");
                 fprintf(fp, "\n");
                 if(gameState.auction_last_chronon >= auctioncache_bid_chronon)
                 {
@@ -2192,7 +2192,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     fprintf(fp, "manual mode, timeout %-7d         %-10s %5s at %9s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
                     fprintf(fp, "\n");
                     fprintf(fp, "->console command to buy: (only %s can buy until timeout)\n", auctioncache_bid_name.c_str());
-                    fprintf(fp, "sendtoaddress %s %s\n", auctioncache_bestask_key.c_str(), FormatMoney(auctioncache_bid_size * auctioncache_bid_price / 100000000).c_str());
+                    fprintf(fp, "sendtoaddress %s %s\n", auctioncache_bestask_key.c_str(), FormatMoney(auctioncache_bid_size / 10000 * auctioncache_bid_price / 10000).c_str());
                 }
             }
             else if (auctioncache_bestask_price > 0)
@@ -2221,8 +2221,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     if (tmp_chronon > tmp_oldexp_chronon)
                         fprintf(fp, "%s   %-10s   %-7s   %7d     %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon, FormatMoney(tmp_volume).c_str());
                     else if (st.second.vaultflags & VAULTFLAG_FEED_REWARD)
-                        fprintf(fp, "%s   %-10s   %-7s   %7d     *REWARD*\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon);
-                    else
+                        fprintf(fp, "%s   %-10s   %-7s   %7d     *REWARD* (payable %d)\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon, tmp_oldexp_chronon + 50);
+                    else if (tmp_chronon > tmp_oldexp_chronon - AUX_EXPIRY_INTERVAL(fTestNet))
                         fprintf(fp, "%s   %-10s   %-7s   %7d     stale\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon);
                 }
             }

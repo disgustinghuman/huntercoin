@@ -1225,16 +1225,22 @@ bool pmon_name_pending_start()
     int i = 0;
     for (unsigned int il = 0; il < PMON_MY_MAX + 2; il++)
     {
-        if (strcmp(my_name, "config:bank_distance") == 0)
-            pmon_config_bankdist = atoi(my_param);
-        if (strcmp(my_name, "config:overview_zoom") == 0)
-            pmon_config_zoom = atoi(my_param);
-
         if (fscanf(fp, "%50s ", my_name) < 1)
             break;
 
         if (fscanf(fp, "%50s ", my_param) < 1)
             break;
+
+        if (strcmp(my_name, "config:bank_distance") == 0)
+        {
+            pmon_config_bankdist = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:overview_zoom") == 0)
+        {
+            pmon_config_zoom = atoi(my_param);
+            continue;
+        }
 
         pmon_my_names[i].assign(my_name);
         pmon_my_alarm_dist[i] = atoi(my_param);
