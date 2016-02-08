@@ -2083,12 +2083,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
         gem_log_height = gameState.nHeight;
 #ifdef PERMANENT_LUGGAGE
         // list all players that own a storage vault
+        int count = 0;
+        int64 count_volume = 0;
+
         FILE *fp;
         fp = fopen("adventurers.txt", "w");
         if (fp != NULL)
         {
-            int count = 0;
-            int64 count_volume = 0;
             fprintf(fp, "\n Inventory (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
             fprintf(fp, " ------------------------------------\n\n");
             fprintf(fp, "                                          hunter\n");
@@ -2119,12 +2120,16 @@ void GameMapView::updateGameMap(const GameState &gameState)
           {
             fprintf(fp, "Closed until block %d\n", AUX_MINHEIGHT_FEED(fTestNet));
           }
-          else if (gameState.upgrade_test != gameState.nHeight)
-          {
-            fprintf(fp, "Error: gamestate.dat was used with an old version of this client after block %d (testnet) or block %d (mainnet)\n", AUX_MINHEIGHT_FEED(true), AUX_MINHEIGHT_FEED(false));
-          }
           else
           {
+            if (gameState.upgrade_test != gameState.nHeight)
+            {
+              fprintf(fp, "GAMESTATE OUT OF SYNC: !!! DON'T USE THIS AUCTION PAGE !!!\n");
+              fprintf(fp, "Either gamestate.dat was used with an old version of this client\n");
+              fprintf(fp, "or the alarm (only for auction, different from 'network alert') was triggered\n");
+              fprintf(fp, "or this client version itself is too old.\n");
+            }
+
             fprintf(fp, "\n Continuous dutch auction (chronon %7d, %s, next down tick in %2d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
             fprintf(fp, " -------------------------------------------------------------------------\n\n");
             fprintf(fp, "                                     hunter                 ask\n");
@@ -2137,8 +2142,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
             }
             if (auctioncache_bestask_price > 0)
             {
+                // liquidity reward
                 int64 tmp_r = 0;
-#ifdef PERMANENT_LUGGAGE_LREWARD
                 if (auctioncache_bestask_chronon < gameState.nHeight - GEM_RESET_INTERVAL(fTestNet))
                 {
                     tmp_r = gameState.liquidity_reward_remaining;
@@ -2154,8 +2159,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     fprintf(fp, "    total fund for liquidity rebate:            %5s\n", FormatMoney(gameState.liquidity_reward_remaining).c_str());
                 }
                 else
-#endif
+                {
                     fprintf(fp, "\nbest ask\n");
+                }
 
                 fprintf(fp, "%s              %5s at %9s   %d\n", auctioncache_bestask_key.c_str(), FormatMoney(auctioncache_bestask_size).c_str(), FormatMoney(auctioncache_bestask_price).c_str(), auctioncache_bestask_chronon);
             }
@@ -2236,8 +2242,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
             // quota is in coins, not sats
             int tmp_dividend = gameState.feed_reward_dividend;
             int tmp_divisor = gameState.feed_reward_divisor;
-            fprintf(fp, "\n");
-            fprintf(fp, "reward: current fund %s, quota for previous feed %d/%d\n", FormatMoney(gameState.feed_reward_remaining).c_str(), tmp_dividend, tmp_divisor);
+
             fprintf(fp, "\n");
             if (feedcache_status == FEEDCACHE_EXPIRY)
                 fprintf(fp, "cached state: expiry\n");
@@ -2245,6 +2250,22 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 fprintf(fp, "cached state: normal\n");
             fprintf(fp, "cached volume: total %s, participation %s, higher than median %s, at median %s, lower than median %s\n", FormatMoney(feedcache_volume_total).c_str(), FormatMoney(feedcache_volume_participation).c_str(), FormatMoney(feedcache_volume_bull).c_str(), FormatMoney(feedcache_volume_neutral).c_str(), FormatMoney(feedcache_volume_bear).c_str());
 //            fprintf(fp, "cached reward: %s\n", FormatMoney(feedcache_volume_reward).c_str());
+
+            fprintf(fp, "\nfeed reward fund           %9s, reward quota for previous feed: %d/%d\n", FormatMoney(gameState.feed_reward_remaining).c_str(), tmp_dividend, tmp_divisor);
+#ifdef PERMANENT_LUGGAGE_TALLY
+            fprintf(fp, "\nliquidity reward fund      %9s\n", FormatMoney(gameState.liquidity_reward_remaining).c_str());
+            int tmp_intervals = (gameState.nHeight - AUX_MINHEIGHT_FEED(fTestNet)) / GEM_RESET_INTERVAL(fTestNet);
+            int64 tmp_gems_me = gameState.gemSpawnState == 1 ? GEM_NORMAL_VALUE : 0;
+            int64 tmp_gems_mm = (int64)(GEM_NORMAL_VALUE * tmp_intervals) * 7 / 3 + 700000000;
+            tmp_gems_mm -= (tmp_gems_mm % 1000000);
+            int64 tmp_gems_ot = (int64)(GEM_NORMAL_VALUE * tmp_intervals) + 300000000;
+            fprintf(fp, "messenger                  %9s\n", FormatMoney(tmp_gems_me).c_str());
+            fprintf(fp, "reserved for market maker  %9s\n", FormatMoney(tmp_gems_mm).c_str());
+            fprintf(fp, "reserved for other NPCs    %9s\n", FormatMoney(tmp_gems_ot).c_str());
+
+            fprintf(fp, "\nheld by players            %9s\n", FormatMoney(count_volume).c_str());
+            fprintf(fp, "unspawned                  %9s, including fees payed by players\n", FormatMoney(42000000000000 - gameState.feed_reward_remaining - gameState.liquidity_reward_remaining - tmp_gems_me - tmp_gems_mm - tmp_gems_ot - count_volume).c_str());
+#endif
           }
           fclose(fp);
         }

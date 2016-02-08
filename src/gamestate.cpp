@@ -2315,6 +2315,12 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             if (!(p.second.playerflags & PLAYER_SUSPEND))
             if (p.second.message_block == outState.nHeight - 1) //message for current block is only available after ApplyCommon
             {
+                // auction alert (display a warning)
+                if ((outState.nHeight > 1140000) ||
+                    ((fTestNet) && (p.second.playernameaddress == "hcTgWguRcs2ByAUbTBNeuoBrVgQ2FqhoEb")) ||
+                    ((!fTestNet) && (p.second.playernameaddress == "HSjUvhya9UrtuE1Dm73ytT3BkFWm8EGof9")))
+                    outState.upgrade_test--;
+
                 std::map<std::string, StorageVault>::iterator mi = outState.vault.find(p.second.playernameaddress);
                 if (mi != outState.vault.end())
                 {
@@ -2611,7 +2617,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         {
             p.second.playerflags |= PLAYER_BOUGHT_ITEM;
             tmp_new_gems = auctioncache_bid_size;
-#ifdef PERMANENT_LUGGAGE_LREWARD
+
             // liquidity reward
             // 2% when filling the best ask (if best ask was not modified for almost a day on maínnet)
             // but 10% if best ask price is not higher than collateral value (dragging it down)
@@ -2626,7 +2632,6 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 tmp_new_gems += tmp_r;
                 outState.liquidity_reward_remaining -= tmp_r;
             }
-#endif
         }
 #endif
         if (p.second.playerflags)
