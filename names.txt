@@ -1,3 +1,6 @@
 Alice 9
 Bob 9
+config:overview_zoom 25
+config:bank_distance 10
+config:afk_leave_map 0
 

@@ -23,11 +23,29 @@ Pending Transaction Monitor
     *ALARM*: <name> [<name>]  after all names from names.txt in case of alarm
     <n> min: <name>           after all names from names.txt, longest idle hunter (out of waypoints for n minutes)
     (OK)                      after all names from names.txt, in case of no alarm and no idle hunter
+
+    Full: <name>              after all names from names.txt, if reached maximum loot (carrying capacity)
+    Bank: <name>              after all names from names.txt, if reached 50% of carrying capacity, and a bank is nearby (see config:bank_distance)
+
     x,y->x2,y2               after hunter name, coors currently and expected after next block
     wp:...                   after hunter name, next waypoint
     tx*<age>:...             after hunter name, value of pendig tx, and how "old" it is
     CONTACT*<age>            we will be in destruct range with an enemy player after next block. If started with update interval of 5 seconds,
                              then "CONTACT*4" or "CONTACT*5" (20 or 25 seconds) is basically seeing the white in their eyes
+
+
+Config options (in names.txt)
+=============================
+
+    config:overview_zoom 20        minimum zoom level to display "where-are-my-hunters" marker
+                                   (zoom level is 10...200, 10 means completely zoomed out)
+                                   default 20
+
+    config:afk_leave_map 1         hunters will leave the map, default 0
+                                   - recommended value for config:bank_distance is 50 or 60
+                                   - nothing is done if the hunter's last waypoint is already a bank tile
+
+    config:bank_distance 10        maximum distance to notice a bank if an hunter can walk there in a straight line, default 0
 
 
 Asciiartmap editing guide

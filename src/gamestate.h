@@ -946,6 +946,7 @@ extern int pmon_my_foecontact_age[PMON_MY_MAX];
 extern int pmon_my_idlecount[PMON_MY_MAX];
 extern bool pmon_name_pending_start();
 extern bool pmon_name_pending();
+extern bool pmon_name_update(int my_idx, int x, int y);
 
 #define WHYVALIDATE_UNKNOWN 0
 #define WHYVALIDATE_CONNECTBLOCK 1
@@ -959,6 +960,7 @@ extern int pmon_my_bank_y[PMON_MY_MAX];
 
 extern int pmon_config_bankdist;
 extern int pmon_config_zoom;
+extern int pmon_config_afk_leave;
 #endif
 
 #ifdef PERMANENT_LUGGAGE_OR_GUI

@@ -1890,13 +1890,11 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         else if ((pmon_my_bankstate[m] >= 1) && (pmon_my_bankstate[m] <= 2) && (pending_tx_idx >= 0))
                             pmon_my_bankstate[m] = 3;
 
-                        if ( (pmon_my_bankstate[m] != 3) && (pending_tx_idx == -1) &&
-                             ( (pmon_my_bankdist[m] <= pmon_config_bankdist) ||
-                               (characterState.loot.nAmount >= 10000000000) ||
-                               ((characterState.loot.nAmount >= 5000000000) && (pmon_my_bankdist[m] <= 10)) ) )
+                        if ( (pmon_my_bankstate[m] != 3) && (pending_tx_idx == -1) && (pmon_my_bankdist[m] <= pmon_config_bankdist) &&
+                             ((pmon_config_afk_leave) || (characterState.loot.nAmount >= 5000000000)) )
                         {
                             if (pmon_my_bankstate[m] < 2)
-                                pmon_my_bankstate[m] = pmon_my_bankdist[m] <= 15 ? 2 : 1;
+                                pmon_my_bankstate[m] = ((characterState.loot.nAmount < 10000000000) ? 2 : 1);
 
                             bool tmp_on_my_way = false;
                             if ( (!characterState.waypoints.empty()) &&
@@ -1917,7 +1915,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                             if ((pmon_need_bank_idx == m) && (pmon_my_bankstate[m] != 3) && (pmon_my_bankdist[m] <= pmon_config_bankdist) &&
                                 (pmon_my_bank_x[m] >= 0) && (pmon_my_bank_y[m] >= 0))
+                            if (pmon_config_afk_leave)
                             {
+                                pmon_name_update(m, pmon_my_bank_x[m], pmon_my_bank_y[m]);
                                 pmon_my_bankstate[m] = 3;
                             }
                         }

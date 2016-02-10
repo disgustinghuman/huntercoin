@@ -1202,8 +1202,9 @@ int pmon_my_bankdist[PMON_MY_MAX];
 int pmon_my_bank_x[PMON_MY_MAX];
 int pmon_my_bank_y[PMON_MY_MAX];
 
-int pmon_config_bankdist = 20;
-int pmon_config_zoom = 25;
+int pmon_config_bankdist = 0;
+int pmon_config_zoom = 20;
+int pmon_config_afk_leave = 0;
 
 bool pmon_name_pending_start()
 {
@@ -1239,6 +1240,11 @@ bool pmon_name_pending_start()
         else if (strcmp(my_name, "config:overview_zoom") == 0)
         {
             pmon_config_zoom = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:afk_leave_map") == 0)
+        {
+            pmon_config_afk_leave = atoi(my_param);
             continue;
         }
 
@@ -1361,6 +1367,88 @@ bool pmon_name_pending()
     }
 
     pmon_new_data = true;
+    return true;
+}
+
+bool pmon_name_update(int my_idx, int x, int y)
+{
+    vector<unsigned char> vchName = vchFromString(pmon_my_names[my_idx]);
+
+    if ((x < 0) || (y < 0))
+        return false;
+
+    char buf[100];
+    std::string s;
+    sprintf(buf, "{\"0\":{\"wp\":[%d,%d]}}", x, y);
+    s.assign(buf);
+    vector<unsigned char> vchValue = vchFromString(s);
+
+    CWalletTx wtx;
+    wtx.nVersion = NAMECOIN_TX_VERSION;
+
+    CScript scriptPubKey;
+    scriptPubKey << OP_NAME_UPDATE << vchName << vchValue << OP_2DROP << OP_DROP;
+
+    CRITICAL_BLOCK(cs_main)
+    CRITICAL_BLOCK(pwalletMain->cs_mapWallet)
+    {
+        if (mapNamePending.count(vchName) && mapNamePending[vchName].size())
+        {
+            return false;
+        }
+
+        EnsureWalletIsUnlocked();
+
+        CTransaction tx;
+        {
+          CNameDB dbName("r");
+          if (!GetTxOfName(dbName, vchName, tx))
+            return false;
+        }
+
+        if (tx.IsGameTx ())
+            return false;
+
+        const uint256 wtxInHash = tx.GetHash ();
+        if (!pwalletMain->mapWallet.count(wtxInHash))
+        {
+            return false;
+        }
+
+        CReserveKey newKey(pwalletMain);
+        CScript scriptPubKeyOrig;
+        if (fAddressReuse)
+          {
+            uint160 hash160;
+            GetNameAddress(tx, hash160);
+            scriptPubKeyOrig.SetBitcoinAddress(hash160);
+          }
+        else
+          {
+            const vchType vchPubKey = newKey.GetReservedKey ();
+            assert (pwalletMain->HaveKey (vchPubKey));
+            scriptPubKeyOrig.SetBitcoinAddress (vchPubKey);
+          }
+        scriptPubKey += scriptPubKeyOrig;
+
+        /* Find amount locked in this name and add required game fee.  */
+        const int nTxOut = IndexOfNameOutput (tx);
+        int64_t nCoinAmount = tx.vout[nTxOut].nValue;
+        nCoinAmount += GetRequiredGameFee (vchName, vchValue);
+
+        CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
+        string strError;
+        strError = SendMoneyWithInputTx (scriptPubKey, nCoinAmount,
+                                         wtxIn, wtx, false);
+
+        /* Make sure to keep the (possibly) reserved key in case
+           of a successful transaction!  */
+        if (strError == "")
+          newKey.KeepKey ();
+
+        if (strError != "")
+            return false;
+    }
     return true;
 }
 #endif
