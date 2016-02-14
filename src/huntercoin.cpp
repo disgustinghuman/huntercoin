@@ -1189,6 +1189,7 @@ bool pmon_all_cache_isinmylist[PMON_ALL_MAX]; // only valid for current block
 int pmon_all_count;
 std::string pmon_my_names[PMON_MY_MAX];
 int pmon_my_alarm_dist[PMON_MY_MAX];
+int pmon_my_foe_dist[PMON_MY_MAX];
 int pmon_my_idx[PMON_MY_MAX];
 int pmon_my_alarm_state[PMON_MY_MAX];
 int pmon_my_foecontact_age[PMON_MY_MAX];
@@ -1202,6 +1203,7 @@ int pmon_my_bankdist[PMON_MY_MAX];
 int pmon_my_bank_x[PMON_MY_MAX];
 int pmon_my_bank_y[PMON_MY_MAX];
 
+int pmon_config_loot_notice = 50;
 int pmon_config_bankdist = 0;
 int pmon_config_zoom = 20;
 int pmon_config_afk_leave = 0;
@@ -1224,7 +1226,7 @@ bool pmon_name_pending_start()
         pmon_my_alarm_dist[i] = 0;
     }
     int i = 0;
-    for (unsigned int il = 0; il < PMON_MY_MAX + 2; il++)
+    for (unsigned int il = 0; il < PMON_MY_MAX + 10; il++)
     {
         if (fscanf(fp, "%50s ", my_name) < 1)
             break;
@@ -1232,7 +1234,12 @@ bool pmon_name_pending_start()
         if (fscanf(fp, "%50s ", my_param) < 1)
             break;
 
-        if (strcmp(my_name, "config:bank_distance") == 0)
+        if (strcmp(my_name, "config:loot_notice") == 0)
+        {
+            pmon_config_loot_notice = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:bank_distance") == 0)
         {
             pmon_config_bankdist = atoi(my_param);
             continue;

@@ -940,6 +940,7 @@ extern int pmon_all_count;
 #define PMON_MY_MAX 30
 extern std::string pmon_my_names[PMON_MY_MAX];
 extern int pmon_my_alarm_dist[PMON_MY_MAX];
+extern int pmon_my_foe_dist[PMON_MY_MAX];
 extern int pmon_my_idx[PMON_MY_MAX];
 extern int pmon_my_alarm_state[PMON_MY_MAX];
 extern int pmon_my_foecontact_age[PMON_MY_MAX];
@@ -958,6 +959,7 @@ extern int pmon_my_bankdist[PMON_MY_MAX];
 extern int pmon_my_bank_x[PMON_MY_MAX];
 extern int pmon_my_bank_y[PMON_MY_MAX];
 
+extern int pmon_config_loot_notice;
 extern int pmon_config_bankdist;
 extern int pmon_config_zoom;
 extern int pmon_config_afk_leave;

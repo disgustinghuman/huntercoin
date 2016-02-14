@@ -1803,15 +1803,20 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                     entry.name += QString::fromStdString(",");
                                 }
                                 entry.name += QString::fromStdString(pmon_my_names[m2]);
+                                entry.name += QString::number(pmon_my_foe_dist[m2]);
+                                entry.name += QString::fromStdString("/");
+                                entry.name += QString::number(pmon_my_alarm_dist[m2]);
                             }
                         }
 
                         // find a (directly reachable) bank
                         pmon_my_bankdist[m] = 10000;
-                        if (pending_tx_idx == -1)
-                          if (pmon_my_foecontact_age[m] == 0)
-                            for (int b = 0; b < 75; b++)
+                        if ((pending_tx_idx == -1) &&
+                            (pmon_my_foecontact_age[m] == 0) &&
+                            ((pmon_my_foe_dist[m] > pmon_my_alarm_dist[m]) || (pmon_my_foe_dist[m] >= 5)))
                         {
+                          for (int b = 0; b < 75; b++)
+                          {
                             int dx = (abs(bank_xpos[b] - coord.x));
                             int dy = (abs(bank_ypos[b] - coord.y));
                             int d = dx > dy ? dx : dy;
@@ -1846,6 +1851,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                     }
                                 }
                             }
+                          }
                         }
 
                         // check for pending tx (to determine idle status)
@@ -1885,13 +1891,15 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         // notice heavy loot and nearby bank
                         if (gameState.IsBank(coord))
                             pmon_my_bankstate[m] = 3;
-                        else if (characterState.loot.nAmount == 0)
+                        // reset to 0 if just stepped off a bank tile
+                        else if ((pmon_my_bankstate[m] != 0) && (characterState.loot.nAmount == 0))
                             pmon_my_bankstate[m] = 0;
+                        // player did something after notification
                         else if ((pmon_my_bankstate[m] >= 1) && (pmon_my_bankstate[m] <= 2) && (pending_tx_idx >= 0))
                             pmon_my_bankstate[m] = 3;
 
                         if ( (pmon_my_bankstate[m] != 3) && (pending_tx_idx == -1) && (pmon_my_bankdist[m] <= pmon_config_bankdist) &&
-                             ((pmon_config_afk_leave) || (characterState.loot.nAmount >= 5000000000)) )
+                             ((pmon_config_afk_leave) || (characterState.loot.nAmount / 100000000 >= pmon_config_loot_notice)) )
                         {
                             if (pmon_my_bankstate[m] < 2)
                                 pmon_my_bankstate[m] = ((characterState.loot.nAmount < 10000000000) ? 2 : 1);
@@ -2020,7 +2028,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         bool enemy_in_range = false;
         int my_alarm_range = pmon_my_alarm_dist[m];
         if (pmon_my_alarm_state[m])
-            my_alarm_range++;
+            my_alarm_range += 2;
 
         int my_idx = pmon_my_idx[m];
         if (my_idx < 0)  // not alive
@@ -2035,6 +2043,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
             continue;
         }
         int my_enemy_tx_age = -1;
+        pmon_my_foe_dist[m] = 10000;
 
         int my_next_x = pmon_all_next_x[my_idx];
         int my_next_y = pmon_all_next_y[my_idx];
@@ -2054,9 +2063,20 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 my_enemy_tx_age = pmon_all_tx_age[k_all];
             }
 
-            if ((my_alarm_range) && (abs(my_x - pmon_all_x[k_all]) <= my_alarm_range) && (abs(my_y - pmon_all_y[k_all]) <= my_alarm_range))
+//            if ((my_alarm_range) && (abs(my_x - pmon_all_x[k_all]) <= my_alarm_range) && (abs(my_y - pmon_all_y[k_all]) <= my_alarm_range))
+//            {
+//                tmp_trigger_alarm = true;
+//            }
+            int fdx = abs(my_x - pmon_all_x[k_all]);
+            int fdy = abs(my_y - pmon_all_y[k_all]);
+            int tmp_foe_dist = fdx > fdy ? fdx : fdy;
+            if (tmp_foe_dist < pmon_my_foe_dist[m])
             {
-                tmp_trigger_alarm = true;
+                pmon_my_foe_dist[m] = tmp_foe_dist;
+                if ((my_alarm_range) && (tmp_foe_dist <= my_alarm_range))
+                {
+                    tmp_trigger_alarm = true;
+                }
             }
         }
 

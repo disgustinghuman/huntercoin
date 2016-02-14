@@ -25,7 +25,8 @@ Pending Transaction Monitor
     (OK)                      after all names from names.txt, in case of no alarm and no idle hunter
 
     Full: <name>              after all names from names.txt, if reached maximum loot (carrying capacity)
-    Bank: <name>              after all names from names.txt, if reached 50% of carrying capacity, and a bank is nearby (see config:bank_distance)
+    Bank: <name>              after all names from names.txt, if reached 50% of carrying capacity, and a bank is nearby
+                              (see "config:bank_distance" and "config:loot_notice")
 
     x,y->x2,y2               after hunter name, coors currently and expected after next block
     wp:...                   after hunter name, next waypoint
@@ -46,6 +47,8 @@ Config options (in names.txt)
                                    - nothing is done if the hunter's last waypoint is already a bank tile
 
     config:bank_distance 10        maximum distance to notice a bank if an hunter can walk there in a straight line, default 0
+
+    config:loot_notice 50          show 'Bank' reminder if an hunter carries more coins, default 50
 
 
 Asciiartmap editing guide
