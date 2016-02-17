@@ -42,13 +42,18 @@ Config options (in names.txt)
                                    (zoom level is 10...200, 10 means completely zoomed out)
                                    default 20
 
-    config:afk_leave_map 1         hunters will leave the map, default 0
-                                   - recommended value for config:bank_distance is 50 or 60
+    config:afk_leave_map 60        hunters will leave the map (if they notice a bank), default 0
+                                   - recommended value 60 (if bank_notice is smaller, it will inrease at a rate of 1 per tick)
                                    - nothing is done if the hunter's last waypoint is already a bank tile
 
-    config:bank_distance 10        maximum distance to notice a bank if an hunter can walk there in a straight line, default 0
+    config:bank_notice 10          maximum distance to notice a bank if an hunter can walk there in a straight line, default 0
 
     config:loot_notice 50          show 'Bank' reminder if an hunter carries more coins, default 50
+
+    config:warn_stalled 36         red blinking lights on hunters if last block is older than n "ticks",
+                                   default 36 (normally 3 minutes)
+
+    config:warn_disaster 50        green blinking lights on hunters for n blocks after disaster, default 50
 
 
 Asciiartmap editing guide

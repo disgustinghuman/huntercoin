@@ -916,6 +916,7 @@ extern int pmon_out_of_wp_idx;
 extern bool pmon_new_data;
 extern int pmon_state;
 extern int pmon_go;
+extern int pmon_block_age;
 extern int64 pmon_tick;
 #define PMON_TX_MAX 1000
 extern std::string pmon_tx_names[PMON_TX_MAX];
@@ -960,8 +961,10 @@ extern int pmon_my_bank_x[PMON_MY_MAX];
 extern int pmon_my_bank_y[PMON_MY_MAX];
 
 extern int pmon_config_loot_notice;
-extern int pmon_config_bankdist;
+extern int pmon_config_bank_notice;
 extern int pmon_config_zoom;
+extern int pmon_config_warn_stalled;
+extern int pmon_config_warn_disaster;
 extern int pmon_config_afk_leave;
 #endif
 

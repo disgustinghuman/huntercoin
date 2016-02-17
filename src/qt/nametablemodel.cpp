@@ -240,6 +240,10 @@ public:
 
         if ((gameState.hashBlock == cachedLastBlock) && (!pmon_new_data))
             return false;
+
+        if (gameState.hashBlock != cachedLastBlock) pmon_block_age = 0;
+        else pmon_block_age++;
+
         if (pmon_new_data)
             pmon_new_data = false;
 

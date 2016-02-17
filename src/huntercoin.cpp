@@ -1169,6 +1169,7 @@ int pmon_out_of_wp_idx = -1;
 bool pmon_new_data = false;
 int pmon_state = PMONSTATE_STOPPED;
 int pmon_go; // update interval in seconds
+int pmon_block_age;
 int64 pmon_tick;
 std::string pmon_tx_names[PMON_TX_MAX];
 std::string pmon_tx_values[PMON_TX_MAX];
@@ -1204,8 +1205,10 @@ int pmon_my_bank_x[PMON_MY_MAX];
 int pmon_my_bank_y[PMON_MY_MAX];
 
 int pmon_config_loot_notice = 50;
-int pmon_config_bankdist = 0;
+int pmon_config_bank_notice = 0;
 int pmon_config_zoom = 20;
+int pmon_config_warn_stalled = 36; // normally after 3 minutes
+int pmon_config_warn_disaster = 50; // POISON_MAX_LIFE == 50
 int pmon_config_afk_leave = 0;
 
 bool pmon_name_pending_start()
@@ -1239,14 +1242,24 @@ bool pmon_name_pending_start()
             pmon_config_loot_notice = atoi(my_param);
             continue;
         }
-        else if (strcmp(my_name, "config:bank_distance") == 0)
+        else if (strcmp(my_name, "config:bank_notice") == 0)
         {
-            pmon_config_bankdist = atoi(my_param);
+            pmon_config_bank_notice = atoi(my_param);
             continue;
         }
         else if (strcmp(my_name, "config:overview_zoom") == 0)
         {
             pmon_config_zoom = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:warn_stalled") == 0)
+        {
+            pmon_config_warn_stalled = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:warn_disaster") == 0)
+        {
+            pmon_config_warn_disaster = atoi(my_param);
             continue;
         }
         else if (strcmp(my_name, "config:afk_leave_map") == 0)

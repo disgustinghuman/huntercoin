@@ -1,6 +1,9 @@
+config:overview_zoom 20
+config:bank_notice 10
+config:loot_notice 50
+config:warn_stalled 36
+config:warn_disaster 50
+config:afk_leave_map 0
 Alice 9
 Bob 9
-config:overview_zoom 25
-config:bank_distance 10
-config:afk_leave_map 0
 

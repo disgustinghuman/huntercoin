@@ -1587,6 +1587,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
     int bank_timeleft[75];
     int bank_idx = 0;
 
+    bool tmp_warn_blocktime = ((pmon_block_age > pmon_config_warn_stalled) && (pmon_block_age % 2));
+    bool tmp_warn_poison = ((!tmp_warn_blocktime) && (gameState.nHeight - gameState.nDisasterHeight < pmon_config_warn_disaster) && (pmon_block_age % 2));
+    bool tmp_zoomed_out = ((!tmp_warn_blocktime) && (!tmp_warn_poison) && (zoomFactor < (double)pmon_config_zoom/(double)100));
+    int tmp_red = tmp_zoomed_out ? 255 : (tmp_warn_blocktime ? 228 : 0);
+    int tmp_green = tmp_zoomed_out ? 255 : (tmp_warn_poison ? 228 : 0);
+    int tmp_blue = tmp_zoomed_out ? 255 : (tmp_warn_blocktime ? 120 : 0);
+
 
     BOOST_FOREACH (QGraphicsRectItem* b, banks)
       {
@@ -1597,14 +1604,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
     BOOST_FOREACH (const PAIRTYPE(Coord, unsigned)& b, gameState.banks)
       {
 
-        // better GUI -- banks
+        // better GUI -- steal some rectangles from banks to highlight my hunter positions
         int tmp_rect_idx = bank_idx;
         int tmp_rect_x = b.first.x;
         int tmp_rect_y = b.first.y;
         int tmp_opacity = bankOpacity;
-
-        // steal some rectangles from banks to highlight my hunter positions
-        if ((zoomFactor < (double)pmon_config_zoom/(double)100) && (tmp_rect_idx < PMON_MY_MAX) && (pmon_my_idx[tmp_rect_idx] >= 0) && (pmon_my_idx[tmp_rect_idx] < PMON_ALL_MAX))
+        if ((tmp_zoomed_out || tmp_warn_blocktime || tmp_warn_poison) && (tmp_rect_idx < PMON_MY_MAX) && (pmon_my_idx[tmp_rect_idx] >= 0) && (pmon_my_idx[tmp_rect_idx] < PMON_ALL_MAX))
         {
             tmp_rect_x = pmon_all_x[pmon_my_idx[tmp_rect_idx]];
             tmp_rect_y = pmon_all_y[pmon_my_idx[tmp_rect_idx]];
@@ -1613,7 +1618,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         QGraphicsRectItem* r
          = scene->addRect (TILE_SIZE * tmp_rect_x, TILE_SIZE * tmp_rect_y,
                            TILE_SIZE, TILE_SIZE,
-                           Qt::NoPen, QColor (255, 255, 255, tmp_opacity));
+                           Qt::NoPen, QColor (tmp_red, tmp_green, tmp_blue, tmp_opacity));
         if (bank_idx < 75)
         {
             bank_xpos[bank_idx] = b.first.x;
@@ -1821,7 +1826,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                             int dy = (abs(bank_ypos[b] - coord.y));
                             int d = dx > dy ? dx : dy;
                             if ((d > 0) && (bank_timeleft[b] > d + 3) &&
-                                (d <= pmon_config_bankdist) && (d < pmon_my_bankdist[m]))
+                                (d <= pmon_config_bank_notice) && (d < pmon_my_bankdist[m]))
                             {
 
                                 Coord tmp_bank_coord;
@@ -1898,7 +1903,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         else if ((pmon_my_bankstate[m] >= 1) && (pmon_my_bankstate[m] <= 2) && (pending_tx_idx >= 0))
                             pmon_my_bankstate[m] = 3;
 
-                        if ( (pmon_my_bankstate[m] != 3) && (pending_tx_idx == -1) && (pmon_my_bankdist[m] <= pmon_config_bankdist) &&
+                        if ( (pmon_my_bankstate[m] != 3) && (pending_tx_idx == -1) && (pmon_my_bankdist[m] <= pmon_config_bank_notice) &&
                              ((pmon_config_afk_leave) || (characterState.loot.nAmount / 100000000 >= pmon_config_loot_notice)) )
                         {
                             if (pmon_my_bankstate[m] < 2)
@@ -1921,7 +1926,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                     pmon_need_bank_idx = m;
                             }
 
-                            if ((pmon_need_bank_idx == m) && (pmon_my_bankstate[m] != 3) && (pmon_my_bankdist[m] <= pmon_config_bankdist) &&
+                            if ((pmon_need_bank_idx == m) && (pmon_my_bankstate[m] != 3) && (pmon_my_bankdist[m] <= pmon_config_bank_notice) &&
                                 (pmon_my_bank_x[m] >= 0) && (pmon_my_bank_y[m] >= 0))
                             if (pmon_config_afk_leave)
                             {
@@ -1959,8 +1964,6 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 entry.name += QString::fromStdString(" Bank:");
                             else if (pmon_my_bankstate[pmon_need_bank_idx] == 1)
                                 entry.name += QString::fromStdString(" Full:");
-                            else
-                                entry.name += QString::fromStdString(" Bank???:");
 
                             entry.name += QString::fromStdString(pmon_my_names[pmon_need_bank_idx]);
 
@@ -1977,6 +1980,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                         if (!pmon_noisy)
                             entry.name += QString::fromStdString(" (silent)");
+
+                        if ((pmon_config_afk_leave) && (pmon_my_bankstate[m] != 3))
+                        {
+                            entry.name += QString::fromStdString(" Leaving:");
+                            entry.name += QString::number(pmon_config_bank_notice);
+                            entry.name += QString::fromStdString("/");
+                            entry.name += QString::number(pmon_config_afk_leave);
+                        }
 
                         if (pmon_my_foecontact_age[m])
                         {
@@ -2094,6 +2105,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
       }
     }
+
+    if (pmon_config_afk_leave > pmon_config_bank_notice)
+        pmon_config_bank_notice++;
 
     if (pmon_state == PMONSTATE_SHUTDOWN)
         pmon_state = PMONSTATE_STOPPED;
@@ -2479,6 +2493,11 @@ void GameMapView::mousePressEvent(QMouseEvent *event)
         if (event->modifiers().testFlag( Qt::ControlModifier ))
         {
             pmon_noisy = pmon_noisy ? false : true;
+
+            if (pmon_noisy)
+                for (int m = 0; m < PMON_MY_MAX; m++)
+                    if (pmon_my_alarm_state[m] == 1)
+                         pmon_my_alarm_state[m] = 2;
         }
         else if ( ! (event->modifiers().testFlag( Qt::ShiftModifier )) )
         {

@@ -349,8 +349,8 @@ std::vector<Coord> *UpdateQueuedPath(const CharacterState &ch, QueuedMoves &queu
     std::vector<Coord> &wp = qpm->second.waypoints;
 
     // If character moved, recompute the path
-    if (wp.front() != ch.coord)
-        wp = FindPath(ch.coord, wp.back());
+//    if (wp.front() != ch.coord)
+//        wp = FindPath(ch.coord, wp.back());  // better GUI -- keep queued path
     return &wp;
 }
 
