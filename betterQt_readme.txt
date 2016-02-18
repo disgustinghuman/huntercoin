@@ -1,3 +1,44 @@
+Resources
+=========
+
+
+https://github.com/wiggi/huntercoin
+
+  This readme should normally be here
+
+
+https://bitcointalk.org/index.php?topic=435170.0
+http://forum.huntercoin.org/
+
+  The Huntercoin forums
+
+
+huntercoin-betterQt-20160217-exp-binaries-32bit.zip, 7.6 MB
+https://mega.nz/#!CIFjDCRa!AAWZKZw-zU7DWAkuDfAvg_dHLlBnpbHT6ejWpN6lEZI
+
+  "Self defense for hunters" experimental builds for Windows and Linux,
+  replaces the "with-storage" executable from huntercoin-betterQt-win32-20160209.zip (which is still needed for all the other files)
+
+
+huntercoin-betterQt-win32-20160209.zip, 73.0 MB
+https://mega.nz/#!2BsVhDDR!CulNnVf1Q1M7cKhqpW7GmeEKHRfAJdLwFRbhIcMWS2E
+
+  Latest windows release, 2 versions:
+  - safemode (uses normal game.dat)
+  - "with-storage" mode, i.e. "#define PERMANENT_LUGGAGE", uses an alternative game.dat
+    (included, client can make its own but first start would take ~5 hours on mainnet if no game.dat is found)
+
+
+hunttest-playground-20151226.zip, 19.3 MB
+https://mega.nz/#!fUMWFRAZ!mYceRV0s91iokbMvkN6_vSKKbIzroi_WnnPa0uOhbeY
+
+  Testnet in a box, with lots of stuff to salvage for Huntercoin
+  - more player and monster sprites
+  - monster pathfinding
+  - an in-game exchange that can be modified to do >100 trades per block without becoming a resource hog
+  - NPCs, items, ranged combat with spells, and more
+
+
 Pending Transaction Monitor
 ===========================
 
