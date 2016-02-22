@@ -1,42 +1,23 @@
-Resources
+Source
 =========
-
 
 https://github.com/wiggi/huntercoin
 
-  This readme should normally be here
 
+Binaries
+========
 
-https://bitcointalk.org/index.php?topic=435170.0
-http://forum.huntercoin.org/
+huntercoin-betterQt-exp-binaries-20160221.zip, 82.9 MB
+https://mega.nz/#!3BUAGIoK!NiAk9bcnKI7Sr-gL6TvpvcKBUTAH_CiEMs2WzxueemA
 
-  The Huntercoin forums
+  for Windows:
+  - Safemode
 
-
-huntercoin-betterQt-20160217-exp-binaries-32bit.zip, 7.6 MB
-https://mega.nz/#!CIFjDCRa!AAWZKZw-zU7DWAkuDfAvg_dHLlBnpbHT6ejWpN6lEZI
-
-  "Self defense for hunters" experimental builds for Windows and Linux,
-  replaces the "with-storage" executable from huntercoin-betterQt-win32-20160209.zip (which is still needed for all the other files)
-
-
-huntercoin-betterQt-win32-20160209.zip, 73.0 MB
-https://mega.nz/#!2BsVhDDR!CulNnVf1Q1M7cKhqpW7GmeEKHRfAJdLwFRbhIcMWS2E
-
-  Latest windows release, 2 versions:
-  - safemode (uses normal game.dat)
-  - "with-storage" mode, i.e. "#define PERMANENT_LUGGAGE", uses an alternative game.dat
-    (included, client can make its own but first start would take ~5 hours on mainnet if no game.dat is found)
-
-
-hunttest-playground-20151226.zip, 19.3 MB
-https://mega.nz/#!fUMWFRAZ!mYceRV0s91iokbMvkN6_vSKKbIzroi_WnnPa0uOhbeY
-
-  Testnet in a box, with lots of stuff to salvage for Huntercoin
-  - more player and monster sprites
-  - monster pathfinding
-  - an in-game exchange that can be modified to do >100 trades per block without becoming a resource hog
-  - NPCs, items, ranged combat with spells, and more
+  for Windows, Linux Mint13/Ubuntu12.04 32bit, Linux Mint17.3/ubuntu14.04 32+64bit
+  - "Self defense for hunters" experimental build
+    with storage vaults (i.e. "#define PERMANENT_LUGGAGE")
+  - uses alternative game.dat (included, client can make its own but first start
+    would take ~5 hours on mainnet if game.dat isn't found)
 
 
 Pending Transaction Monitor
@@ -95,6 +76,71 @@ Config options (in names.txt)
                                    default 36 (normally 3 minutes)
 
     config:warn_disaster 50        green blinking lights on hunters for n blocks after disaster, default 50
+
+
+Safemode, advanced mode, gems and in-game auction
+=================================================
+
+Safemode:       uses regular game.dat
+
+Advanced mode:  compiled with additional variables in the gamestate (game.dat)
+                -> uncomment "#define PERMANENT_LUGGAGE"
+                -> delete or rename the original game.dat, or the node will not start,
+                   if no game.dat is present, a new one is generated (takes ~15 minutes on testnet, ~5 hours on mainnet)
+
+Gems:           a NPC by the name of "Tia'tha" will spawn every 1242 chronons near the middle of the right or left map border
+                (1 free gem, and 1 free storage vault for the first hunter on same tile),
+                and in advanced mode can be found near the blue water announcing the next gem spawn.
+
+                In safemode, the client is amnesiac about current gem spawn state if restarted.
+
+Storage vaults: Item storage for hunters, not affected in case of death or disaster. Player reward address is used as "vault key" if possible,
+                or player name address otherwise (this is the same for bought and "harvested" items).
+                Cost of creating a new vault is 0.02 gems.
+
+                The blue icon means that an hunter picked up the last spawned gem (safemode),
+                or owns at least 1.00 gems (advanced mode)
+                - set reward address to something different than name address: storage is "closed"
+                - set reward address to same as name address: storage is "opened", amount displayed after hunter name
+                (indicative, only the list in adventurers.txt is always up to date)
+
+                Another hunter can later inherit the inventory if they transfer to the "storage key address".
+
+                If exported from an empty wallet (console command: dumpprivkey <storage key address>), storage keys
+                can be imported without rescan (console command: importprivkey <privkey> <huntername or other label> false).
+
+Auction tool:   auction.txt is updated for new blocks if tx monitor was started,
+                with example lines to communicate with the game for each possible action:
+
+                - send a sell order (limited to 1 open order per vault, only possible if player name address is a vault key,
+                  and the hunter was not transferred during the last 3 blocks),
+                  the order is active until filled, with automatic price down-tick every 100 blocks
+                - modify a sell order (size 0 == cancel)
+                - send a "Fill-or-Kill" buy order (every hunter can do that)
+                - send coins to actually execute the buy order
+
+                  IMPORTANT NOTE: The system will ignore partial payments, if not confirmed before timeout,
+                                  or if not parsable (multisignature or other non-simple transaction).
+
+                - cast a vote about HUC price (once every 10000 blocks, for a reward if within +-5% of median)
+
+                Limits for gems:
+                 size: 0.1 minimum
+                 price: 1.00...1000000.00, but "settlement price" is minimum
+                        Settlement price will tick down if best ask is not higher, or tick up otherwise.
+
+
+Other Resources
+===============
+
+hunttest-playground-20151226.zip, 19.3 MB
+https://mega.nz/#!fUMWFRAZ!mYceRV0s91iokbMvkN6_vSKKbIzroi_WnnPa0uOhbeY
+
+  Testnet in a box, with lots of stuff to salvage for Huntercoin
+  - more player and monster sprites
+  - monster pathfinding
+  - an in-game exchange that can be modified to do >100 trades per block without becoming a resource hog
+  - NPCs, items, ranged combat with spells, and more
 
 
 Asciiartmap editing guide
