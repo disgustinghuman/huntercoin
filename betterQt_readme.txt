@@ -121,6 +121,7 @@ Auction tool:   auction.txt is updated for new blocks if tx monitor was started,
 
                   IMPORTANT NOTE: The system will ignore partial payments, if not confirmed before timeout,
                                   or if not parsable (multisignature or other non-simple transaction).
+                                  see "Precautions" below
 
                 - cast a vote about HUC price (once every 10000 blocks, for a reward if within +-5% of median)
 
@@ -128,6 +129,18 @@ Auction tool:   auction.txt is updated for new blocks if tx monitor was started,
                  size: 0.1 minimum
                  price: 1.00...1000000.00, but "settlement price" is minimum
                         Settlement price will tick down if best ask is not higher, or tick up otherwise.
+
+
+Precautions
+===========
+
+on Windows:            use Sysinternals TCPView to check the 8 connections from time to time,
+                       if 6 or 7 have stopped receiving data, restart the node
+
+if using the auction:  before sending coins
+                       - backup wallet in console window (i.e. "backupwallet wallet.dat")
+                       - if connection is lost in this moment or the transaction doesn't confirm normally,
+                         shut down, discard the original wallet and use the backup.
 
 
 Other Resources

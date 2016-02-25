@@ -2301,14 +2301,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     printf("parsing message: wrong block hash: hunter %s, %s at %s\n", auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
                 }
               }
-              else
-              {
-                  printf("parsing message: waiting for payment: hunter %s, %s at %s\n", auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
-              }
-            }
-            else
-            {
-                printf("parsing message: Error, bad auctioncache_bid_chronon %d\n", auctioncache_bid_chronon);
+//            else
+//            {
+//                printf("parsing message: waiting for payment: hunter %s, %s at %s\n", auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
+//            }
             }
 
             // parse last message (auction sell orders, price feed)
