@@ -134,13 +134,27 @@ Auction tool:   auction.txt is updated for new blocks if tx monitor was started,
 Precautions
 ===========
 
-on Windows:            use Sysinternals TCPView to check the 8 connections from time to time,
-                       if 6 or 7 have stopped receiving data, restart the node
+on Windows:            nodes may (randomly after some hours) stop receiving data, and need restart
+                       (this takes less time if "Detach databases at shutdown" is not checked)
+
+                       for a really reliable Huntercoin node it's recommended to use Oracle VirtualBox, e.g:
+
+                       available                         virtual disk space
+                       RAM (host)        RAM (guest)     (fixed size)           virtual machine OS
+
+                       >= 8 GB           2 GB            35 GB                  Linux Mint 17.3LTS, 64bit, Mate
+                       4 GB              1.5 GB          35 GB                  Linux Mint 17.3LTS or 13LTS, 32bit, Mate
 
 if using the auction:  before sending coins
                        - backup wallet in console window (i.e. "backupwallet wallet.dat")
                        - if connection is lost in this moment or the transaction doesn't confirm normally,
                          shut down, discard the original wallet and use the backup.
+
+pending tx monitor:    if either "(OK)", the idle time "n min" or "*ALARM*" is displayed for the hunter
+                       last in the list of hunters in names.txt, then the entire list was correctly parsed
+
+                       it's dangerous to have valid names of hunters in the list when these hunters are not currently alive,
+                       hostiles with same name would go undetected (e.g. "#Bob" is not a valid hunter name)
 
 
 Other Resources
