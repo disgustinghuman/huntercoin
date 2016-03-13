@@ -1,6 +1,15 @@
 #ifndef GAMEMAP_H
 #define GAMEMAP_H
 
+#ifdef GUI
+#define RPG_OUTFIT_NPCS
+#ifdef RPG_OUTFIT_NPCS
+#define RPG_OUTFIT_ITEMS
+//#define RPG_OUTFIT_DEBUG
+#include <string>
+#endif
+#endif
+
 namespace Game
 {
 
@@ -69,8 +78,10 @@ extern int Displaycache_gamemapgood[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 extern int Displaycache_gamemap[Game::MAP_HEIGHT][Game::MAP_WIDTH][Game::MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
 //extern bool Display_dbg_obstacle_marker;
 
+#define RPG_EXTRA_TEAM_COLORS 26
+
 #define RPG_ICON_EMPTY 276
-#define RGP_ICON_HUC_BANDIT 411
+#define RPG_ICON_HUC_BANDIT 411
 
 //#define RPG_TILE_GRASS_GREEN_DARK 263
 //#define RPG_TILE_GRASS_GREEN_LITE 266
@@ -94,6 +105,30 @@ extern int Displaycache_gamemap[Game::MAP_HEIGHT][Game::MAP_WIDTH][Game::MAP_LAY
 #define ASCIIART_IS_CLIFFSAND(T) ((T==',') || (T==';') || (T==':'))
 #define ASCIIART_IS_CLIFFTOP(T) ((T=='?') || (T=='_'))
 #define ASCIIART_IS_COBBLESTONE(T) ((T=='o') || (T=='O') || (T=='q') || (T=='Q') || (T=='8'))
+#endif
+
+#ifdef RPG_OUTFIT_NPCS
+// for the actual items
+#define RPG_MINHEIGHT_OUTFIT(T) (T?319000:1129000)
+#define RPG_NUM_OUTFITS 3
+//extern std::string outfit_cache_name[RPG_NUM_OUTFITS];
+extern bool outfit_cache[RPG_NUM_OUTFITS];
+extern int rpg_spawnpoint_x[RPG_NUM_OUTFITS];
+extern int rpg_spawnpoint_y[RPG_NUM_OUTFITS];
+// for NPCs
+#define RPG_NUM_NPCS 6
+#define RPG_PATH_LEN 12
+extern std::string rgp_npc_name[RPG_NUM_NPCS];
+extern int rpg_interval[RPG_NUM_NPCS];
+extern int rpg_interval_tnet[RPG_NUM_NPCS];
+extern int rpg_timeshift[RPG_NUM_NPCS];
+extern int rpg_timeshift_tnet[RPG_NUM_NPCS];
+extern int rpg_finished[RPG_NUM_NPCS];
+extern int rpg_finished_tnet[RPG_NUM_NPCS];
+extern int rpg_sprite[RPG_NUM_NPCS];
+extern int rpg_path_x[RPG_NUM_NPCS][RPG_PATH_LEN];
+extern int rpg_path_y[RPG_NUM_NPCS][RPG_PATH_LEN];
+extern int rpg_path_d[RPG_NUM_NPCS][RPG_PATH_LEN];
 #endif
 
 

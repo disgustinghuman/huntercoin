@@ -142,6 +142,16 @@ int AsciiArtTileCount[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
 int Displaycache_gamemapgood[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 int Displaycache_gamemap[Game::MAP_HEIGHT][Game::MAP_WIDTH][Game::MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
 //bool Display_dbg_obstacle_marker = false;
+static bool Teleporter_pad(int xul, int yul)
+{
+    Displaycache_gamemap[yul][xul][0] = 27;       //  Displaycache_gamemapgood[yul][xul] = 1;
+    Displaycache_gamemap[yul][xul+1][0] = 29;     //  Displaycache_gamemapgood[yul][xul+1] = 1;
+    Displaycache_gamemap[yul+1][xul][0] = 54;     //  Displaycache_gamemapgood[yul+1][xul] = 1;
+    Displaycache_gamemap[yul+1][xul+1][0] = 55;   //  Displaycache_gamemapgood[yul+1][xul+1] = 1;
+
+    Displaycache_gamemap[yul][xul+1][SHADOW_LAYERS+1] = RPG_TILE_TPGLOW;
+    Displaycache_gamemap[yul+1][xul][SHADOW_LAYERS+1] = RPG_TILE_TPGLOW_SMALL;
+}
 
 static bool Calculate_AsciiArtMap()
 {
@@ -157,6 +167,13 @@ static bool Calculate_AsciiArtMap()
         }
         fclose(fp);
     }
+
+#ifdef RPG_OUTFIT_NPCS
+    Teleporter_pad(229, 250);
+    Teleporter_pad(271, 250);
+    Teleporter_pad(138, 481);
+    Teleporter_pad(115, 482);
+#endif
 
     // try to fix grass/dirt transition part 1
     for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)

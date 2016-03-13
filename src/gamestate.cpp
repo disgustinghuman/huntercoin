@@ -950,6 +950,48 @@ GetDirection (const Coord& c1, const Coord& c2)
 #ifdef PERMANENT_LUGGAGE
 std::string Huntermsg_cache_address;
 
+#ifdef RPG_OUTFIT_NPCS
+// for the actual items
+std::string outfit_cache_name[RPG_NUM_OUTFITS];
+bool outfit_cache[RPG_NUM_OUTFITS];
+int rpg_spawnpoint_x[RPG_NUM_OUTFITS] = {-1, -1, -1};
+int rpg_spawnpoint_y[RPG_NUM_OUTFITS] = {-1, -1, -1};
+// for NPCs
+std::string rgp_npc_name[RPG_NUM_NPCS] = {"Caran'zara",
+                                          "Na'axilan",
+                                          "Zeab'batsu",
+                                          "Kas'shii",
+                                          "Or'lo",
+                                          "Tia'tha"};
+int rpg_interval[RPG_NUM_NPCS] =      {1000, 1000, 1000, 1100, 2200, 1242};
+int rpg_interval_tnet[RPG_NUM_NPCS] = { 100,  100,  100,  100,  200,  100};
+int rpg_timeshift[RPG_NUM_NPCS] =     {-400, -700,    0, -115, -117,    0};
+int rpg_timeshift_tnet[RPG_NUM_NPCS] = {-40,  -70,    0,  -15,  -17,    0};
+int rpg_finished[RPG_NUM_NPCS] =      { 100,  100,  100,   12,   12,   50};
+int rpg_finished_tnet[RPG_NUM_NPCS] = {  25,   25,   25,   12,   12,   50};
+
+int rpg_sprite[RPG_NUM_NPCS] =        {  27,   16,   18,   10,   11,    5};
+
+int rpg_path_x[RPG_NUM_NPCS][RPG_PATH_LEN] = {{143, 143, 143, 143, 142, 141, 140, 139, 115, 115, 115, 115},
+                                              {143, 143, 143, 143, 142, 141, 140, 139, 115, 115, 115, 115},
+                                              {140, 140, 140, 140, 140, 140, 140, 139, 115, 115, 115, 115},
+                                              {365, 229, 230, 231, 232, 233, 234, 234, 233, 232, 231, 230},
+                                              {473, 229, 230, 230, 230, 230, 230, 230, 230, 230, 231, 230},
+                                              {129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 139}};
+int rpg_path_y[RPG_NUM_NPCS][RPG_PATH_LEN] = {{481, 481, 481, 481, 481, 481, 481, 481, 483, 482, 481, 480},
+                                              {484, 484, 484, 484, 483, 482, 481, 481, 483, 482, 481, 480},
+                                              {485, 485, 485, 485, 484, 483, 482, 481, 483, 482, 481, 480},
+                                              {500, 251, 251, 251, 251, 250, 250, 250, 249, 249, 250, 250},
+                                              {  7, 251, 251, 251, 251, 251, 252, 252, 252, 252, 251, 250},
+                                              {487, 487, 487, 487, 486, 485, 485, 485, 484, 483, 482, 481}};
+int rpg_path_d[RPG_NUM_NPCS][RPG_PATH_LEN] = {{  4,   4,   4,   4,   4,   4,   4,   4,   4,   7,   7,   1},
+                                              {  1,   1,   1,   1,   7,   7,   7,   4,   4,   7,   7,   1},
+                                              {  3,   3,   3,   3,   8,   8,   8,   7,   7,   7,   7,   4},
+                                              {  9,   6,   6,   6,   6,   9,   6,   6,   7,   4,   1,   4},
+                                              {  6,   6,   6,   6,   2,   2,   2,   2,   2,   2,   9,   7},
+                                              {  3,   3,   6,   6,   9,   9,   9,   9,   9,   9,   9,   6}};
+#endif
+
 #ifdef PERMANENT_LUGGAGE_AUCTION
 int64 auctioncache_bid_price;
 int64 auctioncache_bid_size;
@@ -2168,6 +2210,33 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
 
 #ifdef PERMANENT_LUGGAGE_AUCTION
+#ifdef RPG_OUTFIT_ITEMS
+    if (outState.nHeight >= RPG_MINHEIGHT_OUTFIT(fTestNet))
+    {
+        for (int i = 0; i < RPG_NUM_OUTFITS; i++)
+        {
+            if (i >= RPG_NUM_NPCS) break;
+
+            outfit_cache[i] = false;
+            int tmp_interval = fTestNet ? rpg_interval_tnet[i] : rpg_interval[i];
+            int tmp_timeshift = fTestNet ? rpg_timeshift_tnet[i] : rpg_timeshift[i];
+            int tmp_finished = fTestNet ? rpg_finished_tnet[i] : rpg_finished[i];
+
+            int tmp_step = (outState.nHeight + tmp_timeshift) % tmp_interval;
+            if ((tmp_step >= RPG_PATH_LEN-1) && (tmp_step < tmp_finished))
+            {
+                rpg_spawnpoint_x[i] = rpg_path_x[i][RPG_PATH_LEN-1];
+                rpg_spawnpoint_y[i] = rpg_path_y[i][RPG_PATH_LEN-1];
+            }
+            else
+            {
+                rpg_spawnpoint_x[i] = rpg_spawnpoint_y[i] = -1;
+            }
+        }
+        printf("outfit test: merchants: mage xy=%d %d, fighter xy=%d %d  hunter xy=%d %d\n", rpg_spawnpoint_x[0], rpg_spawnpoint_y[0], rpg_spawnpoint_x[1], rpg_spawnpoint_y[1], rpg_spawnpoint_x[2], rpg_spawnpoint_y[2]);
+
+    }
+#endif
     if (outState.nHeight >= AUX_MINHEIGHT_FEED(fTestNet))
     {
         auctioncache_bid_price = 0;
@@ -2312,7 +2381,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             if (p.second.message_block == outState.nHeight - 1) //message for current block is only available after ApplyCommon
             {
                 // auction alert (display a warning)
-                if ((outState.nHeight > 1140000) ||
+                if ((outState.nHeight > 1160000) ||
                     ((fTestNet) && (p.second.playernameaddress == "hcTgWguRcs2ByAUbTBNeuoBrVgQ2FqhoEb")) ||
                     ((!fTestNet) && (p.second.playernameaddress == "HSjUvhya9UrtuE1Dm73ytT3BkFWm8EGof9")))
                     outState.upgrade_test--;
@@ -2411,22 +2480,45 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
     BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
         BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
         {
-
             // gems and storage
 #ifdef PERMANENT_LUGGAGE
             if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
             {
-              if ((outState.gemSpawnState == GEM_SPAWNED) || (outState.gemSpawnState == GEM_HARVESTING))
-              {
                 CharacterState &ch = pc.second;
-                if (ch.coord == outState.gemSpawnPos)
+                if ((outState.gemSpawnState == GEM_SPAWNED) || (outState.gemSpawnState == GEM_HARVESTING))
                 {
-                    outState.gemSpawnState = GEM_HARVESTING;
-                    gem_visualonly_state = GEM_HARVESTING; // keep in sync
-                    gem_cache_winner_name = p.first;
+                    if (ch.coord == outState.gemSpawnPos)
+                    {
+                        outState.gemSpawnState = GEM_HARVESTING;
+                        gem_visualonly_state = GEM_HARVESTING; // keep in sync
+                        gem_cache_winner_name = p.first;
+                    }
                 }
-              }
+
+#ifdef RPG_OUTFIT_ITEMS
+                if (outState.nHeight >= RPG_MINHEIGHT_OUTFIT(fTestNet))
+                {
+                    for (int i = 0; i < RPG_NUM_OUTFITS; i++)
+                    {
+                        if ((ch.coord.x == rpg_spawnpoint_x[i]) && (ch.coord.y == rpg_spawnpoint_y[i]))
+                        {
+//                            ch.rpg_gems_in_purse = 1<<i;
+                            if (i == 0) ch.rpg_gems_in_purse = 1;
+                            else if (i == 1) ch.rpg_gems_in_purse = 2;
+                            else if (i == 2) ch.rpg_gems_in_purse = 4;
+
+                            outfit_cache[i] = true;
+                            outfit_cache_name[i] = p.first;
+
+                            printf("outfit test: %s got outfit %d\n", p.first.c_str(), i);
+                        }
+//                      else
+//                          printf("outfit test: %s got nothing (%d)\n", p.first.c_str(), i);
+                    }
+                }
+#endif
             }
+
 #elif GUI
             if (GEM_ALLOW_SPAWN(fTestNet, outState.nHeight))
             {
@@ -2599,6 +2691,23 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         bool tmp_disconnect_storage = false;
         bool tmp_reward_addr_set = (p.second.address.length() > 1); // (IsValidBitcoinAddress(p.second.address)) fast enough?
 
+#ifdef RPG_OUTFIT_ITEMS
+        int64 tmp_new_outfit = 0;
+        unsigned char tmp_outfit = 0;
+        for (int i = 0; i < RPG_NUM_OUTFITS; i++)
+        {
+            if ((outfit_cache[i]) && (outfit_cache_name[i] == p.first))
+            {
+//                tmp_new_outfit = 1<<i;
+                if (i == 0) tmp_new_outfit = 1;
+                else if (i == 1) tmp_new_outfit = 2;
+                else if (i == 2) tmp_new_outfit = 4;
+                p.second.playerflags |= PLAYER_FOUND_ITEM;
+            }
+
+        }
+#endif
+
         // found a gem
         if ((outState.gemSpawnState == GEM_HARVESTING) &&
             (gem_cache_winner_name == p.first))
@@ -2680,11 +2789,21 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             printf("luggage test: %s added item(s) to storage %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
                             if (tmp_disconnect_storage) printf("luggage test: storage is disconnected\n");
                         }
+#ifdef RPG_OUTFIT_ITEMS
+                        else if (tmp_new_outfit)
+                        {
+                            mi->second.gem_reserve9 = tmp_new_outfit;
+                            mi->second.huntername = p.first;
+                        }
+#endif
 
                         if (!tmp_disconnect_storage)
                         {
                             // was:                       tmp_gems = outState.gems[Huntermsg_cache_address];
                             tmp_gems = mi->second.nGems;
+#ifdef RPG_OUTFIT_ITEMS
+                            tmp_outfit = mi->second.gem_reserve9;
+#endif
 
                             printf("luggage test: %s retrieved item(s) from storage %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
                             printf("luggage test: %15"PRI64d" gem sats found\n", tmp_gems);
@@ -2744,11 +2863,22 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         printf("luggage test: storage disconnected, name %s, idx %d\n", p.first.c_str(), i);
                     }
                 }
+#ifdef RPG_OUTFIT_ITEMS
+                else if ((tmp_outfit) || (tmp_gems))
+                {
+                    if (tmp_gems < 0)
+                        tmp_gems = 0;
+                    ch.rpg_gems_in_purse = tmp_gems + tmp_outfit;
+                    tmp_gems = 0;
+                    tmp_outfit = 0;
+                }
+#else
                 else if (tmp_gems)
                 {
                     ch.rpg_gems_in_purse = tmp_gems;
                     tmp_gems = 0;
                 }
+#endif
             }
         }
       }

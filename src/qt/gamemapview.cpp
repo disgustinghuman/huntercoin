@@ -27,13 +27,12 @@ struct GameGraphicsObjects
 {
     // Player sprites for each color and 10 directions (with 0 and 5 being null, the rest are as on numpad)
     // better GUI -- more player sprites
-    QPixmap player_sprite[Game::NUM_TEAM_COLORS+2][10];
+    QPixmap player_sprite[Game::NUM_TEAM_COLORS + RPG_EXTRA_TEAM_COLORS][10];
 
     QPixmap coin_sprite, heart_sprite, crown_sprite;
     QPixmap tiles[NUM_TILE_IDS];
 
-    // better GUI -- more player sprites
-    QBrush player_text_brush[Game::NUM_TEAM_COLORS+2];
+    QBrush player_text_brush[Game::NUM_TEAM_COLORS + RPG_EXTRA_TEAM_COLORS];
 
     QPen magenta_pen, gray_pen;
 
@@ -47,12 +46,40 @@ struct GameGraphicsObjects
         player_text_brush[3] = QBrush(QColor(0, 170, 255));
 
         // better GUI -- more player sprites
-        player_text_brush[4] = QBrush(QColor(255, 255, 255));
+        player_text_brush[4] = QBrush(QColor(255, 255, 255)); // NPCs
         player_text_brush[5] = QBrush(QColor(255, 255, 255));
 
-        // better GUI -- more player sprites
-        for (int i = 0; i < Game::NUM_TEAM_COLORS+2; i++)
+        player_text_brush[6] = QBrush(QColor(255, 255, 100)); // yellow
+        player_text_brush[7] = QBrush(QColor(0, 170, 255));   // blue
+        player_text_brush[8] = QBrush(QColor(255, 80, 80));   // red
+        player_text_brush[9] = QBrush(QColor(100, 255, 100)); // green
 
+        player_text_brush[10] = QBrush(QColor(255, 255, 255)); // NPCs
+        player_text_brush[11] = QBrush(QColor(255, 255, 255));
+        player_text_brush[12] = QBrush(QColor(255, 255, 255));
+        player_text_brush[13] = QBrush(QColor(255, 255, 255));
+
+        player_text_brush[14] = QBrush(QColor(0, 170, 255)); // blue
+        player_text_brush[15] = QBrush(QColor(255, 80, 80)); // red
+
+        player_text_brush[16] = QBrush(QColor(255, 255, 255)); // NPCs
+        player_text_brush[17] = QBrush(QColor(255, 255, 255));
+        player_text_brush[18] = QBrush(QColor(255, 255, 255));
+        player_text_brush[19] = QBrush(QColor(255, 255, 255));
+        player_text_brush[20] = QBrush(QColor(255, 255, 255));
+        player_text_brush[21] = QBrush(QColor(255, 255, 255));
+        player_text_brush[22] = QBrush(QColor(255, 255, 255));
+
+        player_text_brush[23] = QBrush(QColor(255, 255, 100)); // yellow
+        player_text_brush[24] = QBrush(QColor(100, 255, 100)); // green
+
+        player_text_brush[25] = QBrush(QColor(255, 255, 255)); // NPCs
+        player_text_brush[26] = QBrush(QColor(255, 255, 255));
+        player_text_brush[27] = QBrush(QColor(255, 255, 255));
+        player_text_brush[28] = QBrush(QColor(255, 255, 255));
+        player_text_brush[29] = QBrush(QColor(255, 255, 255));
+
+        for (int i = 0; i < Game::NUM_TEAM_COLORS + RPG_EXTRA_TEAM_COLORS; i++)
             for (int j = 1; j < 10; j++)
             {
                 if (j != 5)
@@ -1685,6 +1712,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
             }
 #ifdef PERMANENT_LUGGAGE
             int64 tmp_in_purse = characterState.rpg_gems_in_purse;
+#ifdef RPG_OUTFIT_ITEMS
+            unsigned char tmp_outfit = tmp_in_purse % 10;
+            tmp_in_purse -= tmp_outfit;
+#endif
             if (pl.playerflags & PLAYER_SUSPEND)
                 entry.name += QString::fromStdString(" (recently transferred)");
 
@@ -1711,9 +1742,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 entry.icon_d1 = 0;
                 entry.icon_d2 = 0;
                 if (pl.value > 40000000000)
-                    entry.icon_d2 = RGP_ICON_HUC_BANDIT;
+                    entry.icon_d2 = RPG_ICON_HUC_BANDIT;
                 if (pl.value > 20000000000)
-                    entry.icon_d1 = RGP_ICON_HUC_BANDIT;
+                    entry.icon_d1 = RPG_ICON_HUC_BANDIT;
 
                 entry.name += QString::fromStdString(" ");
                 entry.name += QString::number(coord.x);
@@ -2127,13 +2158,26 @@ void GameMapView::updateGameMap(const GameState &gameState)
             fprintf(fp, "\n Inventory (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
             fprintf(fp, " ------------------------------------\n\n");
             fprintf(fp, "                                          hunter\n");
+#ifdef RPG_OUTFIT_ITEMS
+            fprintf(fp, "storage vault key                           name     gems    outfit\n");
+#else
             fprintf(fp, "storage vault key                           name     gems\n");
+#endif
             fprintf(fp, "\n");
 
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
               int64 tmp_volume = st.second.nGems;
+#ifdef RPG_OUTFIT_ITEMS
+              unsigned char tmp_outfit = st.second.gem_reserve9;
+              std::string s = "-";
+              if (tmp_outfit == 1) s = "mage";
+              else if (tmp_outfit == 2) s = "fighter";
+              else if (tmp_outfit == 4) s = "hunter";
+              fprintf(fp, "%s    %10s    %5s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str());
+#else
               fprintf(fp, "%s    %10s    %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str());
+#endif
               count++;
               count_volume += tmp_volume;
             }
@@ -2159,7 +2203,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (gameState.upgrade_test != gameState.nHeight)
             {
               fprintf(fp, "GAMESTATE OUT OF SYNC: !!! DON'T USE THIS AUCTION PAGE !!!\n");
-              fprintf(fp, "Either gamestate.dat was used with an old version of this client\n");
+              fprintf(fp, "Either game.dat was used with an old version of this client\n");
               fprintf(fp, "or the alarm (only for auction, different from 'network alert') was triggered\n");
               fprintf(fp, "or this client version itself is too old.\n");
             }
@@ -2331,9 +2375,32 @@ void GameMapView::updateGameMap(const GameState &gameState)
         // better GUI -- better player sprites
         int color_attack1 = data.second.icon_a1 ==  453 ? 453 : RPG_ICON_EMPTY; // gems and storage
 
-        int color_defense1 = data.second.icon_d1 ==  RGP_ICON_HUC_BANDIT ? RGP_ICON_HUC_BANDIT : RPG_ICON_EMPTY;
-        int color_defense2 = data.second.icon_d2 ==  RGP_ICON_HUC_BANDIT ? RGP_ICON_HUC_BANDIT : RPG_ICON_EMPTY;
-        gameMapCache->AddPlayer(playerName, x, y, 1 + offs, data.second.color, color_attack1, color_defense1, color_defense2, characterState.dir, characterState.loot.nAmount);
+        int color_defense1 = data.second.icon_d1 ==  RPG_ICON_HUC_BANDIT ? RPG_ICON_HUC_BANDIT : RPG_ICON_EMPTY;
+        int color_defense2 = data.second.icon_d2 ==  RPG_ICON_HUC_BANDIT ? RPG_ICON_HUC_BANDIT : RPG_ICON_EMPTY;
+
+        unsigned char tmp_color = data.second.color;
+#ifdef PERMANENT_LUGGAGE
+#ifdef RPG_OUTFIT_ITEMS
+        if (characterState.rpg_gems_in_purse & 1)
+        {
+            // "mage" sprite
+            if (tmp_color == 0) tmp_color = 6;
+            else if (tmp_color == 1) tmp_color = 8;
+            else if (tmp_color == 2) tmp_color = 9;
+            else if (tmp_color == 3) tmp_color = 7;
+        }
+        else if (characterState.rpg_gems_in_purse & 2)
+        {
+            // "knight" sprite
+            if (tmp_color == 0) tmp_color = 23;
+            else if (tmp_color == 1) tmp_color = 15;
+            else if (tmp_color == 2) tmp_color = 24;
+            else if (tmp_color == 3) tmp_color = 14;
+        }
+#endif
+#endif
+        gameMapCache->AddPlayer(playerName, x, y, 1 + offs, tmp_color, color_attack1, color_defense1, color_defense2, characterState.dir, characterState.loot.nAmount);
+//        gameMapCache->AddPlayer(playerName, x, y, 1 + offs, data.second.color, color_attack1, color_defense1, color_defense2, characterState.dir, characterState.loot.nAmount);
     }
 
 
@@ -2356,13 +2423,71 @@ void GameMapView::updateGameMap(const GameState &gameState)
         gameMapCache->AddPlayer("Tia'tha", TILE_SIZE * gem_visualonly_x, TILE_SIZE * gem_visualonly_y, 1 + 0, 5, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
     }
 #ifdef PERMANENT_LUGGAGE
+#ifndef RPG_OUTFIT_NPCS
     else
     {
+        // "legacy version"
         QString qs = QString::fromStdString("Tia'tha 'next gem at ");
         qs += QString::number(gameState.nHeight - (gameState.nHeight % GEM_RESET_INTERVAL(fTestNet)) + GEM_RESET_INTERVAL(fTestNet));
         qs += QString::fromStdString("'");
         gameMapCache->AddPlayer(qs, TILE_SIZE * 128, TILE_SIZE * 486, 1 + 0, 5, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
     }
+#endif
+#ifdef RPG_OUTFIT_NPCS
+    for (int tmp_npc = 0; tmp_npc < RPG_NUM_NPCS; tmp_npc++)
+    {
+        int tmp_interval = fTestNet ? rpg_interval_tnet[tmp_npc] : rpg_interval[tmp_npc];
+        int tmp_timeshift = fTestNet ? rpg_timeshift_tnet[tmp_npc] : rpg_timeshift[tmp_npc];
+        int tmp_finished = fTestNet ? rpg_finished_tnet[tmp_npc] : rpg_finished[tmp_npc];
+        int tmp_step = 0;
+        int tmp_pos = 0;
+
+        if (tmp_npc == 5)
+        {
+            if (gem_visualonly_state == GEM_SPAWNED)
+               continue;
+
+            int t0 = gameState.nHeight - (gameState.nHeight % GEM_RESET_INTERVAL(fTestNet)) + GEM_RESET_INTERVAL(fTestNet);
+            t0 -= 12; // -= RPG_PATH_LEN
+            tmp_step = gameState.nHeight - t0;
+            if (tmp_step < 0)
+            {
+                QString qs = QString::fromStdString("Tia'tha 'next gem at ");
+                qs += QString::number(gameState.nHeight - (gameState.nHeight % GEM_RESET_INTERVAL(fTestNet)) + GEM_RESET_INTERVAL(fTestNet));
+                qs += QString::fromStdString("'");
+                gameMapCache->AddPlayer(qs, TILE_SIZE * 128, TILE_SIZE * 486, 1 + 0, 5, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
+
+                continue;
+            }
+        }
+        else
+        {
+            tmp_step = (gameState.nHeight + tmp_timeshift) % tmp_interval;
+        }
+
+        tmp_pos = tmp_step >= 0 ? tmp_step : 0;
+        if (tmp_pos >= RPG_PATH_LEN) tmp_pos = RPG_PATH_LEN - 1;
+
+        if (tmp_step >= tmp_finished) tmp_pos = 0;
+        QString tmp_name = QString::fromStdString(rgp_npc_name[tmp_npc]);
+        if (tmp_pos == RPG_PATH_LEN - 1)
+        {
+            if (tmp_npc == 0) tmp_name += QString::fromStdString(" 'mage outfit here, for free'");
+            else if (tmp_npc == 1) tmp_name += QString::fromStdString(" 'fighter outfit here, for free'");
+            else if (tmp_npc == 2) tmp_name += QString::fromStdString(" 'hunter outfit here, for free'");
+        }
+
+#ifdef RPG_OUTFIT_DEBUG
+            tmp_name += QString::fromStdString(" step:");
+            tmp_name += QString::number(tmp_step);
+#endif
+
+        int xn = rpg_path_x[tmp_npc][tmp_pos];
+        int yn = rpg_path_y[tmp_npc][tmp_pos];
+        int dn = rpg_path_d[tmp_npc][tmp_pos];
+        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, rpg_sprite[tmp_npc], RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
+    }
+#endif
 #endif
 
 
