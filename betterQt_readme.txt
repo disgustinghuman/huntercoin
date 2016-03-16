@@ -1,5 +1,5 @@
 Source
-=========
+======
 
 https://github.com/wiggi/huntercoin
 
@@ -7,8 +7,8 @@ https://github.com/wiggi/huntercoin
 Binaries
 ========
 
-huntercoin-betterQt-exp-binaries-20160221.zip, 82.9 MB
-https://mega.nz/#!3BUAGIoK!NiAk9bcnKI7Sr-gL6TvpvcKBUTAH_CiEMs2WzxueemA
+huntercoin-betterQt-exp-binaries-20160315.zip, 84.3 MB
+https://mega.nz/#!OdthBC7S!8pptEB7jxdmCp_DVN-Jo6ezq9hKE5J-gDECmrY9gxjE
 
   for Windows:
   - Safemode
@@ -48,7 +48,7 @@ Pending Transaction Monitor
 
     Full: <name>              after all names from names.txt, if reached maximum loot (carrying capacity)
     Bank: <name>              after all names from names.txt, if reached 50% of carrying capacity, and a bank is nearby
-                              (see "config:bank_distance" and "config:loot_notice")
+                              (see "config:bank_notice" and "config:loot_notice")
 
     x,y->x2,y2               after hunter name, coors currently and expected after next block
     wp:...                   after hunter name, next waypoint
