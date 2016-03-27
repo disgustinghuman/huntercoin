@@ -25,6 +25,11 @@
 #include <miniupnpc/upnperrors.h>
 #endif
 
+// windows stability bug workaround
+#ifdef GUI
+#include "gamestate.h"
+#endif
+
 using namespace std;
 using namespace boost;
 
@@ -764,6 +769,10 @@ void ThreadSocketHandler2(void* parg)
 
     loop
     {
+#ifdef PMON_DEBUG_WIN32_GUI
+        pmon_config_dbg_loops++;
+#endif
+
         //
         // Disconnect nodes
         //
@@ -1040,7 +1049,39 @@ void ThreadSocketHandler2(void* parg)
                 pnode->Release();
         }
 
+        // windows stability bug workaround
+#ifdef PMON_DEBUG_WIN32_GUI
+        if (pmon_config_dbg_sleep & PMON_DBGWIN_T012SEPARATE)
+        {
+            if (pmon_dbg_which_thread & 1) // thread #0, flag 1
+            {
+                pmon_dbg_which_thread -= 1; // thread #0, flag 1
+            }
+
+            if (pmon_config_dbg_sleep & PMON_DBGWIN_MORESLEEP)
+                MilliSleep(100);
+            else
+                MilliSleep(10);
+
+            for (int i = 0; i < 50; i++)
+            {
+                if (pmon_dbg_which_thread == 0)
+                {
+                    pmon_dbg_which_thread = 1; // thread #0, flag 1
+                    break;
+                }
+                if (i > pmon_dbg_waitcount_t0) pmon_dbg_waitcount_t0 = i;
+
+                MilliSleep(20);
+            }
+        }
+        else
+        {
+            MilliSleep(10);
+        }
+#else
         MilliSleep(10);
+#endif
     }
 }
 
@@ -1265,7 +1306,38 @@ void ThreadOpenConnections2(void* parg)
     loop
     {
         vnThreadsRunning[1]--;
+
+        // windows stability bug workaround
+#ifdef PMON_DEBUG_WIN32_GUI
+        if (pmon_config_dbg_sleep & PMON_DBGWIN_T012SEPARATE)
+        {
+          if (pmon_dbg_which_thread & 2) // thread #1, flag 2
+          {
+            pmon_dbg_which_thread -= 2; // thread #1, flag 2
+          }
+
+          MilliSleep(500);
+
+          for (int i = 0; i < 50; i ++)
+          {
+              if (pmon_dbg_which_thread == 0)
+              {
+                  pmon_dbg_which_thread = 2; // thread #1, flag 2
+                  break;
+              }
+              if (i > pmon_dbg_waitcount_t1) pmon_dbg_waitcount_t1 = i;
+
+              MilliSleep(100);
+          }
+        }
+        else
+        {
+            MilliSleep(500);
+        }
+#else
         MilliSleep(500);
+#endif
+
         vnThreadsRunning[1]++;
         if (fShutdown)
             return;
@@ -1283,7 +1355,38 @@ void ThreadOpenConnections2(void* parg)
             if (nOutbound < nMaxOutboundConnections)
                 break;
             vnThreadsRunning[1]--;
+
+            // windows stability bug workaround
+#ifdef PMON_DEBUG_WIN32_GUI
+            if (pmon_config_dbg_sleep & PMON_DBGWIN_T012SEPARATE)
+            {
+              if (pmon_dbg_which_thread & 2) // thread #1, flag 2
+              {
+                pmon_dbg_which_thread -= 2; // thread #1, flag 2
+              }
+
+              MilliSleep(2000);
+
+              for (int i = 0; i < 50; i++)
+              {
+                  if (pmon_dbg_which_thread == 0)
+                  {
+                      pmon_dbg_which_thread = 2; // thread #1, flag 2
+                      break;
+                  }
+                  if (i > pmon_dbg_waitcount_t1) pmon_dbg_waitcount_t1 = i;
+
+                  MilliSleep(200);
+              }
+            }
+            else
+            {
+                MilliSleep(2000);
+            }
+#else
             MilliSleep(2000);
+#endif
+
             vnThreadsRunning[1]++;
             if (fShutdown)
                 return;
@@ -1537,7 +1640,38 @@ void ThreadMessageHandler2(void* parg)
         // Reduce vnThreadsRunning so StopNode has permission to exit while
         // we're sleeping, but we must always check fShutdown after doing this.
         vnThreadsRunning[2]--;
+
+        // windows stability bug workaround
+#ifdef PMON_DEBUG_WIN32_GUI
+        if (pmon_config_dbg_sleep & PMON_DBGWIN_T012SEPARATE)
+        {
+          if (pmon_dbg_which_thread & 4) // thread #2, flag 4
+          {
+            pmon_dbg_which_thread -= 4; // thread #2, flag 4
+          }
+
+          MilliSleep(100);
+
+          for (int i = 0; i < 50; i++)
+          {
+              if (pmon_dbg_which_thread == 0)
+              {
+                  pmon_dbg_which_thread = 4; // thread #2, flag 4
+                  break;
+              }
+              if (i > pmon_dbg_waitcount_t2) pmon_dbg_waitcount_t2 = i;
+
+              MilliSleep(50);
+          }
+        }
+        else
+        {
+            MilliSleep(100);
+        }
+#else
         MilliSleep(100);
+#endif
+
         if (fRequestShutdown)
             StartShutdown();
         vnThreadsRunning[2]++;

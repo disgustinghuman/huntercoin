@@ -1211,6 +1211,17 @@ int pmon_config_warn_stalled = 36; // normally after 3 minutes
 int pmon_config_warn_disaster = 50; // POISON_MAX_LIFE == 50
 int pmon_config_afk_leave = 0;
 
+// windows stability bug workaround
+#ifdef PMON_DEBUG_WIN32_GUI
+//#ifdef PMON_DEBUG_WIN32_GUI_NOMUTEX
+int pmon_config_dbg_loops;
+int pmon_config_dbg_sleep;
+volatile int pmon_dbg_which_thread = 0;
+int pmon_dbg_waitcount_t0;
+int pmon_dbg_waitcount_t1;
+int pmon_dbg_waitcount_t2;
+#endif
+
 bool pmon_name_pending_start()
 {
     FILE *fp;
@@ -1237,6 +1248,17 @@ bool pmon_name_pending_start()
         if (fscanf(fp, "%50s ", my_param) < 1)
             break;
 
+        // windows stability bug workaround
+#ifdef PMON_DEBUG_WIN32_GUI
+        if (il == 0) pmon_config_dbg_sleep = 12;
+
+        if (strcmp(my_name, "config:dbg_win32_qt_threads") == 0)
+        {
+            pmon_config_dbg_sleep = atoi(my_param);
+            continue;
+        }
+        else
+#endif
         if (strcmp(my_name, "config:loot_notice") == 0)
         {
             pmon_config_loot_notice = atoi(my_param);

@@ -336,7 +336,9 @@ inline int OutputDebugStringF(const char* pszFormat, ...)
         }
     }
 
-#ifdef __WXMSW__
+// windows stability bug workaround
+//#ifdef __WXMSW__
+#ifdef PMON_DEBUG_WIN32_GUI_NOMUTEX
     if (fPrintToDebugger)
     {
         static CCriticalSection cs_OutputDebugStringF;

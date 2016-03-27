@@ -24,6 +24,15 @@
 #endif
 #ifdef GUI
 #define PERMANENT_LUGGAGE_OR_GUI
+
+// windows stability bug workaround
+#ifdef WIN32
+#define PMON_DEBUG_WIN32_GUI
+#define PMON_DBGWIN_T012SEPARATE 4
+#define PMON_DBGWIN_MORESLEEP 8
+#define PMON_DBGWIN_LOG 16
+void ThreadSocketHandler(void* parg);
+#endif
 #endif
 
 namespace Game
@@ -966,6 +975,16 @@ extern int pmon_config_zoom;
 extern int pmon_config_warn_stalled;
 extern int pmon_config_warn_disaster;
 extern int pmon_config_afk_leave;
+
+// windows stability bug workaround
+#ifdef PMON_DEBUG_WIN32_GUI
+extern int pmon_config_dbg_loops;
+extern int pmon_config_dbg_sleep;
+extern volatile int pmon_dbg_which_thread;
+extern int pmon_dbg_waitcount_t0;
+extern int pmon_dbg_waitcount_t1;
+extern int pmon_dbg_waitcount_t2;
+#endif
 #endif
 
 #ifdef PERMANENT_LUGGAGE_OR_GUI

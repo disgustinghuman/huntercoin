@@ -276,7 +276,9 @@ std::string DecodeBase64(const std::string &s);
 // Wrapper to automatically initialize critical sections
 class CCriticalSection
 {
-#ifdef __WXMSW__
+// windows stability bug workaround
+//#ifdef __WXMSW__
+#ifdef PMON_DEBUG_WIN32_GUI_NOMUTEX
 protected:
     CRITICAL_SECTION cs;
 public:

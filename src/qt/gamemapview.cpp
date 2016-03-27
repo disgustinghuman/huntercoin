@@ -2143,6 +2143,28 @@ void GameMapView::updateGameMap(const GameState &gameState)
     if (pmon_state == PMONSTATE_SHUTDOWN)
         pmon_state = PMONSTATE_STOPPED;
 
+    // windows stability bug workaround
+#ifdef PMON_DEBUG_WIN32_GUI
+    if ((pmon_go > 0) && (pmon_config_dbg_sleep & PMON_DBGWIN_LOG))
+    {
+        printf("ThreadSocketHandler2, loops %d (%d/s)  ", pmon_config_dbg_loops, pmon_config_dbg_loops/pmon_go);
+
+        int w = pmon_dbg_which_thread;
+        if (w == 1)
+            printf("T.SocketHandler2 active, max wait count %d %d %d\n", pmon_dbg_waitcount_t0, pmon_dbg_waitcount_t1, pmon_dbg_waitcount_t2);
+        else if (w == 2)
+            printf("T.OpenConnections2 active, max wait count %d %d %d\n", pmon_dbg_waitcount_t0, pmon_dbg_waitcount_t1, pmon_dbg_waitcount_t2);
+        else if (w == 4)
+            printf("T.MessageHandler2 active, max wait count %d %d %d\n", pmon_dbg_waitcount_t0, pmon_dbg_waitcount_t1, pmon_dbg_waitcount_t2);
+        else if (w)
+            printf("Threads #0, #1, #2: ERROR %d, max wait count %d %d %d\n", w, pmon_dbg_waitcount_t0, pmon_dbg_waitcount_t1, pmon_dbg_waitcount_t2);
+        else
+            printf("Threads #0, #1, #2: sleeping, max wait count %d %d %d\n", pmon_dbg_waitcount_t0, pmon_dbg_waitcount_t1, pmon_dbg_waitcount_t2);
+
+        pmon_config_dbg_loops = pmon_dbg_waitcount_t0 = pmon_dbg_waitcount_t1 = pmon_dbg_waitcount_t2 = 0;
+    }
+#endif
+
     if ((pmon_go) && (gameState.nHeight > gem_log_height))
     {
         gem_log_height = gameState.nHeight;
