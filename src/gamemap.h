@@ -118,7 +118,7 @@ extern int rpg_spawnpoint_y[RPG_NUM_OUTFITS];
 // for NPCs
 #define RPG_NUM_NPCS 6
 #define RPG_PATH_LEN 12
-extern std::string rgp_npc_name[RPG_NUM_NPCS];
+extern std::string rpg_npc_name[RPG_NUM_NPCS];
 extern int rpg_interval[RPG_NUM_NPCS];
 extern int rpg_interval_tnet[RPG_NUM_NPCS];
 extern int rpg_timeshift[RPG_NUM_NPCS];

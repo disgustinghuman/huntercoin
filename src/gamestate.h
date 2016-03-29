@@ -299,7 +299,7 @@ struct StorageVault
     int64_t gem_reserve6;
     int feed_chronon;
     int auction_ask_chronon;
-    unsigned char gem_reserve9;
+    unsigned char item_outfit;
     unsigned char gem_reserve10;
     std::string huntername;
 
@@ -313,7 +313,7 @@ struct StorageVault
           gem_reserve6(0),
           feed_chronon(0),
           auction_ask_chronon(0),
-          gem_reserve9(0),
+          item_outfit(0),
           gem_reserve10(0)
     { }
     StorageVault(int64_t nGems_)
@@ -326,7 +326,7 @@ struct StorageVault
           gem_reserve6(0),
           feed_chronon(0),
           auction_ask_chronon(0),
-          gem_reserve9(0),
+          item_outfit(0),
           gem_reserve10(0)
     { }
 
@@ -344,7 +344,7 @@ struct StorageVault
         READWRITE(gem_reserve6);
         READWRITE(feed_chronon);
         READWRITE(auction_ask_chronon);
-        READWRITE(gem_reserve9);
+        READWRITE(item_outfit);
         READWRITE(gem_reserve10);
         READWRITE(huntername);
     )

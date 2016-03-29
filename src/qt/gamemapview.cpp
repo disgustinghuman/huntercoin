@@ -2191,7 +2191,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
             {
               int64 tmp_volume = st.second.nGems;
 #ifdef RPG_OUTFIT_ITEMS
-              unsigned char tmp_outfit = st.second.gem_reserve9;
+              unsigned char tmp_outfit = st.second.item_outfit;
               std::string s = "-";
               if (tmp_outfit == 1) s = "mage";
               else if (tmp_outfit == 2) s = "fighter";
@@ -2491,7 +2491,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         if (tmp_pos >= RPG_PATH_LEN) tmp_pos = RPG_PATH_LEN - 1;
 
         if (tmp_step >= tmp_finished) tmp_pos = 0;
-        QString tmp_name = QString::fromStdString(rgp_npc_name[tmp_npc]);
+        QString tmp_name = QString::fromStdString(rpg_npc_name[tmp_npc]);
         if (tmp_pos == RPG_PATH_LEN - 1)
         {
             if (tmp_npc == 0) tmp_name += QString::fromStdString(" 'mage outfit here, for free'");

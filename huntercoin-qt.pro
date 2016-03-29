@@ -158,10 +158,13 @@ HUNTERCOIN_SOURCES = \
     gametx.cpp \
     gamemovecreator.cpp
 
-HEADERS += $$join(HUNTERCOIN_HEADERS, " src/", " src/",)
-SOURCES += $$join(HUNTERCOIN_SOURCES, " src/", " src/",)
+#HEADERS += $$join(HUNTERCOIN_HEADERS, " src/", " src/",)
+#SOURCES += $$join(HUNTERCOIN_SOURCES, " src/", " src/",)
 
 HEADERS += \
+    src/headers.h src/strlcpy.h src/serialize.h src/uint256.h src/util.h src/key.h src/bignum.h src/base58.h src/scrypt.h \
+    src/script.h src/allocators.h src/db.h src/walletdb.h src/crypter.h src/net.h src/irc.h src/keystore.h src/main.h src/wallet.h src/bitcoinrpc.h src/uibase.h src/ui.h src/noui.h src/init.h src/auxpow.h \
+    src/gamestate.h src/gamemap.h src/gamedb.h src/gametx.h src/gamemovecreator.h \
     src/qt/netbase.h \
     src/qt/bitcoingui.h \
     src/qt/transactiontablemodel.h \
@@ -213,6 +216,29 @@ HEADERS += \
     src/json/json_spirit.h
 
 SOURCES += \
+    src/auxpow.cpp \
+    src/scrypt.cpp \
+    src/util.cpp \
+    src/key.cpp \
+    src/script.cpp \
+    src/db.cpp \
+    src/walletdb.cpp \
+    src/crypter.cpp \
+    src/net.cpp \
+    src/irc.cpp \
+    src/keystore.cpp \
+    src/main.cpp \
+    src/wallet.cpp \
+    src/bitcoinrpc.cpp \
+    src/init.cpp \
+    src/cryptopp/sha.cpp \
+    src/cryptopp/cpu.cpp \
+    src/huntercoin.cpp \
+    src/gamestate.cpp \
+    src/gamemap.cpp \
+    src/gamedb.cpp \
+    src/gametx.cpp \
+    src/gamemovecreator.cpp \
     src/qt/netbase.cpp \
     src/qt/bitcoin.cpp \
     src/qt/bitcoingui.cpp \

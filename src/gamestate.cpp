@@ -957,7 +957,7 @@ bool outfit_cache[RPG_NUM_OUTFITS];
 int rpg_spawnpoint_x[RPG_NUM_OUTFITS] = {-1, -1, -1};
 int rpg_spawnpoint_y[RPG_NUM_OUTFITS] = {-1, -1, -1};
 // for NPCs
-std::string rgp_npc_name[RPG_NUM_NPCS] = {"Caran'zara",
+std::string rpg_npc_name[RPG_NUM_NPCS] = {"Caran'zara",
                                           "Na'axilan",
                                           "Zeab'batsu",
                                           "Kas'shii",
@@ -2792,7 +2792,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 #ifdef RPG_OUTFIT_ITEMS
                         else if (tmp_new_outfit)
                         {
-                            mi->second.gem_reserve9 = tmp_new_outfit;
+                            mi->second.item_outfit = tmp_new_outfit;
                             mi->second.huntername = p.first;
                         }
 #endif
@@ -2802,7 +2802,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             // was:                       tmp_gems = outState.gems[Huntermsg_cache_address];
                             tmp_gems = mi->second.nGems;
 #ifdef RPG_OUTFIT_ITEMS
-                            tmp_outfit = mi->second.gem_reserve9;
+                            tmp_outfit = mi->second.item_outfit;
 #endif
 
                             printf("luggage test: %s retrieved item(s) from storage %s\n", p.first.c_str(), Huntermsg_cache_address.c_str());
