@@ -1802,6 +1802,19 @@ name_pending (const Array& params, bool fHelp)
         std::string pmon_param = params[0].get_str();
         pmon_go = atoi(pmon_param.c_str());
 
+        // mostly superfluous, due to windows stability bug workaround:
+        // hack to reanimate the node after stalled thread was killed with Sysinternals procexp
+#ifdef PMON_DEBUG_WIN32_GUI
+        if (pmon_go == -1)
+        {
+            pmon_go = 5;
+            if (!CreateThread(ThreadSocketHandler, NULL))
+                return "failed: CreateThread(ThreadSocketHandler)";
+
+            return "ok: CreateThread(ThreadSocketHandler)";
+        }
+#endif
+
         if (pmon_name_pending_start())
             pmon_state = PMONSTATE_CONSOLE;
         else

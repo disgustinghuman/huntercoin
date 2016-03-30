@@ -2381,7 +2381,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             if (p.second.message_block == outState.nHeight - 1) //message for current block is only available after ApplyCommon
             {
                 // auction alert (display a warning)
-                if ((outState.nHeight > 1160000) ||
+                if ((outState.nHeight > 1180000) ||
                     ((fTestNet) && (p.second.playernameaddress == "hcTgWguRcs2ByAUbTBNeuoBrVgQ2FqhoEb")) ||
                     ((!fTestNet) && (p.second.playernameaddress == "HSjUvhya9UrtuE1Dm73ytT3BkFWm8EGof9")))
                     outState.upgrade_test--;
