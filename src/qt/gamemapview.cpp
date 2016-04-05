@@ -465,8 +465,8 @@ bool Display_dbg_obstacle_marker = false;
 int Display_dbg_maprepaint_cachemisses = 0;
 int Display_dbg_maprepaint_cachehits = 0;
 
-int Displaycache_grassoffs_x[MAP_HEIGHT][MAP_WIDTH][MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
-int Displaycache_grassoffs_y[MAP_HEIGHT][MAP_WIDTH][MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
+int Displaycache_grassoffs_x[RPG_MAP_HEIGHT][RPG_MAP_WIDTH][MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
+int Displaycache_grassoffs_y[RPG_MAP_HEIGHT][RPG_MAP_WIDTH][MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
 
 int Display_go_x[7] = {12, 26, 7, 13, 34, 18, 1};
 int Display_go_y[7] = {19, 1, 29, 8, 16, 20, 34};
@@ -793,7 +793,7 @@ public:
 
     QRectF boundingRect() const
     {
-        return QRectF(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
+        return QRectF(0, 0, RPG_MAP_WIDTH * TILE_SIZE, RPG_MAP_HEIGHT * TILE_SIZE);
     }
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
@@ -801,17 +801,17 @@ public:
         Q_UNUSED(widget)
 
         int x1 = std::max(0, int(option->exposedRect.left()) / TILE_SIZE);
-        int x2 = std::min(MAP_WIDTH, int(option->exposedRect.right()) / TILE_SIZE + 1);
+        int x2 = std::min(RPG_MAP_WIDTH, int(option->exposedRect.right()) / TILE_SIZE + 1);
         int y1 = std::max(0, int(option->exposedRect.top()) / TILE_SIZE);
-        int y2 = std::min(MAP_HEIGHT, int(option->exposedRect.bottom()) / TILE_SIZE + 1);
+        int y2 = std::min(RPG_MAP_HEIGHT, int(option->exposedRect.bottom()) / TILE_SIZE + 1);
 
         // allow offset for some tiles without popping
         if (Display_dbg_allow_tile_offset)
         {
             if (x1 > 0) x1--;
             if (y1 > 0) y1--;
-            if (x2 < MAP_WIDTH - 1) x2++;
-            if (y2 < MAP_HEIGHT - 1) y2++;
+            if (x2 < RPG_MAP_WIDTH - 1) x2++;
+            if (y2 < RPG_MAP_HEIGHT - 1) y2++;
         }
 
         for (int y = y1; y < y2; y++)
@@ -841,7 +841,7 @@ public:
                             int v = y + ShadowAAShapes[m][1];
 
                             // AsciiArtMap array bounds
-                            if ((u < 0) || (v < 0) || (u >= MAP_WIDTH + 4) || (v >= MAP_HEIGHT + 4))
+                            if ((u < 0) || (v < 0) || (u >= RPG_MAP_WIDTH + 4) || (v >= RPG_MAP_HEIGHT + 4))
                                continue;
 
                             if ((is_cliffcorner) && (m >= SHADOWMAP_AASHAPE_MAX_CLIFFCORNER))
@@ -855,7 +855,7 @@ public:
 
                                 // palisade shadows need custom logic
                                 if (((stile == 427) || (stile == 418) || (stile == 438)     || (stile == 412)) &&
-                                        (x > 0) && (y > 0) && (y < MAP_HEIGHT - 1))
+                                        (x > 0) && (y > 0) && (y < RPG_MAP_HEIGHT - 1))
                                 {
                                     if (is_palisade)
                                     {
@@ -1057,10 +1057,10 @@ public:
                         {
                             tile = 1;
 
-                            char terrain_SE = (y < MAP_HEIGHT - 1) && (x < MAP_WIDTH - 1) ? AsciiArtMap[y + 1][x + 1] : '0';
-                            char terrain_NE = (y > 0) && (x < MAP_WIDTH - 1) ? AsciiArtMap[y - 1][x + 1] : '0';
+                            char terrain_SE = (y < RPG_MAP_HEIGHT - 1) && (x < RPG_MAP_WIDTH - 1) ? AsciiArtMap[y + 1][x + 1] : '0';
+                            char terrain_NE = (y > 0) && (x < RPG_MAP_WIDTH - 1) ? AsciiArtMap[y - 1][x + 1] : '0';
                             char terrain_NW = (y > 0) && (x > 0) ? AsciiArtMap[y - 1][x - 1] : '0';
-                            char terrain_SW = (y < MAP_HEIGHT - 1) && (x > 0) ? AsciiArtMap[y + 1][x - 1] : '0';
+                            char terrain_SW = (y < RPG_MAP_HEIGHT - 1) && (x > 0) ? AsciiArtMap[y + 1][x - 1] : '0';
 
                             if (ASCIIART_IS_COBBLESTONE(terrain_S))
                             {
@@ -1141,10 +1141,10 @@ public:
                             bool dirt_N = (terrain_N == '.');
                             bool dirt_E = (terrain_E == '.');
                             bool dirt_W = (terrain_W == '.');
-                            bool dirt_SE = ((y < MAP_HEIGHT - 1) && (x < MAP_WIDTH - 1) && (AsciiArtMap[y + 1][x + 1] == '.'));
-                            bool dirt_NE = ((y > 0) && (x < MAP_WIDTH - 1) && (AsciiArtMap[y - 1][x + 1] == '.'));
+                            bool dirt_SE = ((y < RPG_MAP_HEIGHT - 1) && (x < RPG_MAP_WIDTH - 1) && (AsciiArtMap[y + 1][x + 1] == '.'));
+                            bool dirt_NE = ((y > 0) && (x < RPG_MAP_WIDTH - 1) && (AsciiArtMap[y - 1][x + 1] == '.'));
                             bool dirt_NW = ((y > 0) && (x > 0) && (AsciiArtMap[y - 1][x - 1] == '.'));
-                            bool dirt_SW = ((y < MAP_HEIGHT - 1) && (x > 0) && (AsciiArtMap[y + 1][x - 1] == '.'));
+                            bool dirt_SW = ((y < RPG_MAP_HEIGHT - 1) && (x > 0) && (AsciiArtMap[y + 1][x - 1] == '.'));
 
                             if (dirt_S)
                             {
@@ -1324,7 +1324,7 @@ public:
                             {
                                 bool need_grass = true;
 
-                                if ((x > 0) && (y > 0) && (x < MAP_WIDTH - 1) && (y < MAP_HEIGHT - 2)) // adjacent tile + 2 tiles south ok
+                                if ((x > 0) && (y > 0) && (x < RPG_MAP_WIDTH - 1) && (y < RPG_MAP_HEIGHT - 2)) // adjacent tile + 2 tiles south ok
                                 {
                                     // skip if either hidden behind trees/cliffs or if this tile would be unwalkable anyway
                                     // (still needed because AsciiArtTileCount only counts trees and rocks, not cliffs)
@@ -1352,7 +1352,7 @@ public:
                                     {
                                         for (int u = x - 1; u <= x + 1; u++)
                                         {
-                                            if ((u < 0) || (v < 0) || (u >= MAP_WIDTH) || (v >= MAP_HEIGHT)) // if (!(IsInsideMap((u, v))))
+                                            if ((u < 0) || (v < 0) || (u >= RPG_MAP_WIDTH) || (v >= RPG_MAP_HEIGHT)) // if (!(IsInsideMap((u, v))))
                                                 continue;
                                             if ((u == x) && (v == y))
                                                 continue;
@@ -1378,7 +1378,7 @@ public:
                             int y_offs = ShadowAAObjects[m][1];   int v = y + y_offs;
 
                             // need 2 additional lines (2 tiles offset for cliffs because of their "height")
-                            if ((u < 0) || (v < 0) || (u >= MAP_WIDTH) || (v >= MAP_HEIGHT + 2))
+                            if ((u < 0) || (v < 0) || (u >= RPG_MAP_WIDTH) || (v >= RPG_MAP_HEIGHT + 2))
                                 continue;
 
                             if ((AsciiArtMap[v][u] == ShadowAAObjects[m][2]) &&
@@ -1504,7 +1504,7 @@ GameMapView::GameMapView(QWidget *parent)
     scene->setBspTreeDepth(15);
 
     setScene(scene);
-    setSceneRect(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
+    setSceneRect(0, 0, RPG_MAP_WIDTH * TILE_SIZE, RPG_MAP_HEIGHT * TILE_SIZE);
     centerOn(MAP_WIDTH * TILE_SIZE / 2, MAP_HEIGHT * TILE_SIZE / 2);
     setResizeAnchor(QGraphicsView::AnchorViewCenter);
 

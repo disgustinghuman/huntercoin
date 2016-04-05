@@ -68,14 +68,16 @@ inline bool IsOriginalSpawnArea(int x, int y)
 
 #ifdef GUI
 // better GUI -- variables declaration
-extern char AsciiArtMap[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
-extern int AsciiArtTileCount[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
+#define RPG_MAP_HEIGHT 512
+#define RPG_MAP_WIDTH 542
+extern char AsciiArtMap[RPG_MAP_HEIGHT + 4][RPG_MAP_WIDTH + 4];
+extern int AsciiArtTileCount[RPG_MAP_HEIGHT + 4][RPG_MAP_WIDTH + 4];
 
 #define SHADOW_LAYERS 3
 #define SHADOW_EXTRALAYERS 1
 #define SHADOW_SHAPES 17
-extern int Displaycache_gamemapgood[Game::MAP_HEIGHT][Game::MAP_WIDTH];
-extern int Displaycache_gamemap[Game::MAP_HEIGHT][Game::MAP_WIDTH][Game::MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
+extern int Displaycache_gamemapgood[RPG_MAP_HEIGHT][RPG_MAP_WIDTH];
+extern int Displaycache_gamemap[RPG_MAP_HEIGHT][RPG_MAP_WIDTH][Game::MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
 //extern bool Display_dbg_obstacle_marker;
 
 #define RPG_EXTRA_TEAM_COLORS 26

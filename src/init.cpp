@@ -136,11 +136,11 @@ bool AppInit(int argc, char* argv[])
 #ifdef GUI
 // better GUI -- asciiart map
 // note: need at least 3 additional columns (CR, LF, '\0') and 2 additional lines (2 tiles offset for cliffs because of their "height")
-char AsciiArtMap[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
-int AsciiArtTileCount[Game::MAP_HEIGHT + 4][Game::MAP_WIDTH + 4];
+char AsciiArtMap[RPG_MAP_HEIGHT + 4][RPG_MAP_WIDTH + 4];
+int AsciiArtTileCount[RPG_MAP_HEIGHT + 4][RPG_MAP_WIDTH + 4];
 
-int Displaycache_gamemapgood[Game::MAP_HEIGHT][Game::MAP_WIDTH];
-int Displaycache_gamemap[Game::MAP_HEIGHT][Game::MAP_WIDTH][Game::MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
+int Displaycache_gamemapgood[RPG_MAP_HEIGHT][RPG_MAP_WIDTH];
+int Displaycache_gamemap[RPG_MAP_HEIGHT][RPG_MAP_WIDTH][Game::MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
 //bool Display_dbg_obstacle_marker = false;
 static bool Teleporter_pad(int xul, int yul)
 {
@@ -160,10 +160,10 @@ static bool Calculate_AsciiArtMap()
     if (fp != NULL)
     {
         // need 2 additional lines (2 tiles offset for cliffs because of their "height")
-        for (int y = 0; y < Game::MAP_HEIGHT+2; y++)
+        for (int y = 0; y < RPG_MAP_HEIGHT+2; y++)
         {
-            fgets(AsciiArtMap[y], Game::MAP_WIDTH+3, fp);
-            AsciiArtMap[y][Game::MAP_WIDTH] = '\0';
+            fgets(AsciiArtMap[y], RPG_MAP_WIDTH+3, fp);
+            AsciiArtMap[y][RPG_MAP_WIDTH] = '\0';
         }
         fclose(fp);
     }
@@ -173,11 +173,14 @@ static bool Calculate_AsciiArtMap()
     Teleporter_pad(271, 250);
     Teleporter_pad(138, 481);
     Teleporter_pad(115, 482);
+
+    Teleporter_pad(516, 484);
+    Teleporter_pad(507, 469);
 #endif
 
     // try to fix grass/dirt transition part 1
-    for (int y = 1; y < Game::MAP_HEIGHT - 1; y++)
-        for (int x = 1; x < Game::MAP_WIDTH - 1; x++)
+    for (int y = 1; y < RPG_MAP_HEIGHT - 1; y++)
+        for (int x = 1; x < RPG_MAP_WIDTH - 1; x++)
         {
 
             int w = 0;
@@ -188,14 +191,14 @@ static bool Calculate_AsciiArtMap()
             {
                 bool f = false;
 
-                bool dirt_S = ((y < Game::MAP_HEIGHT - 1) && (AsciiArtMap[y + 1][x] == '.'));
+                bool dirt_S = ((y < RPG_MAP_HEIGHT - 1) && (AsciiArtMap[y + 1][x] == '.'));
                 bool dirt_N = ((y > 0) && (AsciiArtMap[y - 1][x] == '.'));
-                bool dirt_E = ((x < Game::MAP_WIDTH - 1) && (AsciiArtMap[y][x + 1] == '.'));
+                bool dirt_E = ((x < RPG_MAP_WIDTH - 1) && (AsciiArtMap[y][x + 1] == '.'));
                 bool dirt_W = ((x > 0) && (AsciiArtMap[y][x - 1] == '.'));
-                bool dirt_SE = ((y < Game::MAP_HEIGHT - 1) && (x < Game::MAP_WIDTH - 1) && (AsciiArtMap[y + 1][x + 1] == '.'));
-                bool dirt_NE = ((y > 0) && (x < Game::MAP_WIDTH - 1) && (AsciiArtMap[y - 1][x + 1] == '.'));
+                bool dirt_SE = ((y < RPG_MAP_HEIGHT - 1) && (x < RPG_MAP_WIDTH - 1) && (AsciiArtMap[y + 1][x + 1] == '.'));
+                bool dirt_NE = ((y > 0) && (x < RPG_MAP_WIDTH - 1) && (AsciiArtMap[y - 1][x + 1] == '.'));
                 bool dirt_NW = ((y > 0) && (x > 0) && (AsciiArtMap[y - 1][x - 1] == '.'));
-                bool dirt_SW = ((y < Game::MAP_HEIGHT - 1) && (x > 0) && (AsciiArtMap[y + 1][x - 1] == '.'));
+                bool dirt_SW = ((y < RPG_MAP_HEIGHT - 1) && (x > 0) && (AsciiArtMap[y + 1][x - 1] == '.'));
 
                 // symmetric cases that cannot be resolved normally
                 if ((dirt_N) && (dirt_S))
@@ -228,8 +231,8 @@ static bool Calculate_AsciiArtMap()
         }
 
     // if we don't have enough gamemap layers to paint everything on this tile
-    for (int y = Game::MAP_HEIGHT - 4; y >= 0; y--)
-        for (int x = Game::MAP_WIDTH - 4; x >= 0; x--)
+    for (int y = RPG_MAP_HEIGHT - 4; y >= 0; y--)
+        for (int x = RPG_MAP_WIDTH - 4; x >= 0; x--)
         {
             int count0 = 0;
             int count1 = 0;
