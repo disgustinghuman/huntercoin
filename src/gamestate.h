@@ -19,6 +19,7 @@
 #ifdef PERMANENT_LUGGAGE
 #define PERMANENT_LUGGAGE_OR_GUI
 #define PERMANENT_LUGGAGE_AUCTION
+//#define AUX_STORAGE_VERSION2
 //#define PERMANENT_LUGGAGE_LOG_PAYMENTS
 //#define PERMANENT_LUGGAGE_TALLY
 #endif
@@ -301,7 +302,61 @@ struct StorageVault
     int auction_ask_chronon;
     unsigned char item_outfit;
     unsigned char gem_reserve10;
+
+    // strings
     std::string huntername;
+#ifdef AUX_STORAGE_VERSION2
+    std::string str_reserve1;
+    std::string str_reserve2;
+
+    // exchange
+    unsigned char ex_order_flags;
+    unsigned char ex_position_type;
+    int64 ex_order_price_bid;
+    int64 ex_order_price_ask;
+    int64 ex_order_size_bid;
+    int64 ex_order_size_ask;
+    int64 ex_position_price;
+    int64 ex_position_size;
+    int64 ex_position_price2;
+    int64 ex_position_size2;
+    int64 ex_rollover_price; // not used
+    int64 ex_trade_profitloss;
+    int64 ex_trade_aux;
+    int ex_order_chronon_bid;
+    int ex_order_chronon_ask;
+    int ex_reserve1;
+    int ex_reserve2;
+
+    // playground/rpg
+    Coord ai_coord;
+    Coord ai_from;
+    unsigned char ai_dir;
+    unsigned char ai_npc_role;
+    unsigned char ai_poi;
+    unsigned char ai_state;
+    unsigned char ai_state2;
+    unsigned char ai_chat;
+    unsigned char ai_idle_time;
+    unsigned char ai_mapitem_count;
+    unsigned char ai_foe_count;
+    unsigned char ai_foe_dist;
+    unsigned char ai_fav_harvest_poi;
+    unsigned char ai_reason;
+    unsigned char rpg_slot_spell;
+    unsigned char rpg_slot_cooldown;
+    unsigned char rpg_slot_amulet;
+    unsigned char rpg_slot_ring;
+    unsigned char rpg_slot_armor;
+    unsigned char rpg_reserve1;
+    unsigned char rpg_reserve2;
+
+    // multi purpose/rreserve
+    int64 aux_storage_s1;
+    int64 aux_storage_s2;
+    uint64 aux_storage_u1;
+    uint64 aux_storage_u2;
+#endif
 
     StorageVault()
         : nGems(0), nGemsLocked(0), gemlockfinished(0), vaultflags(0),
@@ -315,6 +370,52 @@ struct StorageVault
           auction_ask_chronon(0),
           item_outfit(0),
           gem_reserve10(0)
+#ifdef AUX_STORAGE_VERSION2
+        , ex_order_flags(0),
+          ex_position_type(0),
+          ex_order_price_bid(0),
+          ex_order_price_ask(0),
+          ex_order_size_bid(0),
+          ex_order_size_ask(0),
+          ex_position_price(0),
+          ex_position_size(0),
+          ex_position_price2(0),
+          ex_position_size2(0),
+          ex_rollover_price(0),
+          ex_trade_profitloss(0),
+          ex_trade_aux(0),
+          ex_order_chronon_bid(0),
+          ex_order_chronon_ask(0),
+          ex_reserve1(0),
+          ex_reserve2(0),
+
+          ai_coord(0, 0),
+          ai_from(0, 0),
+          ai_dir(0),
+          ai_npc_role(0),
+          ai_poi(0),
+          ai_state(0),
+          ai_state2(0),
+          ai_chat(0),
+          ai_idle_time(0),
+          ai_mapitem_count(0),
+          ai_foe_count(0),
+          ai_foe_dist(0),
+          ai_fav_harvest_poi(0),
+          ai_reason(0),
+          rpg_slot_spell(0),
+          rpg_slot_cooldown(0),
+          rpg_slot_amulet(0),
+          rpg_slot_ring(0),
+          rpg_slot_armor(0),
+          rpg_reserve1(0),
+          rpg_reserve2(0),
+
+          aux_storage_s1(0),
+          aux_storage_s2(0),
+          aux_storage_u1(0),
+          aux_storage_u2(0)
+#endif
     { }
     StorageVault(int64_t nGems_)
         : nGems(nGems_), nGemsLocked(0), gemlockfinished(0), vaultflags(0),
@@ -328,6 +429,52 @@ struct StorageVault
           auction_ask_chronon(0),
           item_outfit(0),
           gem_reserve10(0)
+#ifdef AUX_STORAGE_VERSION2
+        , ex_order_flags(0),
+          ex_position_type(0),
+          ex_order_price_bid(0),
+          ex_order_price_ask(0),
+          ex_order_size_bid(0),
+          ex_order_size_ask(0),
+          ex_position_price(0),
+          ex_position_size(0),
+          ex_position_price2(0),
+          ex_position_size2(0),
+          ex_rollover_price(0),
+          ex_trade_profitloss(0),
+          ex_trade_aux(0),
+          ex_order_chronon_bid(0),
+          ex_order_chronon_ask(0),
+          ex_reserve1(0),
+          ex_reserve2(0),
+
+          ai_coord(0, 0),
+          ai_from(0, 0),
+          ai_dir(0),
+          ai_npc_role(0),
+          ai_poi(0),
+          ai_state(0),
+          ai_state2(0),
+          ai_chat(0),
+          ai_idle_time(0),
+          ai_mapitem_count(0),
+          ai_foe_count(0),
+          ai_foe_dist(0),
+          ai_fav_harvest_poi(0),
+          ai_reason(0),
+          rpg_slot_spell(0),
+          rpg_slot_cooldown(0),
+          rpg_slot_amulet(0),
+          rpg_slot_ring(0),
+          rpg_slot_armor(0),
+          rpg_reserve1(0),
+          rpg_reserve2(0),
+
+          aux_storage_s1(0),
+          aux_storage_s2(0),
+          aux_storage_u1(0),
+          aux_storage_u2(0)
+#endif
     { }
 
     IMPLEMENT_SERIALIZE
@@ -347,6 +494,55 @@ struct StorageVault
         READWRITE(item_outfit);
         READWRITE(gem_reserve10);
         READWRITE(huntername);
+#ifdef AUX_STORAGE_VERSION2
+        READWRITE(str_reserve1);
+        READWRITE(str_reserve2);
+
+        READWRITE(ex_order_flags);
+        READWRITE(ex_position_type);
+        READWRITE(ex_order_price_bid);
+        READWRITE(ex_order_price_ask);
+        READWRITE(ex_order_size_bid);
+        READWRITE(ex_order_size_ask);
+        READWRITE(ex_position_price);
+        READWRITE(ex_position_size);
+        READWRITE(ex_position_price2);
+        READWRITE(ex_position_size2);
+        READWRITE(ex_rollover_price);
+        READWRITE(ex_trade_profitloss);
+        READWRITE(ex_trade_aux);
+        READWRITE(ex_order_chronon_bid);
+        READWRITE(ex_order_chronon_ask);
+        READWRITE(ex_reserve1);
+        READWRITE(ex_reserve2);
+
+        READWRITE(ai_coord);
+        READWRITE(ai_from);
+        READWRITE(ai_dir);
+        READWRITE(ai_npc_role);
+        READWRITE(ai_poi);
+        READWRITE(ai_state);
+        READWRITE(ai_state2);
+        READWRITE(ai_chat);
+        READWRITE(ai_idle_time);
+        READWRITE(ai_mapitem_count);
+        READWRITE(ai_foe_count);
+        READWRITE(ai_foe_dist);
+        READWRITE(ai_fav_harvest_poi);
+        READWRITE(ai_reason);
+        READWRITE(rpg_slot_spell);
+        READWRITE(rpg_slot_cooldown);
+        READWRITE(rpg_slot_amulet);
+        READWRITE(rpg_slot_ring);
+        READWRITE(rpg_slot_armor);
+        READWRITE(rpg_reserve1);
+        READWRITE(rpg_reserve2);
+
+        READWRITE(aux_storage_s1);
+        READWRITE(aux_storage_s2);
+        READWRITE(aux_storage_u1);
+        READWRITE(aux_storage_u2);
+#endif
     )
 };
 #endif
@@ -445,13 +641,29 @@ struct CharacterState
     unsigned char stay_in_spawn_area;   // Auto-kill players who stay in the spawn area too long
 #ifdef PERMANENT_LUGGAGE
     int64 rpg_gems_in_purse;            // gems and storage
+#ifdef AUX_STORAGE_VERSION2
+    int64_t cs_reserve1;
+    int64_t cs_reserve2;
+    int cs_reserve3;
+    int cs_reserve4;
+    unsigned char cs_reserve5;
+    unsigned char cs_reserve6;
+#endif
 #endif
 
     CharacterState ()
       : coord(0, 0), dir(0), from(0, 0),
         stay_in_spawn_area(0)
 #ifdef PERMANENT_LUGGAGE
-        ,rpg_gems_in_purse(0)
+      , rpg_gems_in_purse(0)
+#ifdef AUX_STORAGE_VERSION2
+      , cs_reserve1(0),
+      cs_reserve2(0),
+      cs_reserve3(0),
+      cs_reserve4(0),
+      cs_reserve5(0),
+      cs_reserve6(0)
+#endif
 #endif
     {}
 
@@ -469,6 +681,14 @@ struct CharacterState
         READWRITE(stay_in_spawn_area);
 #ifdef PERMANENT_LUGGAGE
         READWRITE(rpg_gems_in_purse);
+#ifdef AUX_STORAGE_VERSION2
+        READWRITE(cs_reserve1);
+        READWRITE(cs_reserve2);
+        READWRITE(cs_reserve3);
+        READWRITE(cs_reserve4);
+        READWRITE(cs_reserve5);
+        READWRITE(cs_reserve6);
+#endif
 #endif
     )
 
@@ -530,6 +750,16 @@ struct PlayerState
     // gems and storage
     std::string playernameaddress;
     int playerflags;
+#ifdef AUX_STORAGE_VERSION2
+    int64_t pl_reserve1;
+    int64_t pl_reserve2;
+    int pl_reserve3;
+    int pl_reserve4;
+    unsigned char pl_reserve5;
+    unsigned char pl_reserve6;
+    std::string pl_str_reserve1;
+    std::string pl_str_reserve2;
+#endif
 #endif
 
     IMPLEMENT_SERIALIZE
@@ -551,6 +781,16 @@ struct PlayerState
 #ifdef PERMANENT_LUGGAGE
         READWRITE(playernameaddress);
         READWRITE(playerflags);
+#ifdef AUX_STORAGE_VERSION2
+        READWRITE(pl_reserve1);
+        READWRITE(pl_reserve2);
+        READWRITE(pl_reserve3);
+        READWRITE(pl_reserve4);
+        READWRITE(pl_reserve5);
+        READWRITE(pl_reserve6);
+        READWRITE(pl_str_reserve1);
+        READWRITE(pl_str_reserve2);
+#endif
 #endif
 
         READWRITE(lockedCoins);
@@ -567,7 +807,15 @@ struct PlayerState
       : color(0xFF), lockedCoins(0), value(-1),
         next_character_index(0), remainingLife(-1), message_block(0)
 #ifdef PERMANENT_LUGGAGE
-      ,playerflags(0)
+      , playerflags(0)
+#ifdef AUX_STORAGE_VERSION2
+      , pl_reserve1(0),
+      pl_reserve2(0),
+      pl_reserve3(0),
+      pl_reserve4(0),
+      pl_reserve5(0),
+      pl_reserve6(0)
+#endif
 #endif
     {}
 
@@ -608,6 +856,20 @@ struct GameState
     int64_t auction_settle_price;
     int64_t auction_last_price;
     int64_t auction_last_chronon;
+#ifdef AUX_STORAGE_VERSION2
+    int64_t gs_reserve1;
+    int64_t gs_reserve2;
+    int64_t gs_reserve3;
+    int64_t gs_reserve4;
+    int gs_reserve5;
+    int gs_reserve6;
+    unsigned char gs_reserve7;
+    unsigned char gs_reserve8;
+    uint64_t gs_reserve9;
+    uint64_t gs_reserve10;
+    std::string gs_str_reserve1;
+    std::string gs_str_reserve2;
+#endif
 #endif
 
     std::map<Coord, LootInfo> loot;
@@ -670,6 +932,20 @@ struct GameState
       READWRITE(auction_settle_price);
       READWRITE(auction_last_price);
       READWRITE(auction_last_chronon);
+#ifdef AUX_STORAGE_VERSION2
+      READWRITE(gs_reserve1);
+      READWRITE(gs_reserve2);
+      READWRITE(gs_reserve3);
+      READWRITE(gs_reserve4);
+      READWRITE(gs_reserve5);
+      READWRITE(gs_reserve6);
+      READWRITE(gs_reserve7);
+      READWRITE(gs_reserve8);
+      READWRITE(gs_reserve9);
+      READWRITE(gs_reserve10);
+      READWRITE(gs_str_reserve1);
+      READWRITE(gs_str_reserve2);
+#endif
 #endif
 
       READWRITE(hearts);

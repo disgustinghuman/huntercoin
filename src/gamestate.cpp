@@ -1395,6 +1395,33 @@ GameState::GameState()
     gemSpawnPos.x = 0;
     gemSpawnPos.y = 0;
     gemSpawnState = 0;
+
+    // todo: move to GameState::GameState() with storage version 2
+    feed_nextexp_price = 0;
+    feed_prevexp_price = 0;
+    feed_reward_dividend = 0;
+    feed_reward_divisor = 0;
+    feed_reward_remaining = 0;
+    upgrade_test = 0;
+    liquidity_reward_remaining = 0;
+    auction_settle_price = 0;
+    auction_last_price = 0;
+    auction_last_chronon = 0;
+
+#ifdef AUX_STORAGE_VERSION2
+    gs_reserve1 = 0;
+    gs_reserve2 = 0;
+    gs_reserve3 = 0;
+    gs_reserve4 = 0;
+    gs_reserve5 = 0;
+    gs_reserve6 = 0;
+    gs_reserve7 = 0;
+    gs_reserve8 = 0;
+    gs_reserve9 = 0;
+    gs_reserve10 = 0;
+//    gs_str_reserve1 = "";
+//    gs_str_reserve2 = "";
+#endif
 #endif
 
     SetOriginalBanks (banks);
@@ -2384,7 +2411,13 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 if ((outState.nHeight > 1180000) ||
                     ((fTestNet) && (p.second.playernameaddress == "hcTgWguRcs2ByAUbTBNeuoBrVgQ2FqhoEb")) ||
                     ((!fTestNet) && (p.second.playernameaddress == "HSjUvhya9UrtuE1Dm73ytT3BkFWm8EGof9")))
+                {
+#ifdef AUX_STORAGE_VERSION2
+                    outState.upgrade_test = -1;
+#else
                     outState.upgrade_test--;
+#endif
+                }
 
                 std::map<std::string, StorageVault>::iterator mi = outState.vault.find(p.second.playernameaddress);
                 if (mi != outState.vault.end())
@@ -2567,7 +2600,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         {
             feedcache_status = 0;
 
-            // todo: move to GameState::GameState()
+            // todo: move to GameState::GameState() with storage version 2
+#ifndef AUX_STORAGE_VERSION2
             outState.feed_nextexp_price = 0;
             outState.feed_prevexp_price = 0;
             outState.feed_reward_dividend = 0;
@@ -2578,6 +2612,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             outState.auction_settle_price = 0;
             outState.auction_last_price = 0;
             outState.auction_last_chronon = 0;
+#endif
         }
 
         int tmp_oldexp_chronon = outState.nHeight - (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet));

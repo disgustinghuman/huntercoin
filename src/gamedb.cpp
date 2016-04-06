@@ -18,9 +18,15 @@ static const unsigned IN_MEMORY_STATE_CACHE = 10;
 class CGameDB : public CDB
 {
 public:
+#ifdef AUX_STORAGE_VERSION2
+    CGameDB(const char* pszMode="r+") : CDB("game_sv2.dat", pszMode) { }
+
+    CGameDB(const char* pszMode, CDB& parent) : CDB("game_sv2.dat", pszMode)
+#else
     CGameDB(const char* pszMode="r+") : CDB("game.dat", pszMode) { }
 
     CGameDB(const char* pszMode, CDB& parent) : CDB("game.dat", pszMode)
+#endif
     {
       vTxn.push_back (parent.GetTxn ());
       ownTxn.push_back (false);
@@ -824,7 +830,11 @@ bool UpgradeGameDB()
 
         DBFlush (false);
         boost::filesystem::path fileGame;
+#ifdef AUX_STORAGE_VERSION2
+        fileGame = boost::filesystem::path (GetDataDir ()) / "game_sv2.dat";
+#else
         fileGame = boost::filesystem::path (GetDataDir ()) / "game.dat";
+#endif
         boost::filesystem::remove (fileGame);
 
         CGameDB gameDb("cr+");

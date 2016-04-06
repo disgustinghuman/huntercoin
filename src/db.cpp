@@ -157,7 +157,8 @@ CDB::Close ()
       unsigned int nMinutes = 2;
       if (strFile == walletPath)
         nMinutes = 0;
-      else if ((strFile == "blkindex.dat" || strFile == "game.dat"
+// AUX_STORAGE_VERSION2
+      else if ((strFile == "blkindex.dat" || strFile == "game.dat" || strFile == "game_sv2.dat"
                 || strFile == "nameindexfull.dat" || strFile == "utxo.dat")
                && IsInitialBlockDownload ())
         nMinutes = 5;
@@ -391,7 +392,8 @@ void DBFlush(bool fShutdown)
                 CloseDb(strFile);
                 printf("%s checkpoint\n", strFile.c_str());
                 dbenv.txn_checkpoint(0, 0, 0);
-                if ((strFile != "blkindex.dat" && strFile != "addr.dat" && strFile != "game.dat" 
+// AUX_STORAGE_VERSION2
+                if ((strFile != "blkindex.dat" && strFile != "addr.dat" && strFile != "game.dat" && strFile != "game_sv2.dat"
                     && strFile != "nameindexfull.dat" && strFile != "utxo.dat") || fDetachDB) {
                     printf("%s detach\n", strFile.c_str());
                     dbenv.lsn_reset(strFile.c_str(), 0);

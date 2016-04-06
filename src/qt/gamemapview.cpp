@@ -2222,10 +2222,17 @@ void GameMapView::updateGameMap(const GameState &gameState)
           }
           else
           {
+#ifdef AUX_STORAGE_VERSION2
+            if (gameState.upgrade_test <= -1)
+            {
+              fprintf(fp, "GAMESTATE OUT OF SYNC: !!! DON'T USE THIS AUCTION PAGE !!!\n");
+              fprintf(fp, "Either game.dat_sv2 was used with an old version of this client (unlikely before block 1200000),\n");
+#else
             if (gameState.upgrade_test != gameState.nHeight)
             {
               fprintf(fp, "GAMESTATE OUT OF SYNC: !!! DON'T USE THIS AUCTION PAGE !!!\n");
               fprintf(fp, "Either game.dat was used with an old version of this client\n");
+#endif
               fprintf(fp, "or the alarm (only for auction, different from 'network alert') was triggered\n");
               fprintf(fp, "or this client version itself is too old.\n");
             }
