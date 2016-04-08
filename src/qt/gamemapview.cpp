@@ -2179,10 +2179,21 @@ void GameMapView::updateGameMap(const GameState &gameState)
         {
             fprintf(fp, "\n Inventory (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
             fprintf(fp, " ------------------------------------\n\n");
-            fprintf(fp, "                                          hunter\n");
 #ifdef RPG_OUTFIT_ITEMS
+#ifdef AUX_STORAGE_VOTING
+            if (gameState.nHeight >= AUX_MINHEIGHT_VOTING(fTestNet))
+            {
+            fprintf(fp, "                                          hunter                                      (voting round)\n");
+            fprintf(fp, "storage vault key                           name     gems    outfit    vote coins*1k  id-tag   close\n");
+            }
+            else
+#endif
+            {
+            fprintf(fp, "                                          hunter\n");
             fprintf(fp, "storage vault key                           name     gems    outfit\n");
+            }
 #else
+            fprintf(fp, "                                          hunter\n");
             fprintf(fp, "storage vault key                           name     gems\n");
 #endif
             fprintf(fp, "\n");
@@ -2196,7 +2207,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
               if (tmp_outfit == 1) s = "mage";
               else if (tmp_outfit == 2) s = "fighter";
               else if (tmp_outfit == 4) s = "hunter";
-              fprintf(fp, "%s    %10s    %5s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str());
+
+#ifdef AUX_STORAGE_VOTING
+              if (st.second.vote_raw_amount > 0)
+                  fprintf(fp, "%s    %10s    %5s    %7s   #%d    %5s    %d  %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(), int((st.second.vote_raw_amount / 10000000) % 10), FormatMoney(st.second.vote_raw_amount / 100000000 / 1000 * 100000000).c_str(), int(st.second.vote_raw_amount % 10000000), int(st.second.vote_raw_amount % 10000000));
+              else
+#endif
+                  fprintf(fp, "%s    %10s    %5s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str());
+
 #else
               fprintf(fp, "%s    %10s    %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str());
 #endif

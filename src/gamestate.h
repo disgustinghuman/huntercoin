@@ -19,6 +19,7 @@
 #ifdef PERMANENT_LUGGAGE
 #define PERMANENT_LUGGAGE_OR_GUI
 #define PERMANENT_LUGGAGE_AUCTION
+//#define AUX_STORAGE_VOTING
 //#define AUX_STORAGE_VERSION2
 //#define PERMANENT_LUGGAGE_LOG_PAYMENTS
 //#define PERMANENT_LUGGAGE_TALLY
@@ -295,8 +296,8 @@ struct StorageVault
     int64_t feed_price;
     int64_t auction_ask_size;
     int64_t auction_ask_price;
-    int64_t gem_reserve4;
-    int64_t gem_reserve5;
+    int64_t vote_raw_amount;
+    int64_t vote_txid60bit;
     int64_t gem_reserve6;
     int feed_chronon;
     int auction_ask_chronon;
@@ -351,7 +352,7 @@ struct StorageVault
     unsigned char rpg_reserve1;
     unsigned char rpg_reserve2;
 
-    // multi purpose/rreserve
+    // multi purpose/reserve
     int64 aux_storage_s1;
     int64 aux_storage_s2;
     uint64 aux_storage_u1;
@@ -363,8 +364,8 @@ struct StorageVault
           feed_price(0),
           auction_ask_size(0),
           auction_ask_price(0),
-          gem_reserve4(0),
-          gem_reserve5(0),
+          vote_raw_amount(0),
+          vote_txid60bit(0),
           gem_reserve6(0),
           feed_chronon(0),
           auction_ask_chronon(0),
@@ -422,8 +423,8 @@ struct StorageVault
           feed_price(0),
           auction_ask_size(0),
           auction_ask_price(0),
-          gem_reserve4(0),
-          gem_reserve5(0),
+          vote_raw_amount(0),
+          vote_txid60bit(0),
           gem_reserve6(0),
           feed_chronon(0),
           auction_ask_chronon(0),
@@ -486,8 +487,8 @@ struct StorageVault
         READWRITE(feed_price);
         READWRITE(auction_ask_size);
         READWRITE(auction_ask_price);
-        READWRITE(gem_reserve4);
-        READWRITE(gem_reserve5);
+        READWRITE(vote_raw_amount);
+        READWRITE(vote_txid60bit);
         READWRITE(gem_reserve6);
         READWRITE(feed_chronon);
         READWRITE(auction_ask_chronon);
@@ -1331,6 +1332,19 @@ extern int64 feedcache_volume_bear;
 extern int64 feedcache_volume_neutral;
 extern int64 feedcache_volume_reward;
 extern int feedcache_status;
+#endif
+
+#ifdef AUX_STORAGE_VOTING
+#define AUX_MINHEIGHT_VOTING(T) (T?320000:1200000)
+#define AUX_VOTING_INTERVAL 10000
+#define AUX_VOTING_CLOSE 9975
+#define VOTINGCACHE_MAX 1000
+extern int votingcache_idx;
+extern uint256 votingcache_instate_blockhash;
+extern int64 votingcache_amount[PAYMENTCACHE_MAX];
+extern int64 votingcache_txid60bit[PAYMENTCACHE_MAX];
+extern std::string votingcache_vault_addr[PAYMENTCACHE_MAX];
+extern bool votingcache_vault_exists[PAYMENTCACHE_MAX];
 #endif
 #endif
 

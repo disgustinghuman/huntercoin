@@ -1088,6 +1088,15 @@ static int64 auctioncache_pricetick_down(int64 old)
     return (feedcache_pricetick_down(old / 10000) * 10000);
 }
 #endif
+
+#ifdef AUX_STORAGE_VOTING
+int votingcache_idx;
+uint256 votingcache_instate_blockhash;
+int64 votingcache_amount[PAYMENTCACHE_MAX];
+int64 votingcache_txid60bit[PAYMENTCACHE_MAX];
+std::string votingcache_vault_addr[PAYMENTCACHE_MAX];
+bool votingcache_vault_exists[PAYMENTCACHE_MAX];
+#endif
 #endif
 
 
@@ -2235,6 +2244,101 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         if (!m.IsSpawn())
             m.ApplyWaypoints(outState);
 
+
+#ifdef AUX_STORAGE_VOTING
+    if (outState.nHeight >= AUX_MINHEIGHT_VOTING(fTestNet))
+    {
+        if (votingcache_idx > 0)
+        {
+          if (votingcache_instate_blockhash == inState.hashBlock)
+          {
+            for (int i = 0; i < votingcache_idx; i++)
+            {
+                if (votingcache_vault_exists[i])
+                    printf("scanning votes: vault address %s, amount %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str());
+                else
+                    printf("scanning votes: new addr %s, amount %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str());
+
+                std::map<std::string, StorageVault>::iterator mi = outState.vault.find(votingcache_vault_addr[i]);
+                if (mi != outState.vault.end())
+                {
+                    // delete (stale or because the output was spent)
+                    if (votingcache_amount[i] == -1)
+                    {
+                        if (mi->second.vote_txid60bit == votingcache_txid60bit[i])
+                        {
+                            int64 tmp_new_gems = 0;
+/*
+                            //reward for voting
+                            int64 tmp_new_gems = mi->second.vote_raw_amount / 25000 / 50;
+                            tmp_new_gems -= (tmp_new_gems % 1000000);
+                            if (tmp_new_gems < 0) tmp_new_gems = 0;
+
+                            // keep reward?
+                            if (outState.nHeight / 10000 >= int(mi->second.vote_raw_amount % 10000000))
+                                tmp_new_gems = 0;
+
+                            mi->second.nGems -= tmp_new_gems;
+*/
+                            mi->second.vote_raw_amount = 0;
+                            mi->second.vote_txid60bit = 0;
+
+                            printf("scanning votes: vote deleted, fee %s\n",  FormatMoney(tmp_new_gems).c_str());
+
+                            // cleanup
+                            if (mi->second.nGems <= 0) outState.vault.erase(mi);
+                        }
+                    }
+                    else if (votingcache_amount[i] > 0)
+                    {
+                        if (mi->second.vote_raw_amount > 0)
+                        {
+                            printf("scanning votes: cannot overwrite existing vote\n");
+                        }
+                        else
+                        {
+                            mi->second.vote_raw_amount = votingcache_amount[i];
+                            mi->second.vote_txid60bit = votingcache_txid60bit[i];
+                            printf("scanning votes: vote saved\n");
+                        }
+                    }
+                }
+                else if (!votingcache_vault_exists[i])
+                {
+                    int64 tmp_new_gems = 0;
+                    /*
+                    int64 tmp_new_gems = votingcache_amount[i] / 25000 / 100;
+                    tmp_new_gems -= (tmp_new_gems % 1000000);
+                    if (tmp_new_gems < 0) tmp_new_gems = 0;
+*/
+                    outState.vault.insert(std::make_pair(votingcache_vault_addr[i], StorageVault(tmp_new_gems)));
+
+                    std::map<std::string, StorageVault>::iterator mi2 = outState.vault.find(votingcache_vault_addr[i]);
+                    if (mi2 != outState.vault.end())
+                    {
+                        mi2->second.vote_raw_amount = votingcache_amount[i];
+                        mi2->second.vote_txid60bit = votingcache_txid60bit[i];
+                        mi2->second.huntername = "#Anonymous";
+                        printf("scanning votes: Anonymous: vote saved\n");
+                    }
+                    else
+                    {
+                        printf("scanning votes: Anonymous: ERROR\n");
+                    }
+                }
+                else
+                {
+                    printf("scanning votes: ERROR\n");
+                }
+            }
+          }
+          else
+          {
+              printf("scanning votes: wrong block hash\n");
+          }
+        }
+    }
+#endif
 
 #ifdef PERMANENT_LUGGAGE_AUCTION
 #ifdef RPG_OUTFIT_ITEMS

@@ -104,6 +104,53 @@ public:
     {
         if (tx.nVersion != NAMECOIN_TX_VERSION)
         {
+#ifdef AUX_STORAGE_VOTING
+            int64 tmp_tag_official = 0;
+            int64 tmp_tag_min = 0;
+            int64 tmp_tag_max = 0;
+            int64 tmp_txid60bit = 0;
+            if (pstate->nHeight >= AUX_MINHEIGHT_VOTING(fTestNet))
+            {
+                int tmp_blocks = (pstate->nHeight % AUX_VOTING_INTERVAL);
+                tmp_tag_official = pstate->nHeight - tmp_blocks + AUX_VOTING_INTERVAL - 25; // 9975
+                tmp_tag_min = pstate->nHeight + 1;
+                tmp_tag_max = pstate->nHeight + AUX_VOTING_INTERVAL - 25;
+                if ((tmp_tag_official < tmp_tag_min) || (tmp_tag_official > tmp_tag_max)) tmp_tag_official == 0;
+
+                char buf[100];
+                strncpy(buf, tx.GetHash().GetHex().c_str(), 64);
+                buf[15] = '\0';
+                tmp_txid60bit = strtoll (buf, NULL, 16);
+
+                if (votingcache_idx)
+                {
+                    BOOST_FOREACH(const CTxIn& txin, tx.vin)
+                    {
+                        if (!tx.IsCoinBase())
+                        {
+                            if (!tx.IsGameTx())
+                            {
+                                strncpy(buf, txin.prevout.hash.GetHex().c_str(), 64);
+                                buf[15] = '\0';
+                                int64 tmp_txid60bit_input = strtoll (buf, NULL, 16);
+
+                                printf("scanning votes: scanning input, txid60bit_input: %15"PRI64d"\n", tmp_txid60bit_input);
+
+                                for (int i = 0; i < votingcache_idx; i++)
+                                {
+                                    if (votingcache_txid60bit[i] == tmp_txid60bit_input)
+                                    {
+                                        votingcache_amount[i] = -1;
+                                        printf("scanning votes: delete vote: vault address %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str());
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+#endif
 #ifdef PERMANENT_LUGGAGE_AUCTION
             // gems and storage
             for (unsigned int i = 0; i < tx.vout.size(); i++)
@@ -114,6 +161,8 @@ public:
                 CScript script(txout.scriptPubKey);
                 if (ExtractDestination(script, address))
                 {
+                    bool fv = false;
+
                     if (pstate->vault.count(address) > 0)
                     {
                         if (paymentcache_idx < PAYMENTCACHE_MAX)
@@ -124,7 +173,49 @@ public:
                         }
                         printf("luggage test: storage address %s received payment: %15"PRI64d" ", address.c_str(), nSingleValueOut);
                         printf(" height %d, block hash %s\n", pstate->nHeight, pstate->hashBlock.GetHex().c_str());
+
+#ifdef AUX_STORAGE_VOTING
+                        if (pstate->nHeight >= AUX_MINHEIGHT_VOTING(fTestNet))
+                        {
+                            if ((nSingleValueOut % 10000000 >= tmp_tag_min) && (nSingleValueOut % 10000000 <= tmp_tag_max))
+                            {
+                                fv = true;
+                            }
+
+                            if ((fv) && (votingcache_idx < VOTINGCACHE_MAX))
+                            {
+                                votingcache_vault_addr[votingcache_idx] = address;
+                                votingcache_vault_exists[votingcache_idx] = true;
+                                votingcache_amount[votingcache_idx] = nSingleValueOut;
+                                votingcache_txid60bit[votingcache_idx] = tmp_txid60bit;
+                                votingcache_idx++;
+
+                                printf("scanning votes: cached (existing vault)\n");
+                            }
+                        }
+#endif
                     }
+#ifdef AUX_STORAGE_VOTING
+                    else if ((pstate->nHeight >= AUX_MINHEIGHT_VOTING(fTestNet)) &&
+                             (tmp_tag_official) && (nSingleValueOut % 10000000 == tmp_tag_official) &&
+                             (nSingleValueOut >= 25000 * COIN))
+                    {
+                        fv = true;
+
+                        if ((fv) && (votingcache_idx < VOTINGCACHE_MAX))
+                        {
+                            votingcache_vault_addr[votingcache_idx] = address;
+                            votingcache_vault_exists[votingcache_idx] = false;
+                            votingcache_amount[votingcache_idx] = nSingleValueOut;
+                            votingcache_txid60bit[votingcache_idx] = tmp_txid60bit;
+                            votingcache_idx++;
+
+                            printf("luggage test: address %s received payment: %15"PRI64d" ", address.c_str(), nSingleValueOut);
+                            printf(" height %d, block hash %s\n", pstate->nHeight, pstate->hashBlock.GetHex().c_str());
+                            printf("scanning votes: cached (need new vault)\n");
+                        }
+                    }
+#endif
 #ifdef PERMANENT_LUGGAGE_LOG_PAYMENTS
                     else
                     {
@@ -352,6 +443,37 @@ PerformStep (CNameDB& nameDb, const GameState& inState, const CBlock* block,
 #ifdef PERMANENT_LUGGAGE_AUCTION
     paymentcache_instate_blockhash = inState.hashBlock;
     paymentcache_idx = 0;
+#endif
+#ifdef AUX_STORAGE_VOTING
+    if (inState.nHeight >= AUX_MINHEIGHT_VOTING(fTestNet))
+    {
+      votingcache_instate_blockhash = inState.hashBlock;
+      votingcache_idx = 0;
+      BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, inState.vault)
+      {
+        if ((st.second.vote_raw_amount > 0) || (st.second.vote_txid60bit > 0))
+        {
+            int64 tmp_txid60bit = st.second.vote_txid60bit;
+            if (votingcache_idx < VOTINGCACHE_MAX)
+            {
+                votingcache_vault_addr[votingcache_idx] = st.first;
+                votingcache_vault_exists[votingcache_idx] = true;
+                votingcache_amount[votingcache_idx] = 0;
+                votingcache_txid60bit[votingcache_idx] = tmp_txid60bit;
+                votingcache_idx++;
+
+                printf("scanning votes: existing vote, addr %s, amount %15"PRI64d", txid60bit %15"PRI64d"\n", st.first.c_str(), st.second.vote_raw_amount, tmp_txid60bit);
+
+                // cleanup
+                if (int(st.second.vote_raw_amount % 10000000) < inState.nHeight - 1440)
+                {
+                    votingcache_amount[votingcache_idx] = -1;
+                }
+            }
+        }
+      }
+      printf("scanning votes: %d existing votes, height %d\n", votingcache_idx, inState.nHeight);
+    }
 #endif
 
     GameStepValidator gameStepValidator(&inState);
