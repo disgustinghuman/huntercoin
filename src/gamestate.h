@@ -19,8 +19,8 @@
 #ifdef PERMANENT_LUGGAGE
 #define PERMANENT_LUGGAGE_OR_GUI
 #define PERMANENT_LUGGAGE_AUCTION
-//#define AUX_STORAGE_VOTING
-//#define AUX_STORAGE_VERSION2
+#define AUX_STORAGE_VOTING
+#define AUX_STORAGE_VERSION2
 //#define PERMANENT_LUGGAGE_LOG_PAYMENTS
 //#define PERMANENT_LUGGAGE_TALLY
 #endif
@@ -307,7 +307,7 @@ struct StorageVault
     // strings
     std::string huntername;
 #ifdef AUX_STORAGE_VERSION2
-    std::string str_reserve1;
+    std::string vote_comment;
     std::string str_reserve2;
 
     // exchange
@@ -496,7 +496,7 @@ struct StorageVault
         READWRITE(gem_reserve10);
         READWRITE(huntername);
 #ifdef AUX_STORAGE_VERSION2
-        READWRITE(str_reserve1);
+        READWRITE(vote_comment);
         READWRITE(str_reserve2);
 
         READWRITE(ex_order_flags);
@@ -1246,12 +1246,14 @@ extern int pmon_my_bankdist[PMON_MY_MAX];
 extern int pmon_my_bank_x[PMON_MY_MAX];
 extern int pmon_my_bank_y[PMON_MY_MAX];
 
+#define PMON_CONFIG_MAX 11
 extern int pmon_config_loot_notice;
 extern int pmon_config_bank_notice;
 extern int pmon_config_zoom;
 extern int pmon_config_warn_stalled;
 extern int pmon_config_warn_disaster;
 extern int pmon_config_afk_leave;
+extern int pmon_config_vote_tally;
 
 // windows stability bug workaround
 #ifdef PMON_DEBUG_WIN32_GUI
@@ -1335,9 +1337,10 @@ extern int feedcache_status;
 #endif
 
 #ifdef AUX_STORAGE_VOTING
-#define AUX_MINHEIGHT_VOTING(T) (T?320000:1200000)
-#define AUX_VOTING_INTERVAL 10000
-#define AUX_VOTING_CLOSE 9975
+#define AUX_MINHEIGHT_VOTING(T) (T?320000:1180000)
+#define AUX_VOTING_INTERVAL(T) (T?1000:10000)
+//#define AUX_VOTING_CLOSE(T) (T?975:9975)
+#define AUX_VOTING_CLEANUP_PERIOD(T) (T?144:1440)
 #define VOTINGCACHE_MAX 1000
 extern int votingcache_idx;
 extern uint256 votingcache_instate_blockhash;

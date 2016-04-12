@@ -2282,6 +2282,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 */
                             mi->second.vote_raw_amount = 0;
                             mi->second.vote_txid60bit = 0;
+                            mi->second.vote_comment = "";
 
                             printf("scanning votes: vote deleted, fee %s\n",  FormatMoney(tmp_new_gems).c_str());
 
@@ -2541,7 +2542,17 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                     printf("parsing message: found storage: l=%d l1=%d l2=%d\n", l, lfeed1, lask2);
 
-//                    if ((lask2 == 0) && (lat3 >= 17) && (l >= 22) && (l <= 100))
+#ifdef AUX_STORAGE_VOTING
+                    int lcomment = p.second.message.find("#");
+                    int lcomment2 = p.second.message.find("motion ");
+                    if (lcomment2 == 0) lcomment = p.second.message.find(":");
+#ifdef AUX_STORAGE_VERSION2
+                    if (lcomment >= 0)
+                    {
+                        mi->second.vote_comment = p.second.message.substr(lcomment + 2);
+                    }
+#endif
+#endif
                     if ((lask2 == 0) && (lat3 >= 17) && (l >= lat3 + 5) && (l <= 100))
                     {
                         s_amount = p.second.message.substr(16, lat3 - 16);

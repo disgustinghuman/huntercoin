@@ -111,10 +111,10 @@ public:
             int64 tmp_txid60bit = 0;
             if (pstate->nHeight >= AUX_MINHEIGHT_VOTING(fTestNet))
             {
-                int tmp_blocks = (pstate->nHeight % AUX_VOTING_INTERVAL);
-                tmp_tag_official = pstate->nHeight - tmp_blocks + AUX_VOTING_INTERVAL - 25; // 9975
+                int tmp_blocks = (pstate->nHeight % AUX_VOTING_INTERVAL(fTestNet));
+                tmp_tag_official = pstate->nHeight - tmp_blocks + AUX_VOTING_INTERVAL(fTestNet) - 25; // xxx9975 (testnet: xxx975)
                 tmp_tag_min = pstate->nHeight + 1;
-                tmp_tag_max = pstate->nHeight + AUX_VOTING_INTERVAL - 25;
+                tmp_tag_max = pstate->nHeight + (AUX_VOTING_INTERVAL(fTestNet) * 2) - 25;
                 if ((tmp_tag_official < tmp_tag_min) || (tmp_tag_official > tmp_tag_max)) tmp_tag_official == 0;
 
                 char buf[100];
@@ -177,7 +177,8 @@ public:
 #ifdef AUX_STORAGE_VOTING
                         if (pstate->nHeight >= AUX_MINHEIGHT_VOTING(fTestNet))
                         {
-                            if ((nSingleValueOut % 10000000 >= tmp_tag_min) && (nSingleValueOut % 10000000 <= tmp_tag_max))
+                            if ((nSingleValueOut % 10000000 >= tmp_tag_min) && (nSingleValueOut % 10000000 <= tmp_tag_max) &&
+                                (nSingleValueOut >= 1000 * COIN))
                             {
                                 fv = true;
                             }
@@ -459,16 +460,15 @@ PerformStep (CNameDB& nameDb, const GameState& inState, const CBlock* block,
                 votingcache_vault_addr[votingcache_idx] = st.first;
                 votingcache_vault_exists[votingcache_idx] = true;
                 votingcache_amount[votingcache_idx] = 0;
+
+                // cleanup
+                if (int(st.second.vote_raw_amount % 10000000) < inState.nHeight - AUX_VOTING_CLEANUP_PERIOD(fTestNet))
+                    votingcache_amount[votingcache_idx] = -1;
+
                 votingcache_txid60bit[votingcache_idx] = tmp_txid60bit;
                 votingcache_idx++;
 
                 printf("scanning votes: existing vote, addr %s, amount %15"PRI64d", txid60bit %15"PRI64d"\n", st.first.c_str(), st.second.vote_raw_amount, tmp_txid60bit);
-
-                // cleanup
-                if (int(st.second.vote_raw_amount % 10000000) < inState.nHeight - 1440)
-                {
-                    votingcache_amount[votingcache_idx] = -1;
-                }
             }
         }
       }

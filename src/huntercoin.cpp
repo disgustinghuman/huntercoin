@@ -1210,6 +1210,7 @@ int pmon_config_zoom = 20;
 int pmon_config_warn_stalled = 36; // normally after 3 minutes
 int pmon_config_warn_disaster = 50; // POISON_MAX_LIFE == 50
 int pmon_config_afk_leave = 0;
+int pmon_config_vote_tally = 0;
 
 // windows stability bug workaround
 #ifdef PMON_DEBUG_WIN32_GUI
@@ -1240,7 +1241,7 @@ bool pmon_name_pending_start()
         pmon_my_alarm_dist[i] = 0;
     }
     int i = 0;
-    for (unsigned int il = 0; il < PMON_MY_MAX + 10; il++)
+    for (unsigned int il = 0; il < PMON_MY_MAX + PMON_CONFIG_MAX; il++)
     {
         if (fscanf(fp, "%50s ", my_name) < 1)
             break;
@@ -1287,6 +1288,11 @@ bool pmon_name_pending_start()
         else if (strcmp(my_name, "config:afk_leave_map") == 0)
         {
             pmon_config_afk_leave = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:vote_tally") == 0)
+        {
+            pmon_config_vote_tally = atoi(my_param);
             continue;
         }
 
