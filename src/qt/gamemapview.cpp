@@ -2222,6 +2222,11 @@ void GameMapView::updateGameMap(const GameState &gameState)
             {
                 int64 count_c[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
                 int64 count_g[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                int tmp_blocks = (gameState.nHeight % AUX_VOTING_INTERVAL(fTestNet));
+                int tmp_tag_official = gameState.nHeight - tmp_blocks + AUX_VOTING_INTERVAL(fTestNet) - 25; // xxx9975 (testnet: xxx975)
+
+                if (pmon_config_vote_tally)
+                    tmp_tag_official = pmon_config_vote_tally;
 
                 fprintf(fp, "\n Votes (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
                 fprintf(fp, " --------------------------------\n\n");
@@ -2231,28 +2236,28 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                 BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
                 {
-                  if (st.second.vote_raw_amount > 0)
-                  {
-                      int64 tmp_volume = st.second.nGems;
-                      int64 tmp_kcoins = (st.second.vote_raw_amount / 100000000 / 1000);
-                      int tmp_vote = int((st.second.vote_raw_amount / 10000000) % 10);
-                      count_c[tmp_vote] += tmp_kcoins;
-                      count_g[tmp_vote] += tmp_volume;
-                      fprintf(fp, "%s    %10s    %5s    %5d    #%d    %7d  %7d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), int(tmp_kcoins), tmp_vote, int(st.second.vote_raw_amount % 10000000), int(st.second.vote_raw_amount % 10000000));
+                    if (st.second.vote_raw_amount > 0)
+                    {
+                        int64 tmp_volume = st.second.nGems;
+                        int64 tmp_kcoins = (st.second.vote_raw_amount / 100000000 / 1000);
+                        int tmp_vote = int((st.second.vote_raw_amount / 10000000) % 10);
+                        int tmp_tag = int(st.second.vote_raw_amount % 10000000);
+
+                        fprintf(fp, "%s    %10s    %5s    %5d    #%d    %7d  %7d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), int(tmp_kcoins), tmp_vote, tmp_tag, tmp_tag);
 #ifdef AUX_STORAGE_VERSION2
-                      if (st.second.vote_comment.length() > 0)
-                          fprintf(fp, "\n  %s: \"%s\"\n\n", st.second.huntername.c_str(), st.second.vote_comment.c_str());
+                        if (st.second.vote_comment.length() > 0)
+                            fprintf(fp, "\n  %s: \"%s\"\n\n", st.second.huntername.c_str(), st.second.vote_comment.c_str());
 #endif
-                  }
+                        if (tmp_tag == tmp_tag_official)
+                        {
+                            count_c[tmp_vote] += tmp_kcoins;
+                            count_g[tmp_vote] += tmp_volume;
+                        }
+                    }
                 }
-                int tmp_blocks = (gameState.nHeight % AUX_VOTING_INTERVAL(fTestNet));
-                int tmp_tag_official = gameState.nHeight - tmp_blocks + AUX_VOTING_INTERVAL(fTestNet) - 25; // xxx9975 (testnet: xxx975)
 
-                if (pmon_config_vote_tally)
-                    tmp_tag_official = pmon_config_vote_tally;
-
-                fprintf(fp, "\n Vote tally (chronon %7d)\n", pmon_config_vote_tally);
-                fprintf(fp, " ------------------------------\n\n");
+                fprintf(fp, "\n Vote tally (chronon %7d)\n", tmp_tag_official);
+                fprintf(fp, " ----------------------------\n\n");
                 fprintf(fp, "                                                             coins\n");
                 fprintf(fp, "vote                                                 gems    (*1k)\n\n");
                 for (int iv = 0; iv < 10;iv++)
