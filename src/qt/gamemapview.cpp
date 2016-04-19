@@ -2141,7 +2141,36 @@ void GameMapView::updateGameMap(const GameState &gameState)
         pmon_config_bank_notice++;
 
     if (pmon_state == PMONSTATE_SHUTDOWN)
+    {
+#ifdef AUX_DEBUG_DUMP_GAMEMAP
+        FILE *fp;
+        fp = fopen("generatedgamemap.txt", "w");
+        if (fp != NULL)
+        {
+            for (int z = 0; z < Game::MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS; z++)
+            {
+                fprintf(fp, "    // Layer %d\n", z);
+                fprintf(fp, "    {\n");
+                // visually larger map
+//              for (int y = 0; y < RPG_MAP_HEIGHT; y++)
+//                for (int x = 0; x < RPG_MAP_WIDTH; x++)
+                // normal 502*502 map
+                for (int y = 0; y < Game::MAP_HEIGHT; y++)
+                  for (int x = 0; x < Game::MAP_WIDTH; x++)
+                  {
+                      if (x == 0) fprintf(fp, "        {");
+                      else if (x == Game::MAP_WIDTH - 1) fprintf(fp, "%d},\n", Displaycache_gamemap[y][x][z]);
+                      else fprintf(fp, "%d,", Displaycache_gamemap[y][x][z]);
+                  }
+                fprintf(fp, "    },\n");
+            }
+            fclose(fp);
+        }
+        MilliSleep(20);
+#endif
+
         pmon_state = PMONSTATE_STOPPED;
+    }
 
     // windows stability bug workaround
 #ifdef PMON_DEBUG_WIN32_GUI
