@@ -2469,7 +2469,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
 #ifdef AUX_STORAGE_VERSION2
         // CRD test
-        if (AUX_MINHEIGHT_TRADE(fTestNet))
+        if (gameState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
         {
             // fixme: if it depends on feedcache_status, we can't print out anything if (feedcache_status==0)
             int tmp_oldexp_chronon = gameState.nHeight - (gameState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet));

@@ -2790,8 +2790,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             if (p.second.message_block == outState.nHeight - 1) //message for current block is only available after ApplyCommon
             {
                 // auction alert (display a warning)
-                if ((outState.nHeight > 1200000) ||
-                    ((fTestNet) && (p.second.playernameaddress == "hcTgWguRcs2ByAUbTBNeuoBrVgQ2FqhoEb")) ||
+                if (((fTestNet) && (p.second.playernameaddress == "hcTgWguRcs2ByAUbTBNeuoBrVgQ2FqhoEb")) ||
                     ((!fTestNet) && (p.second.playernameaddress == "HSjUvhya9UrtuE1Dm73ytT3BkFWm8EGof9")))
                 {
 #ifdef AUX_STORAGE_VERSION2
@@ -2900,7 +2899,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     }
 #ifdef AUX_STORAGE_VERSION2
                     // CRD test
-                    else if (AUX_MINHEIGHT_TRADE(fTestNet))
+                    else if (outState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
                     {
                       if ((lbid3 == 0) && (lat3 >= 17) && (l >= lat3 + 5) && (l <= 100))
                       {
