@@ -1015,6 +1015,19 @@ int64 feedcache_volume_neutral;
 int64 feedcache_volume_reward;
 int feedcache_status;
 
+#ifdef AUX_STORAGE_VERSION2
+// CRD test
+int64 tradecache_bestbid_price;
+int64 tradecache_bestask_price;
+int64 tradecache_bestbid_size;
+int64 tradecache_bestbid_fullsize;
+int64 tradecache_bestask_size;
+int64 tradecache_bestask_fullsize;
+int tradecache_bestbid_chronon;
+int tradecache_bestask_chronon;
+bool tradecache_is_print;
+#endif
+
 // min and max price for feedcache: 0.0001 and 100 (dollar)
 // min and max price for auctioncache: 1 and 1000000 (coins)
 // (high numbers can crash the node/database, even if stored only as string in the blockchain)
@@ -1040,7 +1053,16 @@ static int64 feedcache_pricetick_up(int64 old)
     else if (old < 200000000) tick = 1000000;
     else if (old < 500000000) tick = 2000000;
     else if (old < 1000000000) tick = 5000000;
+//  else tick = 10000000;
+#ifdef AUX_TICKFIX_DELETEME
+    // CRD test
+    else if (old < 2000000000) tick = 10000000;
+    else if (old < 5000000000) tick = 20000000;
+    else if (old < 10000000000) tick = 50000000;
+    else tick = 100000000;
+#else
     else tick = 10000000;
+#endif
 
     if ((old % tick) > 0)
         old -= (old % tick);
@@ -1050,6 +1072,12 @@ static int64 feedcache_pricetick_up(int64 old)
 static int64 auctioncache_pricetick_up(int64 old)
 {
     return (feedcache_pricetick_up(old / 10000) * 10000);
+}
+// CRD test
+// CRD:GEM
+static int64 tradecache_pricetick_up(int64 old)
+{
+    return (feedcache_pricetick_up(old / 1000) * 1000);
 }
 static int64 feedcache_pricetick_down(int64 old)
 {
@@ -1073,7 +1101,16 @@ static int64 feedcache_pricetick_down(int64 old)
     else if (old <= 200000000) tick = 1000000;
     else if (old <= 500000000) tick = 2000000;
     else if (old <= 1000000000) tick = 5000000;
+//  else tick = 10000000;
+#ifdef AUX_TICKFIX_DELETEME
+    // CRD test
+    else if (old <= 2000000000) tick = 10000000;
+    else if (old <= 5000000000) tick = 20000000;
+    else if (old <= 10000000000) tick = 50000000;
+    else tick = 100000000;
+#else
     else tick = 10000000;
+#endif
 
     if ((old % tick) > 0)
     {
@@ -1086,6 +1123,12 @@ static int64 feedcache_pricetick_down(int64 old)
 static int64 auctioncache_pricetick_down(int64 old)
 {
     return (feedcache_pricetick_down(old / 10000) * 10000);
+}
+// CRD test
+// CRD:GEM
+static int64 tradecache_pricetick_down(int64 old)
+{
+    return (feedcache_pricetick_down(old / 1000) * 1000);
 }
 #endif
 
@@ -1418,11 +1461,11 @@ GameState::GameState()
     auction_last_chronon = 0;
 
 #ifdef AUX_STORAGE_VERSION2
-    gs_reserve1 = 0;
-    gs_reserve2 = 0;
-    gs_reserve3 = 0;
+    crd_last_price = 0;
+    crd_last_size = 0;
+    crd_prevexp_price = 0;
     gs_reserve4 = 0;
-    gs_reserve5 = 0;
+    crd_last_chronon = 0;
     gs_reserve6 = 0;
     gs_reserve7 = 0;
     gs_reserve8 = 0;
@@ -2380,6 +2423,244 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         auctioncache_bestask_chronon = 0;
         auctioncache_bestask_key = "";
 
+#ifdef AUX_STORAGE_VERSION2
+        // CRD test
+        // fixme (do this only once)
+        feedcache_status = FEEDCACHE_NORMAL;
+        if (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 0) feedcache_status = FEEDCACHE_EXPIRY;
+        //
+        int tmp_oldexp_chronon = outState.nHeight - (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet));
+        if (feedcache_status == FEEDCACHE_EXPIRY)
+            tmp_oldexp_chronon = outState.nHeight - AUX_EXPIRY_INTERVAL(fTestNet);
+        int tmp_newexp_chronon = tmp_oldexp_chronon + AUX_EXPIRY_INTERVAL(fTestNet);
+        //
+        tradecache_bestbid_price = 0;
+        tradecache_bestask_price = 0;
+        tradecache_bestbid_size = 0;
+        tradecache_bestbid_fullsize = 0;
+        tradecache_bestask_size = 0;
+        tradecache_bestask_fullsize = 0;
+        tradecache_bestbid_chronon = 0;
+        tradecache_bestask_chronon = 0;
+        tradecache_is_print = false;
+//        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+        BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+        {
+            int64 tmp_bid_price = st.second.ex_order_price_bid;
+            int64 tmp_bid_size = st.second.ex_order_size_bid;
+            int64 tmp_bid_chronon = st.second.ex_order_chronon_bid; // int64?
+            int64 tmp_ask_price = st.second.ex_order_price_ask;
+            int64 tmp_ask_size = st.second.ex_order_size_ask;
+            int64 tmp_ask_chronon = st.second.ex_order_chronon_ask;
+
+            int tmp_order_flags = st.second.ex_order_flags;
+            int64 tmp_position_size = st.second.ex_position_size;
+            int64 tmp_position_price = st.second.ex_position_price;
+
+            // check if we can afford our orders
+            // note: all price and size values are in standard bitcoin notation (100000000 means 1.0)
+            //       this is different from the "playground" testnet
+            //       size is multiple of TRADE_CRD_MIN_SIZE (TRADE_CRD_MIN_SIZE == COIN, i.e. 1 dollar minimum size)
+            //   if we get a fill, this will be our (additional) profit or loss
+            int64 pl_b = (tmp_position_size / COIN) * (tmp_bid_price - tmp_position_price);
+            int64 pl_a = (tmp_position_size / COIN) * (tmp_ask_price - tmp_position_price);
+            int64 pl = pl_b < pl_a ? pl_b : pl_a;
+            //   net worth ignoring "unsettled profits"
+            int64 nw = st.second.ex_trade_profitloss < 0 ? pl + st.second.nGems + st.second.ex_trade_profitloss : pl + st.second.nGems;
+            //   can drop to 0
+            int64 risk_bidorder = ((tmp_position_size + tmp_bid_size) / COIN) * tmp_bid_price;
+            //   can go to strike price
+            int64 risk_askorder = ((-tmp_position_size + tmp_ask_size) / COIN) * (outState.crd_prevexp_price * 3 - tmp_ask_price);
+            //   if order would reduce position size
+            if (risk_bidorder < 0) risk_bidorder = 0;
+            if (risk_askorder < 0) risk_askorder = 0;
+
+            //   autocancel unfunded bid order
+            if (risk_bidorder > nw)
+            {
+              tmp_order_flags |= ORDERFLAG_BID_INVALID;
+            }
+            else if (tmp_order_flags & ORDERFLAG_BID_INVALID)
+            {
+              tmp_order_flags -= ORDERFLAG_BID_INVALID;
+              tmp_order_flags |= ORDERFLAG_BID_ACTIVE;
+            }
+
+            if ((tmp_order_flags & ORDERFLAG_BID_INVALID) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE))
+              tmp_order_flags -= ORDERFLAG_BID_ACTIVE;
+
+            //   autocancel unfunded ask order
+            if (risk_askorder > nw)
+            {
+              tmp_order_flags |= ORDERFLAG_ASK_INVALID;
+            }
+            else if (tmp_order_flags & ORDERFLAG_ASK_INVALID)
+            {
+              tmp_order_flags -= ORDERFLAG_ASK_INVALID;
+              tmp_order_flags |= ORDERFLAG_ASK_ACTIVE;
+            }
+
+            if ((tmp_order_flags & ORDERFLAG_ASK_INVALID) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE))
+              tmp_order_flags -= ORDERFLAG_ASK_ACTIVE;
+
+            st.second.ex_order_flags = tmp_order_flags;
+
+
+            if (tmp_order_flags & ORDERFLAG_BID_ACTIVE)
+            if ((tmp_bid_size) && (tmp_bid_price))
+            if ((tmp_bid_price > tradecache_bestbid_price))
+            {
+                tradecache_bestbid_price = tmp_bid_price;
+                tradecache_bestbid_size = tmp_bid_size;
+                tradecache_bestbid_fullsize = tmp_bid_size;
+                tradecache_bestbid_chronon = tmp_bid_chronon;
+            }
+            else if ((tmp_bid_price == tradecache_bestbid_price) && (tmp_bid_chronon < tradecache_bestbid_chronon))
+            {
+//                tradecache_bestbid_price = tmp_bid_price;
+                tradecache_bestbid_size = tmp_bid_size;
+                tradecache_bestbid_fullsize += tmp_bid_size;
+                tradecache_bestbid_chronon = tmp_bid_chronon;
+            }
+
+            if (tmp_order_flags & ORDERFLAG_ASK_ACTIVE)
+            if ((tmp_ask_price) && (tmp_ask_size))
+            if ((tmp_ask_price < tradecache_bestask_price) || (tradecache_bestask_price == 0))
+            {
+                tradecache_bestask_price = tmp_ask_price;
+                tradecache_bestask_size = tmp_ask_size;
+                tradecache_bestask_fullsize = tmp_ask_size;
+                tradecache_bestask_chronon = tmp_ask_chronon;
+            }
+            else if ((tmp_ask_price == tradecache_bestask_price) && (tmp_ask_chronon < tradecache_bestask_chronon))
+            {
+//                tradecache_bestask_price = tmp_ask_price;
+                tradecache_bestask_size = tmp_ask_size;
+                tradecache_bestask_fullsize += tmp_ask_size;
+                tradecache_bestask_chronon = tmp_ask_chronon;
+            }
+        }
+        //                                                                                              do we have correct status here?
+        if ((tradecache_bestask_price > 0) && (tradecache_bestbid_price >= tradecache_bestask_price) && (feedcache_status == FEEDCACHE_NORMAL))
+        {
+            tradecache_is_print = true;
+        }
+#define ORDER_BID_FILL ((tmp_bid_price == tradecache_bestbid_price) && (tmp_bid_size == tradecache_bestbid_size) && \
+                    (tmp_bid_chronon == tradecache_bestbid_chronon) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE))
+
+#define ORDER_ASK_FILL ((tmp_ask_price == tradecache_bestask_price) && (tmp_ask_size == tradecache_bestask_size) && \
+                    (tmp_ask_chronon == tradecache_bestask_chronon) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE))
+
+//        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+        BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+        {
+            int64 tmp_bid_price = st.second.ex_order_price_bid;
+            int64 tmp_bid_size = st.second.ex_order_size_bid;
+            int64 tmp_bid_chronon = st.second.ex_order_chronon_bid;
+            int64 tmp_ask_price = st.second.ex_order_price_ask;
+            int64 tmp_ask_size = st.second.ex_order_size_ask;
+            int64 tmp_ask_chronon = st.second.ex_order_chronon_ask;
+
+            int tmp_order_flags = st.second.ex_order_flags;
+            int tmp_position_size = st.second.ex_position_size;
+            int tmp_position_price = st.second.ex_position_price;
+
+            // if we can modify our orders right now
+            // - delete me (can always modify)
+            bool can_modify = false;
+            if ((feedcache_status == FEEDCACHE_NORMAL) && (outState.feed_prevexp_price > 0))
+            {
+                if (!tradecache_is_print)
+                    can_modify = true;
+
+                if (false) // if (AI_dbg_allow_matching_engine_optimisation)
+                {
+                    if ((!(ORDER_BID_FILL)) && (!(ORDER_ASK_FILL)))
+                        can_modify = true;
+                }
+            }
+
+            // size 0 cancels
+            if ((tmp_bid_size == 0) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE))
+            {
+              tmp_order_flags -= ORDERFLAG_BID_ACTIVE;
+//              st.second.ex_order_price_bid = 0;
+            }
+            if ((tmp_ask_size == 0) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE))
+            {
+              tmp_order_flags -= ORDERFLAG_ASK_ACTIVE;
+//              st.second.ex_order_price_ask = 0;
+            }
+
+            st.second.ex_order_flags = tmp_order_flags;
+
+            // do the actual matching
+            // notes: - order book is built every block
+            //        - no matching on expiry block
+            //        - no matching 1 block after expiry (to autocancel orders which are now unaffordable)  <- no longer needed
+            if ((tradecache_is_print) && (feedcache_status == FEEDCACHE_NORMAL) && (outState.nHeight > tmp_oldexp_chronon + 1))
+            {
+
+                if (ORDER_BID_FILL)
+                {
+                    int64 print_price = (tradecache_bestbid_price + tradecache_bestask_price) / 2; // fair, because we fill the same size of both orders
+                    outState.crd_last_price = print_price;
+
+                    int64 s = tmp_bid_size;
+                    if (tradecache_bestask_size >= s)
+                    {
+                        st.second.ex_order_flags -= ORDERFLAG_BID_ACTIVE; // filled
+                        st.second.ex_order_size_bid = 0;
+                    }
+                    else
+                    {
+                        s = tradecache_bestask_size;
+                        st.second.ex_order_size_bid -= s;
+                    }
+
+                    if ((s != outState.crd_last_size) && (outState.crd_last_chronon == outState.nHeight))
+                        printf("ERROR matching different bid and ask size\n");
+                    outState.crd_last_size = s;
+                    outState.crd_last_chronon = outState.nHeight;
+
+                    int64 profitloss = (st.second.ex_position_size / COIN) * (print_price - st.second.ex_position_price);
+                    st.second.ex_position_size += s; // we bought something
+                    st.second.ex_position_price = print_price; // start new pl calculation
+
+                    st.second.ex_trade_profitloss += profitloss;
+                }
+                if (ORDER_ASK_FILL)
+                {
+                    int64 print_price = (tradecache_bestbid_price + tradecache_bestask_price) / 2; // fair, because we fill the same size of both orders
+                    outState.crd_last_price = print_price;
+
+                    int64 s = tmp_ask_size;
+                    if (tradecache_bestbid_size >= s)
+                    {
+                        st.second.ex_order_flags -= ORDERFLAG_ASK_ACTIVE; // filled
+                        st.second.ex_order_size_ask = 0;
+                    }
+                    else
+                    {
+                        s = tradecache_bestbid_size;
+                        st.second.ex_order_size_ask -= s;
+                    }
+
+                    if ((s != outState.crd_last_size) && (outState.crd_last_chronon == outState.nHeight))
+                        printf("ERROR matching different bid and ask size\n");
+                    outState.crd_last_size = s;
+                    outState.crd_last_chronon = outState.nHeight;
+
+                    int64 profitloss = (st.second.ex_position_size / COIN) * (print_price - st.second.ex_position_price);
+                    st.second.ex_position_size -= s; // we sold something
+                    st.second.ex_position_price = print_price; // start new pl calculation
+
+                    st.second.ex_trade_profitloss += profitloss;
+                }
+            }
+        }
+#endif
+
         // - process the automatic downtick (if downtick would be done elewhere, it could be "const PAIRTYPE", i.e. faster)
         // - then cache best ask
 //        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
@@ -2536,6 +2817,11 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     int lask2 = p.second.message.find("GEM:HUC set ask "); // length of "key phrase" is 16
                     int lfeed1 = p.second.message.find("HUC:USD feed price "); // length of "key phrase" is 19
 
+#ifdef AUX_STORAGE_VERSION2
+                    // CRD test
+                    int lbid3 = p.second.message.find("CRD:GEM set bid "); // length of "key phrase" is 16
+                    int lask3 = p.second.message.find("CRD:GEM set ask "); // length of "key phrase" is 16
+#endif
                     printf("parsing message: found storage: l=%d l1=%d l2=%d\n", l, lfeed1, lask2);
 
 #ifdef AUX_STORAGE_VOTING
@@ -2612,6 +2898,74 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             mi->second.feed_chronon = outState.nHeight;
                         }
                     }
+#ifdef AUX_STORAGE_VERSION2
+                    // CRD test
+                    else if (AUX_MINHEIGHT_TRADE(fTestNet))
+                    {
+                      if ((lbid3 == 0) && (lat3 >= 17) && (l >= lat3 + 5) && (l <= 100))
+                      {
+                        s_amount = p.second.message.substr(16, lat3 - 16);
+                        s_price = p.second.message.substr(lat3 + 4);
+                        {
+                            if ((ParseMoney(s_amount, tmp_amount)) &&
+                                (ParseMoney(s_price, tmp_price)))
+                            {
+                                printf("parsing message: CRD:GEM bid: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
+
+                                // - tradecache_pricetick_... does this already
+                                if (tmp_price > 1000 * COIN) tmp_price = 1000 * COIN;
+                                else if (tmp_price < 100000) tmp_price = 100000;
+
+                                tmp_amount -= (tmp_amount % TRADE_CRD_MIN_SIZE);
+                                if (tmp_amount == 0)
+                                    tmp_price = 0; // size 0 == cancel
+                                else
+                                    tmp_price = tradecache_pricetick_down(tradecache_pricetick_up(tmp_price)); // snap to grid
+
+                                // can always modify
+                                if (true)
+                                {
+                                    mi->second.ex_order_size_bid = tmp_amount;
+                                    mi->second.ex_order_price_bid = tmp_price;
+                                    mi->second.ex_order_chronon_bid = outState.nHeight;
+                                    mi->second.ex_order_flags |= ORDERFLAG_BID_ACTIVE;
+                                }
+                            }
+                        }
+                      }
+                      else if ((lask3 == 0) && (lat3 >= 17) && (l >= lat3 + 5) && (l <= 100))
+                      {
+                        s_amount = p.second.message.substr(16, lat3 - 16);
+                        s_price = p.second.message.substr(lat3 + 4);
+                        {
+                            if ((ParseMoney(s_amount, tmp_amount)) &&
+                                (ParseMoney(s_price, tmp_price)))
+                            {
+                                printf("parsing message: CRD:GEM ask: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
+
+                                // - tradecache_pricetick_... does this already
+                                if (tmp_price > 1000 * COIN) tmp_price = 1000 * COIN;
+                                else if (tmp_price < 100000) tmp_price = 100000;
+
+                                tmp_amount -= (tmp_amount % TRADE_CRD_MIN_SIZE);
+                                if (tmp_amount == 0)
+                                    tmp_price = 0; // size 0 == cancel
+                                else
+                                    tmp_price = tradecache_pricetick_down(tradecache_pricetick_up(tmp_price)); // snap to grid
+
+                                // - can always modify
+                                if (true)
+                                {
+                                    mi->second.ex_order_size_ask = tmp_amount;
+                                    mi->second.ex_order_price_ask = tmp_price;
+                                    mi->second.ex_order_chronon_ask = outState.nHeight;
+                                    mi->second.ex_order_flags |= ORDERFLAG_ASK_ACTIVE;
+                                }
+                            }
+                        }
+                      }
+                    }
+#endif
                 }
             }
 
@@ -2731,9 +3085,58 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             tmp_oldexp_chronon = outState.nHeight - AUX_EXPIRY_INTERVAL(fTestNet);
         int tmp_newexp_chronon = tmp_oldexp_chronon + AUX_EXPIRY_INTERVAL(fTestNet);
 
+//        if (feedcache_status == FEEDCACHE_EXPIRY)
+//        {
+//            outState.feed_prevexp_price = outState.feed_nextexp_price;
+//        }
         if (feedcache_status == FEEDCACHE_EXPIRY)
         {
-            outState.feed_prevexp_price = outState.feed_nextexp_price;
+            int64 tmp_unified_exp_price = outState.feed_prevexp_price = outState.feed_nextexp_price;
+#ifdef AUX_STORAGE_VERSION2
+            // CRD test
+            // note: feedcache_status>0 implies AUX_MINHEIGHT_FEED
+            int64 tmp_old_crd_prevexp_price = outState.crd_prevexp_price;
+
+            int64 tmp_settlement = (((COIN * COIN) / outState.auction_settle_price) * COIN) / tmp_unified_exp_price;
+            outState.crd_prevexp_price = tmp_settlement - (tmp_settlement % 10000); // round to 4 digits after decimal point
+
+            // do automatic exercise if in the money
+            if (outState.crd_prevexp_price > 0)
+            {
+                BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+                {
+
+                    // settle previous profit/loss...
+                    if (st.second.ex_trade_profitloss != 0)
+                    {
+                        int64 profitloss = st.second.ex_trade_profitloss;
+                        if (profitloss >= 0) profitloss -= (profitloss % 1000000);
+                        else profitloss += (profitloss % 1000000);
+
+                        st.second.nGems += profitloss;
+                        st.second.ex_trade_profitloss = 0;
+                    }
+
+                    // ...and calculate new one
+                    if (outState.crd_prevexp_price < tmp_old_crd_prevexp_price * 3)
+                    {
+                        int64 print_price = outState.crd_prevexp_price;
+                        if (st.second.ex_position_size != 0)
+                        {
+                            int64 profitloss = (st.second.ex_position_size / COIN) * (print_price - st.second.ex_position_price);
+                            st.second.ex_position_size = 0;
+                            st.second.ex_position_price = 0;
+
+                            st.second.ex_trade_profitloss += profitloss;
+                        }
+                    }
+
+                    // cancel remaining orders
+                    st.second.ex_order_price_bid = st.second.ex_order_price_ask = st.second.ex_order_size_bid = st.second.ex_order_size_ask = 0;
+                    st.second.ex_order_flags = 0;
+                }
+            }
+#endif
         }
 
         // distribute reward

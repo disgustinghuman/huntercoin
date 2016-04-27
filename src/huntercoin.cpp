@@ -1210,6 +1210,9 @@ int pmon_config_zoom = 20;
 int pmon_config_warn_stalled = 36; // normally after 3 minutes
 int pmon_config_warn_disaster = 50; // POISON_MAX_LIFE == 50
 int pmon_config_afk_leave = 0;
+int pmon_config_defence = 1;
+int pmon_config_hold = 5;
+int pmon_config_confirm = 7;
 int pmon_config_vote_tally = 0;
 
 // windows stability bug workaround
@@ -1288,6 +1291,21 @@ bool pmon_name_pending_start()
         else if (strcmp(my_name, "config:afk_leave_map") == 0)
         {
             pmon_config_afk_leave = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:afk_defence") == 0)
+        {
+            pmon_config_defence = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:afk_ticks_hold") == 0)
+        {
+            pmon_config_hold = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:afk_ticks_confirm") == 0)
+        {
+            pmon_config_confirm = atoi(my_param);
             continue;
         }
         else if (strcmp(my_name, "config:vote_tally") == 0)

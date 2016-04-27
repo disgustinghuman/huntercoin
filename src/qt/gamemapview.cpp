@@ -2465,6 +2465,122 @@ void GameMapView::updateGameMap(const GameState &gameState)
           }
           fclose(fp);
         }
+        MilliSleep(20);
+
+#ifdef AUX_STORAGE_VERSION2
+        // CRD test
+        if (AUX_MINHEIGHT_TRADE(fTestNet))
+        {
+            // fixme: if it depends on feedcache_status, we can't print out anything if (feedcache_status==0)
+            int tmp_oldexp_chronon = gameState.nHeight - (gameState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet));
+            if (feedcache_status == FEEDCACHE_EXPIRY)
+                tmp_oldexp_chronon = gameState.nHeight - AUX_EXPIRY_INTERVAL(fTestNet);
+            int tmp_newexp_chronon = tmp_oldexp_chronon + AUX_EXPIRY_INTERVAL(fTestNet);
+
+            fp = fopen("adv_chrono.txt", "w");
+            if (fp != NULL)
+            {
+                fprintf(fp, "\n CRD:GEM open orders (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
+                fprintf(fp, " ----------------------------------------------\n\n");
+                fprintf(fp, "                                     hunter      ask        ask      order    chronoDollar   gems at risk    additional\n");
+                fprintf(fp, "storage vault key                    name        size       price    chronon      position     if filled    P/L if filled   flags\n");
+                fprintf(fp, "\n");
+                BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
+                {
+                    int64 tmp_ask_size = st.second.ex_order_size_ask;
+                    if (tmp_ask_size > 0)
+                    {
+                        int64 tmp_ask_price = st.second.ex_order_price_ask;
+                        int tmp_ask_chronon = st.second.ex_order_chronon_ask;
+                        int64 tmp_position_size = st.second.ex_position_size;
+                        int64 tmp_position_price = st.second.ex_position_price;
+                        int64 pl_a = (tmp_position_size / AUX_COIN) * (tmp_ask_price - tmp_position_price);
+                        int64 risk_askorder = ((-tmp_position_size + tmp_ask_size) / AUX_COIN) * (gameState.crd_prevexp_price * 3 - tmp_ask_price);
+
+                        std::string s = "";
+                        int tmp_orderflags = st.second.ex_order_flags;
+                        if (tmp_orderflags & ORDERFLAG_ASK_INVALID) s += " *no funds*";
+                        else if (tmp_orderflags & ORDERFLAG_ASK_ACTIVE) s += " ok";
+
+                        fprintf(fp, "%s   %-10s %5s at %9s   %d           %-7s %-10s         %-5s    %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(tmp_ask_price).c_str(), tmp_ask_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_askorder).c_str(), FormatMoney(pl_a).c_str(), s.c_str());
+                    }
+                }
+                fprintf(fp, "\n");
+                if (tradecache_bestask_price > 0)
+                {
+                    fprintf(fp, "best ask full size = %5s                      %5s at %9s   %d\n\n", FormatMoney(tradecache_bestask_fullsize).c_str(), FormatMoney(tradecache_bestask_size).c_str(), FormatMoney(tradecache_bestask_price).c_str(), tradecache_bestask_chronon);
+                }
+
+                std::string sp = tradecache_is_print ? "matching orders, " : "                 ";
+                if(gameState.crd_last_size)
+                    fprintf(fp, "%s               last trade:     %5s at %9s   %d\n\n", sp.c_str(), FormatMoney(gameState.crd_last_size).c_str(), FormatMoney(gameState.crd_last_price).c_str(), gameState.crd_last_chronon);
+
+                if (tradecache_bestbid_price > 0)
+                {
+                    fprintf(fp, "best bid full size = %5s                      %5s at %9s   %d\n\n", FormatMoney(tradecache_bestbid_fullsize).c_str(), FormatMoney(tradecache_bestbid_size).c_str(), FormatMoney(tradecache_bestbid_price).c_str(), tradecache_bestbid_chronon);
+                }
+                fprintf(fp, "                                     hunter      bid        bid      order    chronoDollar   gems at risk    additional\n");
+                fprintf(fp, "storage vault key                    name        size       price    chronon      position     if filled    P/L if filled   flags\n");
+                fprintf(fp, "\n");
+                BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
+                {
+                  int64 tmp_bid_size = st.second.ex_order_size_bid;
+                  if (tmp_bid_size > 0)
+                  {
+                      int64 tmp_bid_price = st.second.ex_order_price_bid;
+                      int tmp_bid_chronon = st.second.ex_order_chronon_bid;
+                      int64 tmp_position_size = st.second.ex_position_size;
+                      int64 tmp_position_price = st.second.ex_position_price;
+                      int64 pl_b = (tmp_position_size / AUX_COIN) * (tmp_bid_price - tmp_position_price);
+                      int64 risk_bidorder = ((tmp_position_size + tmp_bid_size) / AUX_COIN) * tmp_bid_price;
+
+                      std::string s = "";
+                      int tmp_orderflags = st.second.ex_order_flags;
+                      if (tmp_orderflags & ORDERFLAG_BID_INVALID) s += " *no funds*";
+                      else if (tmp_orderflags & ORDERFLAG_BID_ACTIVE) s += " ok";
+
+                      fprintf(fp, "%s   %-10s %5s at %9s   %d           %-7s %-10s         %-5s    %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), tmp_bid_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_bidorder).c_str(), FormatMoney(pl_b).c_str(), s.c_str());
+                  }
+                }
+                fprintf(fp, "\n\n");
+
+                fprintf(fp, "\n CRD:GEM trader positions (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
+                fprintf(fp, " ---------------------------------------------------\n\n");
+                fprintf(fp, "                                     hunter             chronoDollar   trade   trade\n");
+                fprintf(fp, "storage vault key                    name        gems   position       price   P/L\n");
+                fprintf(fp, "\n");
+                BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
+                {
+                  if ((st.second.ex_order_size_bid != 0) || (st.second.ex_order_size_ask != 0) ||
+                      (st.second.ex_position_size != 0) || (st.second.ex_trade_profitloss != 0))
+                  {
+                      fprintf(fp, "%s   %-10s %5s    %9s     %5s  %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str());
+                  }
+                }
+
+                if (gameState.crd_prevexp_price > 0)
+                {
+                    int64 tmp_settlement = (((AUX_COIN * AUX_COIN) / gameState.auction_settle_price) * AUX_COIN) / gameState.feed_nextexp_price;;
+                    tmp_settlement -= (tmp_settlement % 10000); // round to 4 digits after decimal point
+                    fprintf(fp, "\n");
+                    fprintf(fp, "settlement:                                                  chronon    covered call strike\n\n");
+                    fprintf(fp, "previous                                          %-7s    %7d    %-7s\n", FormatMoney(gameState.crd_prevexp_price).c_str(), tmp_oldexp_chronon), FormatMoney(gameState.crd_prevexp_price * 3).c_str();
+                    fprintf(fp, "pending                                           %-7s    %7d    %-7s\n", FormatMoney(tmp_settlement).c_str(), tmp_newexp_chronon, FormatMoney(tmp_settlement * 3).c_str());
+
+                    fprintf(fp, "\n");
+                    fprintf(fp, "->example chat message to buy 1 chronoDollar (and sell 1 covered call)\n");
+                    fprintf(fp, "CRD:GEM set bid 1 at %s\n", FormatMoney(tmp_settlement).c_str());
+                    fprintf(fp, "\n");
+                    fprintf(fp, "->example chat message to sell 1 chronoDollar (and buy 1 covered call)\n");
+                    fprintf(fp, "CRD:GEM set ask 1 at %s\n", FormatMoney(tmp_settlement).c_str());
+                    fprintf(fp, "\n");
+                }
+                fclose(fp);
+            }
+            MilliSleep(20);
+        }
+#endif
+
 #endif
 #endif
     }

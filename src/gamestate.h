@@ -13,7 +13,7 @@
 #include <string>
 
 // gems and storage
-// uncomment this line and delete "game.dat" if you dare
+// uncomment this line if you dare
 //#define PERMANENT_LUGGAGE
 
 #ifdef PERMANENT_LUGGAGE
@@ -21,6 +21,8 @@
 #define PERMANENT_LUGGAGE_AUCTION
 #define AUX_STORAGE_VOTING
 #define AUX_STORAGE_VERSION2
+// CRD test
+#define AUX_TICKFIX_DELETEME
 //#define PERMANENT_LUGGAGE_LOG_PAYMENTS
 //#define PERMANENT_LUGGAGE_TALLY
 #endif
@@ -858,11 +860,11 @@ struct GameState
     int64_t auction_last_price;
     int64_t auction_last_chronon;
 #ifdef AUX_STORAGE_VERSION2
-    int64_t gs_reserve1;
-    int64_t gs_reserve2;
-    int64_t gs_reserve3;
+    int64_t crd_last_price;
+    int64_t crd_last_size;
+    int64_t crd_prevexp_price;
     int64_t gs_reserve4;
-    int gs_reserve5;
+    int crd_last_chronon;
     int gs_reserve6;
     unsigned char gs_reserve7;
     unsigned char gs_reserve8;
@@ -934,11 +936,11 @@ struct GameState
       READWRITE(auction_last_price);
       READWRITE(auction_last_chronon);
 #ifdef AUX_STORAGE_VERSION2
-      READWRITE(gs_reserve1);
-      READWRITE(gs_reserve2);
-      READWRITE(gs_reserve3);
+      READWRITE(crd_last_price);
+      READWRITE(crd_last_size);
+      READWRITE(crd_prevexp_price);
       READWRITE(gs_reserve4);
-      READWRITE(gs_reserve5);
+      READWRITE(crd_last_chronon);
       READWRITE(gs_reserve6);
       READWRITE(gs_reserve7);
       READWRITE(gs_reserve8);
@@ -1253,6 +1255,9 @@ extern int pmon_config_zoom;
 extern int pmon_config_warn_stalled;
 extern int pmon_config_warn_disaster;
 extern int pmon_config_afk_leave;
+extern int pmon_config_defence;
+extern int pmon_config_hold;
+extern int pmon_config_confirm;
 extern int pmon_config_vote_tally;
 
 // windows stability bug workaround
@@ -1334,6 +1339,27 @@ extern int64 feedcache_volume_bear;
 extern int64 feedcache_volume_neutral;
 extern int64 feedcache_volume_reward;
 extern int feedcache_status;
+#endif
+
+#ifdef AUX_STORAGE_VERSION2
+// CRD test
+#define AUX_MINHEIGHT_TRADE(T) (T?321000:2000000)
+#define TRADE_CRD_MIN_SIZE 100000000
+#define ORDERFLAG_BID_ACTIVE 1
+#define ORDERFLAG_ASK_ACTIVE 2
+#define ORDERFLAG_BID_INVALID 4
+#define ORDERFLAG_ASK_INVALID 8
+#define ORDERFLAG_BID_EXECUTING 16
+#define ORDERFLAG_ASK_EXECUTING 32
+extern int64 tradecache_bestbid_price;
+extern int64 tradecache_bestask_price;
+extern int64 tradecache_bestbid_size;
+extern int64 tradecache_bestbid_fullsize;
+extern int64 tradecache_bestask_size;
+extern int64 tradecache_bestask_fullsize;
+extern int tradecache_bestbid_chronon;
+extern int tradecache_bestask_chronon;
+extern bool tradecache_is_print;
 #endif
 
 #ifdef AUX_STORAGE_VOTING
