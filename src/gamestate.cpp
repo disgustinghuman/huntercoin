@@ -1029,6 +1029,7 @@ bool tradecache_is_print;
 #endif
 
 // min and max price for feedcache: 0.0001 and 100 (dollar)
+// min and max price for tradecache: 0.001 and 1000 (gems)
 // min and max price for auctioncache: 1 and 1000000 (coins)
 // (high numbers can crash the node/database, even if stored only as string in the blockchain)
 static int64 feedcache_pricetick_up(int64 old)
@@ -1075,9 +1076,9 @@ static int64 auctioncache_pricetick_up(int64 old)
 }
 // CRD test
 // CRD:GEM
-static int64 tradecache_pricetick_up(int64 old)
+int64 tradecache_pricetick_up(int64 old)
 {
-    return (feedcache_pricetick_up(old / 1000) * 1000);
+    return (feedcache_pricetick_up(old / 10) * 10);
 }
 static int64 feedcache_pricetick_down(int64 old)
 {
@@ -1126,9 +1127,9 @@ static int64 auctioncache_pricetick_down(int64 old)
 }
 // CRD test
 // CRD:GEM
-static int64 tradecache_pricetick_down(int64 old)
+int64 tradecache_pricetick_down(int64 old)
 {
-    return (feedcache_pricetick_down(old / 1000) * 1000);
+    return (feedcache_pricetick_down(old / 10) * 10);
 }
 #endif
 
@@ -3096,12 +3097,23 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             // note: feedcache_status>0 implies AUX_MINHEIGHT_FEED
             int64 tmp_old_crd_prevexp_price = outState.crd_prevexp_price;
 
-            int64 tmp_settlement = (((COIN * COIN) / outState.auction_settle_price) * COIN) / tmp_unified_exp_price;
-            outState.crd_prevexp_price = tmp_settlement - (tmp_settlement % 10000); // round to 4 digits after decimal point
-
-            // do automatic exercise if in the money
-            if (outState.crd_prevexp_price > 0)
+            if (outState.auction_settle_price == 0)
             {
+                 printf("trade test: ERROR: outState.auction_settle_price == 0\n");
+            }
+            else if (outState.feed_nextexp_price == 0)
+            {
+                 printf("trade test: ERROR: outState.feed_nextexp_price == 0\n");
+            }
+            else
+            {
+              int64 tmp_settlement = (((COIN * COIN) / outState.auction_settle_price) * COIN) / tmp_unified_exp_price;
+              tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
+              outState.crd_prevexp_price = tmp_settlement;
+
+              // do automatic exercise if in the money
+              if (outState.crd_prevexp_price > 0)
+              {
                 BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
                 {
 
@@ -3134,6 +3146,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     st.second.ex_order_price_bid = st.second.ex_order_price_ask = st.second.ex_order_size_bid = st.second.ex_order_size_ask = 0;
                     st.second.ex_order_flags = 0;
                 }
+              }
             }
 #endif
         }

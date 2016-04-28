@@ -2558,13 +2558,22 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   }
                 }
 
-                if (gameState.crd_prevexp_price > 0)
+                if (gameState.auction_settle_price == 0)
                 {
-                    int64 tmp_settlement = (((AUX_COIN * AUX_COIN) / gameState.auction_settle_price) * AUX_COIN) / gameState.feed_nextexp_price;;
-                    tmp_settlement -= (tmp_settlement % 10000); // round to 4 digits after decimal point
+                     printf("trade test: ERROR: gameState.auction_settle_price == 0\n");
+                }
+                else if (gameState.feed_nextexp_price == 0)
+                {
+                     printf("trade test: ERROR: gameState.feed_nextexp_price == 0\n");
+                }
+                else if (gameState.crd_prevexp_price > 0)
+                {
+                    int64 tmp_settlement = (((AUX_COIN * AUX_COIN) / gameState.auction_settle_price) * AUX_COIN) / gameState.feed_nextexp_price;
+                    tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
+
                     fprintf(fp, "\n");
                     fprintf(fp, "settlement:                                                  chronon    covered call strike\n\n");
-                    fprintf(fp, "previous                                          %-7s    %7d    %-7s\n", FormatMoney(gameState.crd_prevexp_price).c_str(), tmp_oldexp_chronon), FormatMoney(gameState.crd_prevexp_price * 3).c_str();
+                    fprintf(fp, "previous                                          %-7s    %7d    %-7s\n", FormatMoney(gameState.crd_prevexp_price).c_str(), tmp_oldexp_chronon, FormatMoney(gameState.crd_prevexp_price * 3).c_str());
                     fprintf(fp, "pending                                           %-7s    %7d    %-7s\n", FormatMoney(tmp_settlement).c_str(), tmp_newexp_chronon, FormatMoney(tmp_settlement * 3).c_str());
 
                     fprintf(fp, "\n");

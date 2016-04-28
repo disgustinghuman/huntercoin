@@ -67,9 +67,6 @@ inline bool IsOriginalSpawnArea(int x, int y)
 
 
 #ifdef GUI
-// CRD test
-#define AUX_COIN ((int64)100000000)
-
 // better GUI -- variables declaration
 #define RPG_MAP_HEIGHT 512
 #define RPG_MAP_WIDTH 542
