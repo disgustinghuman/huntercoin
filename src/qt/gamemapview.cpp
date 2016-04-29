@@ -2546,15 +2546,27 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                 fprintf(fp, "\n CRD:GEM trader positions (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
                 fprintf(fp, " ---------------------------------------------------\n\n");
-                fprintf(fp, "                                     hunter             chronoDollar   trade   trade\n");
-                fprintf(fp, "storage vault key                    name        gems   position       price   P/L\n");
+                fprintf(fp, "                                     hunter             chronoDollar   trade   trade    net worth after fill\n");
+                fprintf(fp, "storage vault key                    name        gems   position       price   P/L      (worst case)\n");
                 fprintf(fp, "\n");
                 BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
                 {
                   if ((st.second.ex_order_size_bid != 0) || (st.second.ex_order_size_ask != 0) ||
                       (st.second.ex_position_size != 0) || (st.second.ex_trade_profitloss != 0))
                   {
-                      fprintf(fp, "%s   %-10s %5s    %9s     %5s  %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str());
+                      int64 tmp_position_size = st.second.ex_position_size;
+                      int64 tmp_position_price = st.second.ex_position_price;
+                      int64 tmp_ask_price = st.second.ex_order_price_ask;
+                      int64 tmp_bid_price = st.second.ex_order_price_bid;
+                      int64 pl_a = 0;
+                      int64 pl_b = 0;
+                      if (tmp_ask_price) pl_a = (tmp_position_size / AUX_COIN) * (tmp_ask_price - tmp_position_price);
+                      if (tmp_bid_price) pl_b = (tmp_position_size / AUX_COIN) * (tmp_bid_price - tmp_position_price);
+                      int64 pl = pl_b < pl_a ? pl_b : pl_a;
+                      //   net worth ignoring "unsettled profits"
+                      int64 nw = st.second.ex_trade_profitloss < 0 ? pl + st.second.nGems + st.second.ex_trade_profitloss : pl + st.second.nGems;
+
+                      fprintf(fp, "%s   %-10s %5s    %9s     %5s  %5s    %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str(), FormatMoney(nw).c_str());
                   }
                 }
 

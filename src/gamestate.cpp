@@ -2463,8 +2463,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             //       this is different from the "playground" testnet
             //       size is multiple of TRADE_CRD_MIN_SIZE (TRADE_CRD_MIN_SIZE == COIN, i.e. 1 dollar minimum size)
             //   if we get a fill, this will be our (additional) profit or loss
-            int64 pl_b = (tmp_position_size / COIN) * (tmp_bid_price - tmp_position_price);
-            int64 pl_a = (tmp_position_size / COIN) * (tmp_ask_price - tmp_position_price);
+            int64 pl_a = 0;
+            int64 pl_b = 0;
+            if (tmp_ask_price) pl_a = (tmp_position_size / COIN) * (tmp_ask_price - tmp_position_price);
+            if (tmp_bid_price) pl_b = (tmp_position_size / COIN) * (tmp_bid_price - tmp_position_price);
             int64 pl = pl_b < pl_a ? pl_b : pl_a;
             //   net worth ignoring "unsettled profits"
             int64 nw = st.second.ex_trade_profitloss < 0 ? pl + st.second.nGems + st.second.ex_trade_profitloss : pl + st.second.nGems;

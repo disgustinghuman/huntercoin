@@ -1347,7 +1347,7 @@ extern int feedcache_status;
 extern int64 tradecache_pricetick_up(int64 old);
 extern int64 tradecache_pricetick_down(int64 old);
 
-#define AUX_MINHEIGHT_TRADE(T) (T?321000:2000000)
+#define AUX_MINHEIGHT_TRADE(T) (T?321500:1300000)
 #define TRADE_CRD_MIN_SIZE 100000000
 #define ORDERFLAG_BID_ACTIVE 1
 #define ORDERFLAG_ASK_ACTIVE 2
