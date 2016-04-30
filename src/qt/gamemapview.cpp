@@ -2496,6 +2496,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         int64 tmp_position_price = st.second.ex_position_price;
                         int64 pl_a = (tmp_position_size / AUX_COIN) * (tmp_ask_price - tmp_position_price);
                         int64 risk_askorder = ((-tmp_position_size + tmp_ask_size) / AUX_COIN) * (gameState.crd_prevexp_price * 3 - tmp_ask_price);
+                        if (risk_askorder < 0) risk_askorder = 0;
+                        // in case above division has rounded it down (which is ok for risk_bidorder)
+                        if (risk_askorder) risk_askorder = tradecache_pricetick_up(risk_askorder);
 
                         std::string s = "";
                         int tmp_orderflags = st.second.ex_order_flags;
@@ -2533,6 +2536,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                       int64 tmp_position_price = st.second.ex_position_price;
                       int64 pl_b = (tmp_position_size / AUX_COIN) * (tmp_bid_price - tmp_position_price);
                       int64 risk_bidorder = ((tmp_position_size + tmp_bid_size) / AUX_COIN) * tmp_bid_price;
+                      if (risk_bidorder < 0) risk_bidorder = 0;
 
                       std::string s = "";
                       int tmp_orderflags = st.second.ex_order_flags;
@@ -2565,6 +2569,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                       int64 pl = pl_b < pl_a ? pl_b : pl_a;
                       //   net worth ignoring "unsettled profits"
                       int64 nw = st.second.ex_trade_profitloss < 0 ? pl + st.second.nGems + st.second.ex_trade_profitloss : pl + st.second.nGems;
+                      // if collateral is about to be sold for coins
+                      if (st.second.auction_ask_size > 0) nw -= st.second.auction_ask_size;
 
                       fprintf(fp, "%s   %-10s %5s    %9s     %5s  %5s    %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str(), FormatMoney(nw).c_str());
                   }

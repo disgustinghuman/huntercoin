@@ -2470,6 +2470,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             int64 pl = pl_b < pl_a ? pl_b : pl_a;
             //   net worth ignoring "unsettled profits"
             int64 nw = st.second.ex_trade_profitloss < 0 ? pl + st.second.nGems + st.second.ex_trade_profitloss : pl + st.second.nGems;
+            // if collateral is about to be sold for coins
+            if (st.second.auction_ask_size > 0) nw -= st.second.auction_ask_size;
+
             //   can drop to 0
             int64 risk_bidorder = ((tmp_position_size + tmp_bid_size) / COIN) * tmp_bid_price;
             //   can go to strike price
@@ -2477,16 +2480,18 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             //   if order would reduce position size
             if (risk_bidorder < 0) risk_bidorder = 0;
             if (risk_askorder < 0) risk_askorder = 0;
+            // in case above division has rounded it down (which is ok for risk_bidorder)
+            if (risk_askorder) risk_askorder = tradecache_pricetick_up(risk_askorder);
 
             //   autocancel unfunded bid order
             if (risk_bidorder > nw)
             {
-              tmp_order_flags |= ORDERFLAG_BID_INVALID;
+                tmp_order_flags |= ORDERFLAG_BID_INVALID;
             }
-            else if (tmp_order_flags & ORDERFLAG_BID_INVALID)
+            else
             {
-              tmp_order_flags -= ORDERFLAG_BID_INVALID;
-              tmp_order_flags |= ORDERFLAG_BID_ACTIVE;
+                tmp_order_flags |= ORDERFLAG_BID_ACTIVE;
+                if (tmp_order_flags & ORDERFLAG_BID_INVALID) tmp_order_flags -= ORDERFLAG_BID_INVALID;
             }
 
             if ((tmp_order_flags & ORDERFLAG_BID_INVALID) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE))
@@ -2495,12 +2500,12 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             //   autocancel unfunded ask order
             if (risk_askorder > nw)
             {
-              tmp_order_flags |= ORDERFLAG_ASK_INVALID;
+                tmp_order_flags |= ORDERFLAG_ASK_INVALID;
             }
-            else if (tmp_order_flags & ORDERFLAG_ASK_INVALID)
+            else
             {
-              tmp_order_flags -= ORDERFLAG_ASK_INVALID;
-              tmp_order_flags |= ORDERFLAG_ASK_ACTIVE;
+                tmp_order_flags |= ORDERFLAG_ASK_ACTIVE;
+                if (tmp_order_flags & ORDERFLAG_ASK_INVALID) tmp_order_flags -= ORDERFLAG_ASK_INVALID;
             }
 
             if ((tmp_order_flags & ORDERFLAG_ASK_INVALID) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE))
@@ -2930,7 +2935,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                     mi->second.ex_order_size_bid = tmp_amount;
                                     mi->second.ex_order_price_bid = tmp_price;
                                     mi->second.ex_order_chronon_bid = outState.nHeight;
-                                    mi->second.ex_order_flags |= ORDERFLAG_BID_ACTIVE;
+//                                    mi->second.ex_order_flags |= ORDERFLAG_BID_ACTIVE;
                                 }
                             }
                         }
@@ -2961,7 +2966,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                     mi->second.ex_order_size_ask = tmp_amount;
                                     mi->second.ex_order_price_ask = tmp_price;
                                     mi->second.ex_order_chronon_ask = outState.nHeight;
-                                    mi->second.ex_order_flags |= ORDERFLAG_ASK_ACTIVE;
+//                                    mi->second.ex_order_flags |= ORDERFLAG_ASK_ACTIVE;
                                 }
                             }
                         }

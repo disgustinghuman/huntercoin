@@ -18,6 +18,12 @@ https://mega.nz/#!WB9mRYKb!lySw_f9372lDEvhd-DPs7bixMyK__tKhFOn4Fa2Kb7E
   - uses alternative gamestate game_sv2.dat (included, client can make its own but first start
     would take ~5 hours on mainnet if game_sv2.dat is not in the same folder as game.dat)
 
+huntercoin-betterQt-exp-win32-hotfix-20160430.zip, 4.7 MB
+https://mega.nz/#!iEN00Cpb!tsW9-zKf0I_KBNl6zQ_L_rMD1WOoRj6f8yAIRQJX95c
+
+  for Windows:
+  - chronoDollar trading test (older non-safemode versions may crash in testnet)
+
 
 Pending Transaction Monitor
 ===========================
