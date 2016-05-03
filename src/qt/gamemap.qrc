@@ -454,6 +454,15 @@
         <file alias="451">res/gamemap/451.png</file>
         <file alias="452">res/gamemap/452.png</file>
         <file alias="453">res/gamemap/453.png</file>
+        <file alias="454">res/gamemap/454.png</file>
+        <file alias="455">res/gamemap/455.png</file>
+        <file alias="456">res/gamemap/456.png</file>
+        <file alias="457">res/gamemap/457.png</file>
+        <file alias="458">res/gamemap/458.png</file>
+        <file alias="459">res/gamemap/459.png</file>
+        <file alias="460">res/gamemap/460.png</file>
+        <file alias="461">res/gamemap/461.png</file>
+        <file alias="462">res/gamemap/462.png</file>
     </qresource>
     <qresource prefix="/gamemap/sprites">
         <file alias="0_1">res/gamemap/sprites/0_1.png</file>

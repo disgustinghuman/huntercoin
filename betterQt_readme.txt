@@ -25,6 +25,33 @@ https://mega.nz/#!iEN00Cpb!tsW9-zKf0I_KBNl6zQ_L_rMD1WOoRj6f8yAIRQJX95c
   - chronoDollar trading test (older non-safemode versions may crash in testnet)
 
 
+New: Auction Bot (20160503)
+===========================
+
+  The purpose is to make buying in the Gem:Huntercoin in-game auction easier and safer and
+  to provide a "hidden bid".
+
+  Config options (in names.txt)
+
+    config:auctionbot_hunter_name Alice      name of the hunter "on duty" (players can't trade in Huntercoin, only hunters)
+                                             default ""
+
+    config:auctionbot_trade_price 100        bid limit price (in coins)
+                                             default 100
+
+    config:auctionbot_trade_size 0.1         bid size (in gems)
+                                             default 0.1
+
+    config:auctionbot_limit_coins 0          session limit (in coins)
+                                             default 0
+                                             This is the maximum amount of coins to spent until the client is restarted.
+                                             (0 means the auction bot is not active)
+
+  The bot will stop trading under a number of conditions that can happen in the dangerous game world of Huntercoin.
+  Current status of the bot is in auction.txt, updated each block. Restarting the tx monitor (i.e. click middle mouse button 2 times)
+  will also restart the auction bot.
+
+
 Pending Transaction Monitor
 ===========================
 

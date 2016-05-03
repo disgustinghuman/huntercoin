@@ -1680,6 +1680,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
         gem_visualonly_x = gameState.gemSpawnPos.x;
         gem_visualonly_y = gameState.gemSpawnPos.y;
     }
+#ifdef AUX_AUCTION_BOT
+            if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_WAITING_BLUE) // if still alive and waiting for sell order that would match ours
+                pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_UNKNOWN; // unknown if alive (possibly killed since last tick)
+            else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_UNKNOWN)
+                pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_RED; // dead
+#endif
 #endif
 
 
@@ -1703,6 +1709,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
 
             // gems and storage
+//#ifdef AUX_AUCTION_BOT
+//            entry.icon_d1 = RPG_ICON_EMPTY; // delete me -- already done a few lines below
+//            entry.icon_d2 = RPG_ICON_EMPTY;
+//#endif
             entry.icon_a1 = 0;
             if (((gem_visualonly_state == GEM_UNKNOWN_HUNTER) || (gem_visualonly_state == GEM_ININVENTORY)) &&
                 (gem_cache_winner_name == chid.ToString()))
@@ -1729,6 +1739,19 @@ void GameMapView::updateGameMap(const GameState &gameState)
             }
 #endif
 
+#ifdef AUX_AUCTION_BOT
+            // if unknown if alive
+            bool tmp_auction_auto_on_duty = false;
+            if (pmon_config_auction_auto_name == chid.ToString())
+            {
+                tmp_auction_auto_on_duty = true;
+                if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_UNKNOWN)
+                {
+                    pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_WAITING_BLUE; // still alive and waiting for sell order that would match ours
+                }
+            }
+#endif
+
             // pending tx monitor -- info text
             const Coord &wmon_from = characterState.from;
             if (((pmon_state == PMONSTATE_CONSOLE) || (pmon_state == PMONSTATE_RUN)) &&
@@ -1742,9 +1765,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 entry.icon_d1 = 0;
                 entry.icon_d2 = 0;
                 if (pl.value > 40000000000)
-                    entry.icon_d2 = RPG_ICON_HUC_BANDIT;
-                if (pl.value > 20000000000)
+                    entry.icon_d1 = RPG_ICON_HUC_BANDIT400;
+                else if (pl.value > 20000000000)
                     entry.icon_d1 = RPG_ICON_HUC_BANDIT;
+#ifdef AUX_AUCTION_BOT
+                if ((tmp_auction_auto_on_duty) && (pmon_config_auction_auto_stateicon > 0) && (pmon_config_auction_auto_stateicon < NUM_TILE_IDS))
+                    entry.icon_d2 = pmon_config_auction_auto_stateicon;
+#endif
 
                 entry.name += QString::fromStdString(" ");
                 entry.name += QString::number(coord.x);
@@ -1972,6 +1999,29 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 pmon_need_bank_idx = -1;
                         }
 
+#ifdef AUX_AUCTION_BOT
+                        if ((tmp_auction_auto_on_duty) && ((pmon_my_foecontact_age[m] > 0) || (pmon_my_foe_dist[m] <= pmon_my_alarm_dist[m])))
+                            pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_RED; // stopped, enemy nearby
+                        else if (gameState.nHeight - gameState.nDisasterHeight < pmon_config_warn_disaster)
+                            pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_WHITE; // stopped, blockchain problem
+                        else if ((auction_auto_actual_totalcoins + (pmon_config_auction_auto_size / 10000 * pmon_config_auction_auto_price / 10000)) > pmon_config_auction_auto_coinmax)
+                            pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_BLUE; // stopped, session limit reached
+
+                        if ((pmon_config_auction_auto_coinmax > 0) && (tmp_auction_auto_on_duty) && (!pmon_config_afk_leave) && (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_GO_YELLOW)) // if go!
+                        {
+//                          if ((pending_tx_idx == -1) &&
+//                              (pmon_my_foecontact_age[m] == 0) &&
+//                              (pmon_my_foe_dist[m] > pmon_my_alarm_dist[m]))
+                            if (pending_tx_idx == -1)
+                            {
+                                if (pmon_name_update(m, -1, -1))
+                                    pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_WAIT2_GREEN; // chat msg sent
+                                else
+                                    pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_WHITE; // error
+                            }
+
+                        }
+#endif
 
                         // longest idle time in minutes
                         if (pmon_out_of_wp_idx >= 0)
@@ -2389,11 +2439,33 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 {
                     fprintf(fp, "waiting for timeout %-7d          %-10s %5s at %9s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
                 }
+#ifdef AUX_AUCTION_BOT
+                else if ((pmon_config_auction_auto_coinmax > 0) &&
+                         (auctioncache_bid_name == pmon_config_auction_auto_name))
+                {
+                    int64 tmp_auto_coins = auctioncache_bid_size / 10000 * auctioncache_bid_price / 10000;
+                    fprintf(fp, "auto mode, timeout %-7d           %-10s %5s at %9s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
+                    if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_WAIT2_GREEN) // if chat msg sent
+                    {
+                        pmon_sendtoaddress(auctioncache_bestask_key, tmp_auto_coins);
+                        auction_auto_actual_totalcoins += tmp_auto_coins;
+
+                        pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_DONE_GREEN; // done
+                        fprintf(fp, "\nauto mode, sending coins... %s coins spent, session limit is %s", FormatMoney(tmp_auto_coins).c_str(), FormatMoney(pmon_config_auction_auto_coinmax).c_str());
+                    }
+                    else
+                    {
+                        fprintf(fp, "\nauto mode, waiting... %s coins spent, session limit is %s", FormatMoney(tmp_auto_coins).c_str(), FormatMoney(pmon_config_auction_auto_coinmax).c_str());
+                    }
+//                  fprintf(fp, "sendto4ddress %s %s\n", auctioncache_bestask_key.c_str(), FormatMoney(tmp_auto_coins).c_str());
+                }
+#endif
                 else
                 {
-                    fprintf(fp, "manual mode, timeout %-7d         %-10s %5s at %9s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
+                    fprintf(fp, "timeout %-7d                      %-10s %5s at %9s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
                     fprintf(fp, "\n");
-                    fprintf(fp, "->console command to buy: (only %s can buy until timeout)\n", auctioncache_bid_name.c_str());
+                    fprintf(fp, "->console command to buy in manual mode:\n");
+                    fprintf(fp, "->gems will be transferred to the address of hunter %s if the transaction confirms until timeout)\n", auctioncache_bid_name.c_str());
                     fprintf(fp, "sendtoaddress %s %s\n", auctioncache_bestask_key.c_str(), FormatMoney(auctioncache_bid_size / 10000 * auctioncache_bid_price / 10000).c_str());
                 }
             }
@@ -2402,8 +2474,44 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 fprintf(fp, "\n\n");
                 fprintf(fp, "->chat message to buy (size and price of best ask):\n");
                 fprintf(fp, "GEM:HUC set bid %s at %s\n", FormatMoney(auctioncache_bestask_size).c_str(), FormatMoney(auctioncache_bestask_price).c_str());
-            }
 
+#ifdef AUX_AUCTION_BOT
+                if ((pmon_config_auction_auto_coinmax > 0) &&                                // if enabled at all
+                    (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_WAITING_BLUE) && // if still alive and waiting for sell order that would match ours
+                    (pmon_config_auction_auto_price >= auctioncache_bestask_price))
+                {
+                    auction_auto_actual_price = auctioncache_bestask_price;
+                    auction_auto_actual_amount = pmon_config_auction_auto_size;
+                    if (pmon_config_auction_auto_size < auctioncache_bestask_size)
+                        auction_auto_actual_amount = pmon_config_auction_auto_size;
+                    else
+                        auction_auto_actual_amount = auctioncache_bestask_size;
+
+                    pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_GO_YELLOW; // go!
+                }
+#endif
+            }
+#ifdef AUX_AUCTION_BOT
+//          if ((pmon_config_auction_auto_size > 0) && (pmon_config_auction_auto_price > 0))
+            {
+                std::string s = "";
+                if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_WAITING_BLUE) s = "yes, waiting";
+                else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_STOPPED_WHITE) s = "no (block times/disaster)";
+                else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_STOPPED_RED) s = "no (hunter dead/enemy nearby)";
+                else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_STOPPED_BLUE) s = (pmon_config_auction_auto_coinmax > 0) ? "no (session limit)" : "no (not enabled)";
+                else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_GO_YELLOW) s = "yes, go!";
+                else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_WAIT2_GREEN) s = "yes, msg sent";
+                else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_DONE_GREEN) s = "no (done -- restart tx monitor to continue)";
+
+                fprintf(fp, "\n\n");
+                fprintf(fp, "this client's auction bot            hunter                 bid                coins\n");
+                fprintf(fp, "hidden bid                           name        gems       price              spent/session max    active\n");
+                fprintf(fp, "\n");
+
+                fprintf(fp, "                                     %-10s %5s at %9s         %9s/%-9s      %s\n", pmon_config_auction_auto_name.c_str(), FormatMoney(pmon_config_auction_auto_size).c_str(), FormatMoney(pmon_config_auction_auto_price).c_str(), FormatMoney(auction_auto_actual_totalcoins).c_str(), FormatMoney(pmon_config_auction_auto_coinmax).c_str(), s.c_str());
+
+            }
+#endif
 
             int tmp_oldexp_chronon = gameState.nHeight - (gameState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet));
             if (feedcache_status == FEEDCACHE_EXPIRY)
@@ -2636,8 +2744,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
         // better GUI -- better player sprites
         int color_attack1 = data.second.icon_a1 ==  453 ? 453 : RPG_ICON_EMPTY; // gems and storage
 
+#ifdef AUX_AUCTION_BOT
+        int color_defense1 = ((data.second.icon_d1 > 0) && (data.second.icon_d1 < NUM_TILE_IDS)) ? data.second.icon_d1 : RPG_ICON_EMPTY;
+        int color_defense2 = ((data.second.icon_d2 > 0) && (data.second.icon_d2 < NUM_TILE_IDS)) ? data.second.icon_d2 : RPG_ICON_EMPTY;
+#else
         int color_defense1 = data.second.icon_d1 ==  RPG_ICON_HUC_BANDIT ? RPG_ICON_HUC_BANDIT : RPG_ICON_EMPTY;
         int color_defense2 = data.second.icon_d2 ==  RPG_ICON_HUC_BANDIT ? RPG_ICON_HUC_BANDIT : RPG_ICON_EMPTY;
+#endif
 
         unsigned char tmp_color = data.second.color;
 #ifdef PERMANENT_LUGGAGE

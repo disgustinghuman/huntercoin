@@ -1215,6 +1215,17 @@ int pmon_config_hold = 5;
 int pmon_config_confirm = 7;
 int pmon_config_vote_tally = 0;
 
+#ifdef AUX_AUCTION_BOT
+int pmon_config_auction_auto_stateicon = 276; // RPG_ICON_EMPTY;
+int64 pmon_config_auction_auto_price;
+int64 pmon_config_auction_auto_size;
+int64 pmon_config_auction_auto_coinmax;
+int64 auction_auto_actual_amount;
+int64 auction_auto_actual_price;
+int64 auction_auto_actual_totalcoins;
+std::string pmon_config_auction_auto_name;
+#endif
+
 // windows stability bug workaround
 #ifdef PMON_DEBUG_WIN32_GUI
 //#ifdef PMON_DEBUG_WIN32_GUI_NOMUTEX
@@ -1313,6 +1324,35 @@ bool pmon_name_pending_start()
             pmon_config_vote_tally = atoi(my_param);
             continue;
         }
+#ifdef AUX_AUCTION_BOT
+        else if (strcmp(my_name, "config:auctionbot_hunter_name") == 0)
+        {
+            pmon_config_auction_auto_name.assign(my_param);
+            pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_WAITING_BLUE; // still alive and waiting for sell order that would match ours
+            continue;
+        }
+        else if (strcmp(my_name, "config:auctionbot_trade_price") == 0)
+        {
+            std::string s_price = "";
+            s_price.assign(my_param);
+            ParseMoney(s_price, pmon_config_auction_auto_price);
+            continue;
+        }
+        else if (strcmp(my_name, "config:auctionbot_trade_size") == 0)
+        {
+            std::string s_amount = "";
+            s_amount.assign(my_param);
+            ParseMoney(s_amount, pmon_config_auction_auto_size);
+            continue;
+        }
+        else if (strcmp(my_name, "config:auctionbot_limit_coins") == 0)
+        {
+            std::string s_amount = "";
+            s_amount.assign(my_param);
+            ParseMoney(s_amount, pmon_config_auction_auto_coinmax);
+            continue;
+        }
+#endif
 
         pmon_my_names[i].assign(my_name);
         pmon_my_alarm_dist[i] = atoi(my_param);
@@ -1439,15 +1479,25 @@ bool pmon_name_pending()
 bool pmon_name_update(int my_idx, int x, int y)
 {
     vector<unsigned char> vchName = vchFromString(pmon_my_names[my_idx]);
-
-    if ((x < 0) || (y < 0))
-        return false;
-
-    char buf[100];
-    std::string s;
-    sprintf(buf, "{\"0\":{\"wp\":[%d,%d]}}", x, y);
-    s.assign(buf);
-    vector<unsigned char> vchValue = vchFromString(s);
+    vector<unsigned char> vchValue = vchFromString("{\"0\":{\"destruct\":true}}");
+    if ((x >= 0) && (y >= 0))
+    {
+        char buf[100];
+        std::string s;
+        sprintf(buf, "{\"0\":{\"wp\":[%d,%d]}}", x, y);
+        s.assign(buf);
+        vchValue = vchFromString(s);
+    }
+#ifdef AUX_AUCTION_BOT
+    else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_GO_YELLOW) // if go!
+    {
+        char buf[100];
+        std::string s;
+        sprintf(buf, "{\"msg\":\"GEM:HUC set bid %s at %s\"}", FormatMoney(auction_auto_actual_amount).c_str(), FormatMoney(auction_auto_actual_price).c_str());
+        s.assign(buf);
+        vchValue = vchFromString(s);
+    }
+#endif
 
     CWalletTx wtx;
     wtx.nVersion = NAMECOIN_TX_VERSION;
@@ -1517,6 +1567,39 @@ bool pmon_name_update(int my_idx, int x, int y)
     }
     return true;
 }
+#ifdef AUX_AUCTION_BOT
+bool pmon_sendtoaddress(const std::string& strAddress, const int64 nAmount) // auction bot
+{
+    // sanity check if not enabled
+    if (pmon_config_auction_auto_coinmax <= 0)
+        return false;
+
+    // Parse recipient address
+    CScript addrScript;
+    if (!addrScript.SetBitcoinAddress (strAddress))
+        return false;
+
+    // Wallet comments
+    CWalletTx wtx;
+
+    CRITICAL_BLOCK(cs_main)
+    {
+        EnsureWalletIsUnlocked();
+
+        /* Build up the sendvec.  Include an OP_RETURN output if requested.  */
+
+        CWallet::vecSendT vecSend;
+        vecSend.push_back (std::make_pair (addrScript, nAmount));
+
+        /* Perform the send.  */
+        const std::string strError = pwalletMain->SendMoney (vecSend, wtx);
+        if (strError != "")
+            return false;
+    }
+
+    return true;
+}
+#endif
 #endif
 
 

@@ -241,8 +241,21 @@ public:
         if ((gameState.hashBlock == cachedLastBlock) && (!pmon_new_data))
             return false;
 
-        if (gameState.hashBlock != cachedLastBlock) pmon_block_age = 0;
-        else pmon_block_age++;
+        if (gameState.hashBlock != cachedLastBlock)
+        {
+#ifdef AUX_AUCTION_BOT
+//            if (((gem_log_height) && (gameState.nHeight != gem_log_height + 1)) || (pmon_block_age > 36) || ((!fTestNet) && (pmon_block_age < 2)))
+            if ((gameState.nHeight != gem_log_height + 1) || (pmon_block_age > 36) || ((!fTestNet) && (pmon_block_age < 2)))
+                pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_WHITE; // stopped, blockchain problem
+            if ((auction_auto_actual_totalcoins + (pmon_config_auction_auto_size / 10000 * pmon_config_auction_auto_price / 10000)) > pmon_config_auction_auto_coinmax)
+                pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_BLUE; // stopped, session limit reached
+#endif
+            pmon_block_age = 0;
+        }
+        else
+        {
+            pmon_block_age++;
+        }
 
         if (pmon_new_data)
             pmon_new_data = false;

@@ -28,7 +28,7 @@ static const int CROWN_START_Y = 248;
 static const int MAP_LAYERS = 3;          // Map is layered for visual purposes
 
 // better GUI -- more map tiles
-static const int NUM_TILE_IDS = 454; // 235;      // Total number of different tile textures
+static const int NUM_TILE_IDS = 463; // 235;      // Total number of different tile textures
 
 // extern const short GameMap[MAP_LAYERS][MAP_HEIGHT][MAP_WIDTH];
 #endif
@@ -84,6 +84,7 @@ extern int Displaycache_gamemap[RPG_MAP_HEIGHT][RPG_MAP_WIDTH][Game::MAP_LAYERS 
 
 #define RPG_ICON_EMPTY 276
 #define RPG_ICON_HUC_BANDIT 411
+#define RPG_ICON_HUC_BANDIT400 272
 
 //#define RPG_TILE_GRASS_GREEN_DARK 263
 //#define RPG_TILE_GRASS_GREEN_LITE 266

@@ -21,6 +21,7 @@
 #define PERMANENT_LUGGAGE_AUCTION
 #define AUX_STORAGE_VOTING
 #define AUX_STORAGE_VERSION2
+#define AUX_AUCTION_BOT
 // CRD test
 #define AUX_TICKFIX_DELETEME
 //#define PERMANENT_LUGGAGE_LOG_PAYMENTS
@@ -1237,6 +1238,25 @@ extern int pmon_my_idlecount[PMON_MY_MAX];
 extern bool pmon_name_pending_start();
 extern bool pmon_name_pending();
 extern bool pmon_name_update(int my_idx, int x, int y);
+#ifdef AUX_AUCTION_BOT
+extern bool pmon_sendtoaddress(const std::string& strAddress, const int64 nAmount);
+extern int pmon_config_auction_auto_stateicon; // auction bot
+extern int64 pmon_config_auction_auto_price;
+extern int64 pmon_config_auction_auto_size;
+extern int64 pmon_config_auction_auto_coinmax;
+extern int64 auction_auto_actual_amount;
+extern int64 auction_auto_actual_price;
+extern int64 auction_auto_actual_totalcoins;
+extern std::string pmon_config_auction_auto_name;
+#define RPG_ICON_ABSTATE_UNKNOWN 248 // never displayed, unknown if alive ("alive" is changed to this before client-side check of all hunters in gamemapview.cpp)
+#define RPG_ICON_ABSTATE_WAITING_BLUE 455 // still alive, waiting for sell order that would match ours
+#define RPG_ICON_ABSTATE_STOPPED_WHITE 458 // stopped, blockchain problem, or error
+#define RPG_ICON_ABSTATE_STOPPED_RED 459 // stopped, hunter dead, or enemy nearby
+#define RPG_ICON_ABSTATE_STOPPED_BLUE 460 // stopped, session limit reached
+#define RPG_ICON_ABSTATE_GO_YELLOW 457 // go!
+#define RPG_ICON_ABSTATE_WAIT2_GREEN 456 // chat msg sent
+#define RPG_ICON_ABSTATE_DONE_GREEN 454 // done, coins sent
+#endif
 
 #define WHYVALIDATE_UNKNOWN 0
 #define WHYVALIDATE_CONNECTBLOCK 1
@@ -1248,7 +1268,7 @@ extern int pmon_my_bankdist[PMON_MY_MAX];
 extern int pmon_my_bank_x[PMON_MY_MAX];
 extern int pmon_my_bank_y[PMON_MY_MAX];
 
-#define PMON_CONFIG_MAX 11
+#define PMON_CONFIG_MAX 15
 extern int pmon_config_loot_notice;
 extern int pmon_config_bank_notice;
 extern int pmon_config_zoom;
