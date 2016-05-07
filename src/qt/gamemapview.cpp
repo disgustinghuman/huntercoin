@@ -2258,10 +2258,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
             fprintf(fp, " ------------------------------------\n\n");
 #ifdef RPG_OUTFIT_ITEMS
             fprintf(fp, "                                          hunter\n");
-            fprintf(fp, "storage vault key                           name     gems    outfit\n");
+            fprintf(fp, "storage vault key                           name      gems    outfit\n");
 #else
             fprintf(fp, "                                          hunter\n");
-            fprintf(fp, "storage vault key                           name     gems\n");
+            fprintf(fp, "storage vault key                           name      gems\n");
 #endif
             fprintf(fp, "\n");
 
@@ -2275,9 +2275,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
               else if (tmp_outfit == 2) s = "fighter";
               else if (tmp_outfit == 4) s = "hunter";
 
-              fprintf(fp, "%s    %10s    %5s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str());
+              fprintf(fp, "%s    %10s    %6s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str());
 #else
-              fprintf(fp, "%s    %10s    %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str());
+              fprintf(fp, "%s    %10s    %6s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str());
 #endif
               count++;
               count_volume += tmp_volume;
@@ -2285,7 +2285,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
             fprintf(fp, "\n");
             fprintf(fp, "                                           total\n");
             fprintf(fp, "\n");
-            fprintf(fp, "                                           %4d     %5s\n", count, FormatMoney(count_volume).c_str());
+            fprintf(fp, "                                           %4d     %6s\n", count, FormatMoney(count_volume).c_str());
 
             fclose(fp);
         }
@@ -2417,10 +2417,16 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (gameState.auction_settle_price > 0)
             {
                 fprintf(fp, "\n");
-                fprintf(fp, "settlement price                                         %9s   %d\n", FormatMoney(gameState.auction_settle_price).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
+                fprintf(fp, "settlement price (auction start price minimum)           %9s   %d\n", FormatMoney(gameState.auction_settle_price).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
                 fprintf(fp, "\n");
-                fprintf(fp, "->chat message to sell minimum size at settlement:\n");
+                fprintf(fp, "->chat message to sell minimum size at auction start price minimum:\n");
                 fprintf(fp, "GEM:HUC set ask %s at %s\n", FormatMoney(AUCTION_MIN_SIZE).c_str(), FormatMoney(gameState.auction_settle_price).c_str());
+            }
+            if (gameState.auction_settle_conservative > 0)
+            {
+                fprintf(fp, "\n");
+                fprintf(fp, "settlement price 2 (less or equal than last price)       %9s   %d\n", FormatMoney(gameState.auction_settle_conservative).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
+                fprintf(fp, "\n");
             }
 
             if (auctioncache_bid_price > 0)
@@ -2568,7 +2574,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 {
                     int64 tmp_max_bid = 0;
                     int64 tmp_min_ask = 0;
-                    MM_ORDERLIMIT_UNPACK(st.second.gem_reserve6, tmp_max_bid, tmp_min_ask);
+                    MM_ORDERLIMIT_UNPACK(st.second.ex_vote_mm_limits, tmp_max_bid, tmp_min_ask);
                     if ((tmp_max_bid > 0) && (tmp_min_ask > 0))
                     {
                         int64 tmp_volume = st.second.nGems;
@@ -2578,7 +2584,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 }
                 int64 tmp_max_bid = 0;
                 int64 tmp_min_ask = 0;
-                MM_ORDERLIMIT_UNPACK(gameState.gs_reserve4, tmp_max_bid, tmp_min_ask);
+                MM_ORDERLIMIT_UNPACK(gameState.crd_mm_orderlimits, tmp_max_bid, tmp_min_ask);
 
                 fprintf(fp, "\n");
                 fprintf(fp, "->example chat message to vote MM bid/ask limits:\n");

@@ -301,7 +301,7 @@ struct StorageVault
     int64_t auction_ask_price;
     int64_t vote_raw_amount;
     int64_t vote_txid60bit;
-    int64_t gem_reserve6;
+    int64_t ex_vote_mm_limits;
     int feed_chronon;
     int auction_ask_chronon;
     unsigned char item_outfit;
@@ -369,7 +369,7 @@ struct StorageVault
           auction_ask_price(0),
           vote_raw_amount(0),
           vote_txid60bit(0),
-          gem_reserve6(0),
+          ex_vote_mm_limits(0),
           feed_chronon(0),
           auction_ask_chronon(0),
           item_outfit(0),
@@ -428,7 +428,7 @@ struct StorageVault
           auction_ask_price(0),
           vote_raw_amount(0),
           vote_txid60bit(0),
-          gem_reserve6(0),
+          ex_vote_mm_limits(0),
           feed_chronon(0),
           auction_ask_chronon(0),
           item_outfit(0),
@@ -492,7 +492,7 @@ struct StorageVault
         READWRITE(auction_ask_price);
         READWRITE(vote_raw_amount);
         READWRITE(vote_txid60bit);
-        READWRITE(gem_reserve6);
+        READWRITE(ex_vote_mm_limits);
         READWRITE(feed_chronon);
         READWRITE(auction_ask_chronon);
         READWRITE(item_outfit);
@@ -861,15 +861,22 @@ struct GameState
     int64_t auction_last_price;
     int64_t auction_last_chronon;
 #ifdef AUX_STORAGE_VERSION2
+#ifdef AUX_STORAGE_VERSION3
+    int64_t gs_reserve31;
+    int64_t gs_reserve32;
+    int64_t gs_reserve33;
+    int64_t gs_reserve34;
+    int64_t gs_reserve35;
+#endif
     int64_t crd_last_price;
     int64_t crd_last_size;
     int64_t crd_prevexp_price;
-    int64_t gs_reserve4;
+    int64_t crd_mm_orderlimits;
     int crd_last_chronon;
     int gs_reserve6;
     unsigned char gs_reserve7;
     unsigned char gs_reserve8;
-    uint64_t gs_reserve9;
+    uint64_t auction_settle_conservative; // value will not be correct before storage version 3
     uint64_t gs_reserve10;
     std::string gs_str_reserve1;
     std::string gs_str_reserve2;
@@ -937,15 +944,22 @@ struct GameState
       READWRITE(auction_last_price);
       READWRITE(auction_last_chronon);
 #ifdef AUX_STORAGE_VERSION2
+#ifdef AUX_STORAGE_VERSION3
+      READWRITE(gs_reserve31);
+      READWRITE(gs_reserve32);
+      READWRITE(gs_reserve33);
+      READWRITE(gs_reserve34);
+      READWRITE(gs_reserve35);
+#endif
       READWRITE(crd_last_price);
       READWRITE(crd_last_size);
       READWRITE(crd_prevexp_price);
-      READWRITE(gs_reserve4);
+      READWRITE(crd_mm_orderlimits);
       READWRITE(crd_last_chronon);
       READWRITE(gs_reserve6);
       READWRITE(gs_reserve7);
       READWRITE(gs_reserve8);
-      READWRITE(gs_reserve9);
+      READWRITE(auction_settle_conservative);
       READWRITE(gs_reserve10);
       READWRITE(gs_str_reserve1);
       READWRITE(gs_str_reserve2);

@@ -1472,15 +1472,22 @@ GameState::GameState()
     auction_last_chronon = 0;
 
 #ifdef AUX_STORAGE_VERSION2
+#ifdef AUX_STORAGE_VERSION3
+    gs_reserve31 = 0;
+    gs_reserve32 = 0;
+    gs_reserve33 = 0;
+    gs_reserve34 = 0;
+    gs_reserve35 = 0;
+#endif
     crd_last_price = 0;
     crd_last_size = 0;
     crd_prevexp_price = 0;
-    gs_reserve4 = 0;
+    crd_mm_orderlimits = 0;
     crd_last_chronon = 0;
     gs_reserve6 = 0;
     gs_reserve7 = 0;
     gs_reserve8 = 0;
-    gs_reserve9 = 0;
+    auction_settle_conservative = 0;
     gs_reserve10 = 0;
 //    gs_str_reserve1 = "";
 //    gs_str_reserve2 = "";
@@ -2530,7 +2537,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     int64 desired_position_size_min = 0;
                     int64 desired_bid_max = 0;
                     int64 desired_ask_min = 0;
-                    MM_ORDERLIMIT_UNPACK(outState.gs_reserve4, desired_bid_max, desired_ask_min);
+                    MM_ORDERLIMIT_UNPACK(outState.crd_mm_orderlimits, desired_bid_max, desired_ask_min);
 
                     double spread_bid = 1.02;
                     double spread_ask = 0.98;
@@ -2838,6 +2845,23 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 outState.auction_settle_price = auctioncache_pricetick_up(outState.auction_settle_price);
             else if (auctioncache_bestask_price < outState.auction_settle_price)
                 outState.auction_settle_price = auctioncache_pricetick_down(outState.auction_settle_price);
+
+#ifdef AUX_STORAGE_VERSION2
+            // "conservative" settlement price -- never higher than last price
+            if (outState.auction_settle_conservative == 0) // for testing, delete me
+            {
+                outState.auction_settle_conservative = (outState.auction_settle_price < outState.auction_last_price) ? outState.auction_settle_price : outState.auction_last_price;
+            }
+            else if (outState.auction_settle_price < outState.auction_settle_conservative)
+            {
+                outState.auction_settle_conservative = outState.auction_settle_price;
+            }
+            else if ((auctioncache_bestask_price == 0) || (auctioncache_bestask_price > outState.auction_settle_conservative))
+            {
+                if (outState.auction_settle_conservative < outState.auction_last_price)
+                    outState.auction_settle_conservative = auctioncache_pricetick_up(outState.auction_settle_conservative);
+            }
+#endif
         }
 
         // best ask is reserved for the "hunter" who posted the oldest bid that is
@@ -2994,7 +3018,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             tmp_price2 = tradecache_pricetick_down(tradecache_pricetick_up(tmp_price2)); // snap to grid
 
                             // squeeze the 2 numbers into 1 int64
-                            MM_ORDERLIMIT_PACK(mi->second.gem_reserve6, tmp_price, tmp_price2);
+                            MM_ORDERLIMIT_PACK(mi->second.ex_vote_mm_limits, tmp_price, tmp_price2);
                             mi->second.ex_reserve1 = outState.nHeight;
                         }
 
@@ -3234,13 +3258,18 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
             outState.upgrade_test += 1;
 
+#ifdef AUX_STORAGE_VERSION2
             // market maker -- initialize
             if (outState.nHeight == AUX_MINHEIGHT_TRADE(fTestNet))
             {
                 int64 tmp_median_mm_maxbid = 0.05 * COIN;
                 int64 tmp_median_mm_minask = 2 * COIN;
-                MM_ORDERLIMIT_PACK(outState.gs_reserve4, tmp_median_mm_maxbid, tmp_median_mm_minask);
+                MM_ORDERLIMIT_PACK(outState.crd_mm_orderlimits, tmp_median_mm_maxbid, tmp_median_mm_minask);
+
+//                if (outState.auction_settle_conservative == 0)
+//                    outState.auction_settle_conservative = (outState.auction_settle_price < outState.auction_last_price) ? outState.auction_settle_price : outState.auction_last_price;
             }
+#endif
         }
         else if (outState.nHeight == AUX_MINHEIGHT_FEED(fTestNet)) // initialize
         {
@@ -3249,6 +3278,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             outState.feed_reward_remaining = 100000000; // 1 gem
             outState.liquidity_reward_remaining = 100000000; // 1 gem
             outState.auction_settle_price = 10000000000; // 100 coins
+            outState.auction_settle_conservative = 10000000000; // 100 coins
 
             outState.upgrade_test += 1;
         }
@@ -3373,8 +3403,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             int64 tmp_median_mm_minask = 0;
             if (outState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
             {
-                MM_ORDERLIMIT_UNPACK(outState.gs_reserve4, tmp_median_mm_maxbid, tmp_median_mm_minask);
-//                printf("MM test: median limits packed %s\n", FormatMoney(outState.gs_reserve4).c_str());
+                MM_ORDERLIMIT_UNPACK(outState.crd_mm_orderlimits, tmp_median_mm_maxbid, tmp_median_mm_minask);
+//                printf("MM test: median limits packed %s\n", FormatMoney(outState.crd_mm_orderlimits).c_str());
 //                printf("MM test: median limits unpacked bid %s ask %s\n", FormatMoney(tmp_median_mm_maxbid).c_str(), FormatMoney(tmp_median_mm_minask).c_str());
             }
 
@@ -3396,11 +3426,11 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                     // market maker
                     if (outState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
-                    if (st.second.gem_reserve6 > 0)
+                    if (st.second.ex_vote_mm_limits > 0)
                     {
                         int64 tmp_max_bid = 0;
                         int64 tmp_min_ask = 0;
-                        MM_ORDERLIMIT_UNPACK(st.second.gem_reserve6, tmp_max_bid, tmp_min_ask);
+                        MM_ORDERLIMIT_UNPACK(st.second.ex_vote_mm_limits, tmp_max_bid, tmp_min_ask);
 
                         if ((tmp_max_bid > 0) && (tmp_min_ask > 0))
                         {
@@ -3429,9 +3459,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             else if (mmminaskcache_volume_bear > mmminaskcache_volume_bull + mmminaskcache_volume_neutral)
               tmp_median_mm_minask = tradecache_pricetick_down(tmp_median_mm_minask);
 
-            MM_ORDERLIMIT_PACK(outState.gs_reserve4, tmp_median_mm_maxbid, tmp_median_mm_minask);
+            MM_ORDERLIMIT_PACK(outState.crd_mm_orderlimits, tmp_median_mm_maxbid, tmp_median_mm_minask);
 //            printf("MM test: median limits unpacked (updated) bid %s ask %s\n", FormatMoney(tmp_median_mm_maxbid).c_str(), FormatMoney(tmp_median_mm_minask).c_str());
-//            printf("MM test: median limits packed %s\n", FormatMoney(outState.gs_reserve4).c_str());
+//            printf("MM test: median limits packed %s\n", FormatMoney(outState.crd_mm_orderlimits).c_str());
         }
         if (feedcache_status == FEEDCACHE_EXPIRY)
         {
