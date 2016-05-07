@@ -1709,10 +1709,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
 
             // gems and storage
-//#ifdef AUX_AUCTION_BOT
-//            entry.icon_d1 = RPG_ICON_EMPTY; // delete me -- already done a few lines below
-//            entry.icon_d2 = RPG_ICON_EMPTY;
-//#endif
+            entry.icon_d1 = RPG_ICON_EMPTY;
+            entry.icon_d2 = RPG_ICON_EMPTY;
             entry.icon_a1 = 0;
             if (((gem_visualonly_state == GEM_UNKNOWN_HUNTER) || (gem_visualonly_state == GEM_ININVENTORY)) &&
                 (gem_cache_winner_name == chid.ToString()))
@@ -1762,8 +1760,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 pmon_all_y[pmon_all_count] = coord.y;
                 pmon_all_color[pmon_all_count] = pl.color;
 
-                entry.icon_d1 = 0;
-                entry.icon_d2 = 0;
+//                entry.icon_d1 = 0;
+//                entry.icon_d2 = 0;
                 if (pl.value > 40000000000)
                     entry.icon_d1 = RPG_ICON_HUC_BANDIT400;
                 else if (pl.value > 20000000000)
@@ -2556,6 +2554,43 @@ void GameMapView::updateGameMap(const GameState &gameState)
 //            fprintf(fp, "cached reward: %s\n", FormatMoney(feedcache_volume_reward).c_str());
 
             fprintf(fp, "\nfeed reward fund           %9s, reward quota for previous feed: %d/%d\n", FormatMoney(gameState.feed_reward_remaining).c_str(), tmp_dividend, tmp_divisor);
+
+
+            // market maker
+            if (gameState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
+            {
+                fprintf(fp, "\n\n HUC:CRD market maker order limits vote\n");
+                fprintf(fp, " --------------------------------------\n");
+                fprintf(fp, "                                     hunter\n");
+                fprintf(fp, "storage vault key                    name         max bid   min ask    updated     weight\n");
+                fprintf(fp, "\n");
+                BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
+                {
+                    int64 tmp_max_bid = 0;
+                    int64 tmp_min_ask = 0;
+                    MM_ORDERLIMIT_UNPACK(st.second.gem_reserve6, tmp_max_bid, tmp_min_ask);
+                    if ((tmp_max_bid > 0) && (tmp_min_ask > 0))
+                    {
+                        int64 tmp_volume = st.second.nGems;
+                        int tmp_chronon = st.second.ex_reserve1;
+                        fprintf(fp, "%s   %-10s   %-7s   %-7s   %7d     %5s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_max_bid).c_str(), FormatMoney(tmp_min_ask).c_str(), tmp_chronon, FormatMoney(tmp_volume).c_str());
+                    }
+                }
+                int64 tmp_max_bid = 0;
+                int64 tmp_min_ask = 0;
+                MM_ORDERLIMIT_UNPACK(gameState.gs_reserve4, tmp_max_bid, tmp_min_ask);
+
+                fprintf(fp, "\n");
+                fprintf(fp, "->example chat message to vote MM bid/ask limits:\n");
+                fprintf(fp, "CRD:GEM vote MM max bid %s min ask %s\n", FormatMoney(tmp_max_bid).c_str(), FormatMoney(tmp_min_ask).c_str());
+                fprintf(fp, "\n");
+                fprintf(fp, "median vote                                       max bid   min ask    updated\n\n");
+                fprintf(fp, "current                                           %-7s   %-7s    %d\n", FormatMoney(tmp_max_bid).c_str(), FormatMoney(tmp_min_ask).c_str(), gameState.nHeight);
+                fprintf(fp, "\n");
+                fprintf(fp, "cached volume (max bid): total %s, participation %s, higher than median %s, at median %s, lower than median %s\n", FormatMoney(mmlimitcache_volume_total).c_str(), FormatMoney(mmlimitcache_volume_participation).c_str(), FormatMoney(mmmaxbidcache_volume_bull).c_str(), FormatMoney(mmmaxbidcache_volume_neutral).c_str(), FormatMoney(mmmaxbidcache_volume_bear).c_str());
+                fprintf(fp, "cached volume (min ask): total %s, participation %s, higher than median %s, at median %s, lower than median %s\n", FormatMoney(mmlimitcache_volume_total).c_str(), FormatMoney(mmlimitcache_volume_participation).c_str(), FormatMoney(mmminaskcache_volume_bull).c_str(), FormatMoney(mmminaskcache_volume_neutral).c_str(), FormatMoney(mmminaskcache_volume_bear).c_str());
+            }
+
 #ifdef PERMANENT_LUGGAGE_TALLY
             fprintf(fp, "\nliquidity reward fund      %9s\n", FormatMoney(gameState.liquidity_reward_remaining).c_str());
             int tmp_intervals = (gameState.nHeight - AUX_MINHEIGHT_FEED(fTestNet)) / GEM_RESET_INTERVAL(fTestNet);

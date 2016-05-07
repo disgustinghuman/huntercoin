@@ -1026,6 +1026,16 @@ int64 tradecache_bestask_fullsize;
 int tradecache_bestbid_chronon;
 int tradecache_bestask_chronon;
 bool tradecache_is_print;
+
+// market maker
+int64 mmlimitcache_volume_total;
+int64 mmlimitcache_volume_participation;
+int64 mmmaxbidcache_volume_bull;
+int64 mmmaxbidcache_volume_bear;
+int64 mmmaxbidcache_volume_neutral;
+int64 mmminaskcache_volume_bull;
+int64 mmminaskcache_volume_bear;
+int64 mmminaskcache_volume_neutral;
 #endif
 
 // min and max price for feedcache: 0.0001 and 100 (dollar)
@@ -2458,6 +2468,134 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             int64 tmp_position_size = st.second.ex_position_size;
             int64 tmp_position_price = st.second.ex_position_price;
 
+
+            // market maker
+            if ((outState.crd_prevexp_price > 0) &&
+                (st.first == (fTestNet ? "npc.marketmaker.zeSoKxK3rp3dX3it1Y" : "Npc.Marketmaker.93tkU6M8CGxy4ucbR6")))
+            {
+                int out_height = outState.nHeight;
+                bool f100 = (st.second.nGems >= 100 * COIN);
+
+                // reset, initial spread 50 ticks
+                if ((tmp_bid_price <= 0) && (f100))
+                {
+                    tmp_bid_price = outState.crd_prevexp_price;
+                    for (int n = 0; n < 30; n++)
+                    {
+                        tmp_bid_price = tradecache_pricetick_down(tmp_bid_price);
+//                        if (tmp_bid_price < outState.crd_prevexp_price * 0.9) break;
+                    }
+                    tmp_bid_size = 10 * COIN;
+                    tmp_order_flags |= ORDERFLAG_BID_ACTIVE;
+                    tmp_bid_chronon = out_height;
+                }
+                if ((tmp_ask_price <= 0) && (f100))
+                {
+                    tmp_ask_price = outState.crd_prevexp_price;
+                    for (int n = 0; n < 20; n++)
+                    {
+                        tmp_ask_price = tradecache_pricetick_up(tmp_ask_price);
+                    }
+                    tmp_ask_size = 10 * COIN;
+                    tmp_order_flags |= ORDERFLAG_ASK_ACTIVE;
+                    tmp_ask_chronon = out_height;
+                }
+
+                // order got hit
+                if ((tmp_bid_size == 0) && (f100))
+                {
+                    tmp_bid_size += 10;
+                    tmp_bid_price = tradecache_pricetick_down(tmp_bid_price);
+                    tmp_order_flags |= ORDERFLAG_BID_ACTIVE;
+                    tmp_bid_chronon = out_height;
+                }
+                if ((tmp_ask_size == 0) && (f100))
+                {
+                    tmp_ask_size += 10;
+                    tmp_ask_price = tradecache_pricetick_up(tmp_ask_price);
+                    tmp_order_flags |= ORDERFLAG_ASK_ACTIVE;
+                    tmp_ask_chronon = out_height;
+                }
+
+                // improve price (up to 2% spread) or size (up to 2% of your coins)
+                int n = out_height % 10; // rnd.GetIntRnd(10);
+
+                // the following only works because mm is last in the list (after all hunters)
+                // and tradecache_best..._price is already known
+                if ((tradecache_bestbid_price > tmp_bid_price) && (n == 3)) n = 1;
+                if ((tradecache_bestask_price < tmp_ask_price) && (n == 4)) n = 2;
+                if (n <= 1)
+                {
+                    int64 desired_position_size_max = 0;
+                    int64 desired_position_size_min = 0;
+                    int64 desired_bid_max = 0;
+                    int64 desired_ask_min = 0;
+                    MM_ORDERLIMIT_UNPACK(outState.gs_reserve4, desired_bid_max, desired_ask_min);
+
+                    double spread_bid = 1.02;
+                    double spread_ask = 0.98;
+
+                    // improve bid
+                    int64 better_bid = tradecache_pricetick_up(tmp_bid_price);
+                    int64 better_bid_size = tmp_bid_size + (10 * COIN);
+                    if (n == 0)
+                    {
+                      if ((better_bid * spread_bid < tmp_ask_price) && (tmp_position_size <= desired_position_size_max) &&
+                          (better_bid <= desired_bid_max))
+                      {
+                        tmp_bid_price = better_bid;
+                        tmp_bid_chronon = out_height;
+                      }
+                      else if (st.second.nGems > tmp_bid_price / 10000 * better_bid_size / 10000 * 50)
+                      {
+                        tmp_bid_size = better_bid_size;
+                        tmp_bid_chronon = out_height;
+                        if (tmp_ask_size < tmp_bid_size)
+                        {
+                            tmp_ask_size = tmp_bid_size;
+                            tmp_ask_chronon = out_height;
+                        }
+                      }
+                    }
+                    // improve ask
+                    int64 better_ask = tradecache_pricetick_down(tmp_ask_price);
+                    int64 better_ask_size = tmp_ask_size + (10 * COIN);
+                    if (n == 1)
+                    {
+                      if ((better_ask * spread_ask > tmp_bid_price) && (tmp_position_size >= desired_position_size_min) &&
+                          (better_ask >= desired_ask_min))
+                      {
+                        tmp_ask_price = better_ask;
+                        tmp_ask_chronon = out_height;
+                      }
+                      else if (st.second.nGems > tmp_ask_price / 10000 * better_ask_size / 10000 * 50)
+                      {
+                        tmp_ask_size = better_ask_size;
+                        tmp_ask_chronon = out_height;
+                        if (tmp_bid_size < tmp_ask_size)
+                        {
+                            tmp_bid_size = tmp_ask_size;
+                            tmp_bid_chronon = out_height;
+                        }
+                      }
+                    }
+
+                    if (tmp_order_flags & (ORDERFLAG_BID_INVALID | ORDERFLAG_ASK_INVALID))
+                    {
+                        tmp_bid_size = tmp_bid_price = 0;
+                        tmp_ask_size = tmp_ask_price = 0;
+                    }
+                }
+                // write back
+                st.second.ex_order_price_bid = tmp_bid_price;
+                st.second.ex_order_size_bid = tmp_bid_size;
+                st.second.ex_order_chronon_bid = tmp_bid_chronon;
+                st.second.ex_order_price_ask = tmp_ask_price;
+                st.second.ex_order_size_ask = tmp_ask_size;
+                st.second.ex_order_chronon_ask = tmp_ask_chronon;
+            }
+
+
             // check if we can afford our orders
             // note: all price and size values are in standard bitcoin notation (100000000 means 1.0)
             //       this is different from the "playground" testnet
@@ -2823,13 +2961,46 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                     int lask2 = p.second.message.find("GEM:HUC set ask "); // length of "key phrase" is 16
                     int lfeed1 = p.second.message.find("HUC:USD feed price "); // length of "key phrase" is 19
+//                    printf("parsing message: found storage: l=%d lfeed1=%d lask2=%d\n", l, lfeed1, lask2);
 
 #ifdef AUX_STORAGE_VERSION2
                     // CRD test
                     int lbid3 = p.second.message.find("CRD:GEM set bid "); // length of "key phrase" is 16
                     int lask3 = p.second.message.find("CRD:GEM set ask "); // length of "key phrase" is 16
+
+                    // market maker
+                    if (outState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
+                    {
+                      int lvbidmax = p.second.message.find("CRD:GEM vote MM max bid "); // length of "key phrase" is 24
+                      int lvaskmin = p.second.message.find(" min ask "); // length of "key phrase" is 9
+                      if ((lvbidmax == 0) && (lvaskmin >= 25) && (l >= lvaskmin + 10) && (l <= 100))
+                      {
+                        s_price = p.second.message.substr(24, lvaskmin - 24);
+                        std::string s_price2 = p.second.message.substr(lvaskmin + 9);
+                        int64 tmp_price2 = 0;
+
+                        if ((ParseMoney(s_price, tmp_price)) &&
+                            (ParseMoney(s_price2, tmp_price2)))
+                        {
+                            printf("parsing message (MM vote): max bid=%15"PRI64d"  min ask=%15"PRI64d" \n", tmp_price, tmp_price2);
+
+                            // - tradecache_pricetick_... does this already
+                            if (tmp_price > 1000 * COIN) tmp_price = 1000 * COIN;
+                            else if (tmp_price < 100000) tmp_price = 100000;
+                            if (tmp_price2 > 1000 * COIN) tmp_price2 = 1000 * COIN;
+                            else if (tmp_price2 < 100000) tmp_price2 = 100000;
+
+                            tmp_price = tradecache_pricetick_down(tradecache_pricetick_up(tmp_price)); // snap to grid
+                            tmp_price2 = tradecache_pricetick_down(tradecache_pricetick_up(tmp_price2)); // snap to grid
+
+                            // squeeze the 2 numbers into 1 int64
+                            MM_ORDERLIMIT_PACK(mi->second.gem_reserve6, tmp_price, tmp_price2);
+                            mi->second.ex_reserve1 = outState.nHeight;
+                        }
+
+                      }
+                    }
 #endif
-                    printf("parsing message: found storage: l=%d l1=%d l2=%d\n", l, lfeed1, lask2);
 
 #ifdef AUX_STORAGE_VOTING
                     int lcomment = p.second.message.find("#");
@@ -3051,12 +3222,25 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         feedcache_volume_bull = feedcache_volume_bear = feedcache_volume_neutral = 0;
         feedcache_volume_reward = 0;
 
+        // market maker
+        mmlimitcache_volume_total = mmlimitcache_volume_participation = 0;
+        mmmaxbidcache_volume_bull = mmmaxbidcache_volume_bear = mmmaxbidcache_volume_neutral = 0;
+        mmminaskcache_volume_bull = mmminaskcache_volume_bear = mmminaskcache_volume_neutral = 0;
+
         if (outState.nHeight > AUX_MINHEIGHT_FEED(fTestNet))
         {
             feedcache_status = FEEDCACHE_NORMAL;
             if (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 0) feedcache_status = FEEDCACHE_EXPIRY;
 
             outState.upgrade_test += 1;
+
+            // market maker -- initialize
+            if (outState.nHeight == AUX_MINHEIGHT_TRADE(fTestNet))
+            {
+                int64 tmp_median_mm_maxbid = 0.05 * COIN;
+                int64 tmp_median_mm_minask = 2 * COIN;
+                MM_ORDERLIMIT_PACK(outState.gs_reserve4, tmp_median_mm_maxbid, tmp_median_mm_minask);
+            }
         }
         else if (outState.nHeight == AUX_MINHEIGHT_FEED(fTestNet)) // initialize
         {
@@ -3149,9 +3333,13 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         }
                     }
 
-                    // cancel remaining orders
-                    st.second.ex_order_price_bid = st.second.ex_order_price_ask = st.second.ex_order_size_bid = st.second.ex_order_size_ask = 0;
-                    st.second.ex_order_flags = 0;
+                    // market maker
+                    // don't cancel remaining orders if price is mostly unchanged
+                    if (outState.crd_prevexp_price < tmp_old_crd_prevexp_price * 1.5)
+                    {
+                        st.second.ex_order_price_bid = st.second.ex_order_price_ask = st.second.ex_order_size_bid = st.second.ex_order_size_ask = 0;
+                        st.second.ex_order_flags = 0;
+                    }
                 }
               }
             }
@@ -3180,6 +3368,16 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
         if (feedcache_status == FEEDCACHE_NORMAL)
         {
+            // market maker
+            int64 tmp_median_mm_maxbid = 0;
+            int64 tmp_median_mm_minask = 0;
+            if (outState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
+            {
+                MM_ORDERLIMIT_UNPACK(outState.gs_reserve4, tmp_median_mm_maxbid, tmp_median_mm_minask);
+//                printf("MM test: median limits packed %s\n", FormatMoney(outState.gs_reserve4).c_str());
+//                printf("MM test: median limits unpacked bid %s ask %s\n", FormatMoney(tmp_median_mm_maxbid).c_str(), FormatMoney(tmp_median_mm_minask).c_str());
+            }
+
             BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
             {
                 int64 tmp_price = st.second.feed_price;
@@ -3191,15 +3389,49 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     {
                         feedcache_volume_participation += tmp_volume;
 
-                        if (tmp_price > outState.feed_nextexp_price)
-                            feedcache_volume_bull += tmp_volume;
-                        else if (tmp_price < outState.feed_nextexp_price)
-                            feedcache_volume_bear += tmp_volume;
-                        else
-                            feedcache_volume_neutral += tmp_volume;
+                        if (tmp_price > outState.feed_nextexp_price)      feedcache_volume_bull += tmp_volume;
+                        else if (tmp_price < outState.feed_nextexp_price) feedcache_volume_bear += tmp_volume;
+                        else                                           feedcache_volume_neutral += tmp_volume;
+                    }
+
+                    // market maker
+                    if (outState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
+                    if (st.second.gem_reserve6 > 0)
+                    {
+                        int64 tmp_max_bid = 0;
+                        int64 tmp_min_ask = 0;
+                        MM_ORDERLIMIT_UNPACK(st.second.gem_reserve6, tmp_max_bid, tmp_min_ask);
+
+                        if ((tmp_max_bid > 0) && (tmp_min_ask > 0))
+                        {
+                            mmlimitcache_volume_participation += tmp_volume;
+
+                            if (tmp_max_bid > tmp_median_mm_maxbid)      mmmaxbidcache_volume_bull += tmp_volume;
+                            else if (tmp_max_bid < tmp_median_mm_maxbid) mmmaxbidcache_volume_bear += tmp_volume;
+                            else                                      mmmaxbidcache_volume_neutral += tmp_volume;
+
+                            if (tmp_min_ask > tmp_median_mm_minask)      mmminaskcache_volume_bull += tmp_volume;
+                            else if (tmp_min_ask < tmp_median_mm_minask) mmminaskcache_volume_bear += tmp_volume;
+                            else                                      mmminaskcache_volume_neutral += tmp_volume;
+                        }
                     }
                 }
             }
+
+            // market maker
+            if (mmmaxbidcache_volume_bull > mmmaxbidcache_volume_bear + mmmaxbidcache_volume_neutral)
+              tmp_median_mm_maxbid = tradecache_pricetick_up(tmp_median_mm_maxbid);
+            else if (mmmaxbidcache_volume_bear > mmmaxbidcache_volume_bull + mmmaxbidcache_volume_neutral)
+              tmp_median_mm_maxbid = tradecache_pricetick_down(tmp_median_mm_maxbid);
+
+            if (mmminaskcache_volume_bull > mmminaskcache_volume_bear + mmminaskcache_volume_neutral)
+              tmp_median_mm_minask = tradecache_pricetick_up(tmp_median_mm_minask);
+            else if (mmminaskcache_volume_bear > mmminaskcache_volume_bull + mmminaskcache_volume_neutral)
+              tmp_median_mm_minask = tradecache_pricetick_down(tmp_median_mm_minask);
+
+            MM_ORDERLIMIT_PACK(outState.gs_reserve4, tmp_median_mm_maxbid, tmp_median_mm_minask);
+//            printf("MM test: median limits unpacked (updated) bid %s ask %s\n", FormatMoney(tmp_median_mm_maxbid).c_str(), FormatMoney(tmp_median_mm_minask).c_str());
+//            printf("MM test: median limits packed %s\n", FormatMoney(outState.gs_reserve4).c_str());
         }
         if (feedcache_status == FEEDCACHE_EXPIRY)
         {
@@ -3653,6 +3885,27 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             gem_visualonly_state = 0;
       }
       printf("luggage test: nHeight %d, hex digit %d, spawn state %d, xy %d %d\n", outState.nHeight, h, gem_visualonly_state, gem_visualonly_x, gem_visualonly_y);
+    }
+#endif
+
+#ifdef AUX_STORAGE_VERSION2
+    // market maker
+    if (outState.nHeight == AUX_MINHEIGHT_TRADE(fTestNet))
+    {
+        std::string s = fTestNet ? "npc.marketmaker.zeSoKxK3rp3dX3it1Y" : "Npc.Marketmaker.93tkU6M8CGxy4ucbR6";
+
+        // formula from PERMANENT_LUGGAGE_TALLY
+        int tmp_intervals = (outState.nHeight - AUX_MINHEIGHT_FEED(fTestNet)) / GEM_RESET_INTERVAL(fTestNet);
+        int64 tmp_new_gems = (int64)(GEM_NORMAL_VALUE * tmp_intervals) * 7 / 3 + 700000000;
+        tmp_new_gems -= (tmp_new_gems % 1000000);
+
+        outState.vault.insert(std::make_pair(s, StorageVault(tmp_new_gems)));
+
+        std::map<std::string, StorageVault>::iterator mi2 = outState.vault.find(s);
+        if (mi2 != outState.vault.end())
+        {
+            mi2->second.huntername = "Geren'neth";
+        }
     }
 #endif
 

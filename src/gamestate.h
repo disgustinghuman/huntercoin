@@ -1367,7 +1367,20 @@ extern int feedcache_status;
 extern int64 tradecache_pricetick_up(int64 old);
 extern int64 tradecache_pricetick_down(int64 old);
 
-#define AUX_MINHEIGHT_TRADE(T) (T?321500:1300000)
+// market maker
+#define AUX_MINHEIGHT_TRADE(T) (T?322600:1220000)
+// possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
+#define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
+#define MM_ORDERLIMIT_UNPACK(I64,B,A) {B=(I64%1000000000)*1000;A=(I64/1000000000)*1000;}
+extern int64 mmlimitcache_volume_total;
+extern int64 mmlimitcache_volume_participation;
+extern int64 mmmaxbidcache_volume_bull;
+extern int64 mmmaxbidcache_volume_bear;
+extern int64 mmmaxbidcache_volume_neutral;
+extern int64 mmminaskcache_volume_bull;
+extern int64 mmminaskcache_volume_bear;
+extern int64 mmminaskcache_volume_neutral;
+
 #define TRADE_CRD_MIN_SIZE 100000000
 #define ORDERFLAG_BID_ACTIVE 1
 #define ORDERFLAG_ASK_ACTIVE 2
