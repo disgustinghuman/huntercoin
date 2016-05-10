@@ -1027,7 +1027,7 @@ int tradecache_bestbid_chronon;
 int tradecache_bestask_chronon;
 bool tradecache_is_print;
 
-// market maker
+// market maker -- variables (mm cache)
 int64 mmlimitcache_volume_total;
 int64 mmlimitcache_volume_participation;
 int64 mmmaxbidcache_volume_bull;
@@ -2991,8 +2991,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             if (p.second.message_block == outState.nHeight - 1) //message for current block is only available after ApplyCommon
             {
                 // auction alert (display a warning)
-                if (((fTestNet) && (p.second.playernameaddress == "hcTgWguRcs2ByAUbTBNeuoBrVgQ2FqhoEb")) ||
-                    ((!fTestNet) && (p.second.playernameaddress == "HSjUvhya9UrtuE1Dm73ytT3BkFWm8EGof9")))
+                if (((fTestNet) && (p.second.playernameaddress == "hTHxwjD6askQj6Y4QiiEDWbS323P5fHCBg")) ||
+                    ((!fTestNet) && (p.second.playernameaddress == "HURqbkug5dkrRCKxqqXqDHqwSWgNsuQSQC")))
                 {
 #ifdef AUX_STORAGE_VERSION2
                     outState.upgrade_test = -1;
@@ -3023,7 +3023,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     int lbid3 = p.second.message.find("CRD:GEM set bid "); // length of "key phrase" is 16
                     int lask3 = p.second.message.find("CRD:GEM set ask "); // length of "key phrase" is 16
 
-                    // market maker
+                    // market maker -- parse vote
                     if (outState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
                     {
                       int lvbidmax = p.second.message.find("CRD:GEM vote MM max bid "); // length of "key phrase" is 24
@@ -3277,7 +3277,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         feedcache_volume_bull = feedcache_volume_bear = feedcache_volume_neutral = 0;
         feedcache_volume_reward = 0;
 
-        // market maker
+        // market maker -- clear cache
         mmlimitcache_volume_total = mmlimitcache_volume_participation = 0;
         mmmaxbidcache_volume_bull = mmmaxbidcache_volume_bear = mmmaxbidcache_volume_neutral = 0;
         mmminaskcache_volume_bull = mmminaskcache_volume_bear = mmminaskcache_volume_neutral = 0;
@@ -3386,23 +3386,26 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     }
 
                     // ...and calculate new one
-                    int64 print_price = tmp_old_crd_prevexp_price * 3;
+                    int64 print_price = tmp_old_crd_prevexp_price * 3; // covered call strike
                     if (outState.crd_prevexp_price < tmp_old_crd_prevexp_price * 3)
                     {
                         print_price = outState.crd_prevexp_price;
                     }
 
-                    if (st.second.ex_position_size != 0)
+                    // postpone because we don't have a reasonable implementation yet
+                    if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet))
                     {
-                        int64 profitloss = (st.second.ex_position_size / COIN) * (print_price - st.second.ex_position_price);
-                        st.second.ex_position_size = 0;
-                        st.second.ex_position_price = 0;
+                        if (st.second.ex_position_size != 0)
+                        {
+                            int64 profitloss = (st.second.ex_position_size / COIN) * (print_price - st.second.ex_position_price);
+                            st.second.ex_position_size = 0;
+                            st.second.ex_position_price = 0;
 
-                        st.second.ex_trade_profitloss += profitloss;
+                            st.second.ex_trade_profitloss += profitloss;
+                        }
                     }
 
-                    // market maker
-                    // don't cancel remaining orders if price is mostly unchanged
+                    // market maker -- don't cancel remaining orders if price is mostly unchanged
                     if (outState.crd_prevexp_price > tmp_old_crd_prevexp_price * 1.5)
                     {
                         st.second.ex_order_price_bid = st.second.ex_order_price_ask = st.second.ex_order_size_bid = st.second.ex_order_size_ask = 0;
@@ -3436,7 +3439,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
         if (feedcache_status == FEEDCACHE_NORMAL)
         {
-            // market maker
+            // market maker -- update median vote
             int64 tmp_median_mm_maxbid = 0;
             int64 tmp_median_mm_minask = 0;
             if (outState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
@@ -3957,7 +3960,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 #endif
 
 #ifdef AUX_STORAGE_VERSION2
-    // market maker
+    // market maker -- spawn
     if (outState.nHeight == AUX_MINHEIGHT_TRADE(fTestNet))
     {
         std::string s = "npc.marketmaker.zeSoKxK3rp3dX3it1Y";

@@ -2540,21 +2540,30 @@ void GameMapView::updateGameMap(const GameState &gameState)
             fprintf(fp, "\n\n\n");
             fprintf(fp, " HUC:USD price feed (cached state: %7s)\n", feedcache_status == FEEDCACHE_EXPIRY ? "expiry" : feedcache_status == FEEDCACHE_NORMAL ? "normal" : "unknown");
             fprintf(fp, " ------------------------------------------\n\n");
-            fprintf(fp, "                                     hunter                  updated\n");
-            fprintf(fp, "storage vault key                    name         HUC:USD    chronon    weight         reward\n");
+
+            fprintf    (fp, "                                     hunter                  updated                   reward\n");
+            if (gameState.nHeight < tmp_oldexp_chronon + 50)
+            {
+                fprintf(fp, "storage vault key                    name         HUC:USD    chronon    weight         (payable %d for prev. feed)\n", tmp_oldexp_chronon + 50);
+            }
+            else
+            {
+                fprintf(fp, "storage vault key                    name         HUC:USD    chronon    weight         (payout for prev. feed finished)\n");
+            }
             fprintf(fp, "\n");
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
                 int64 tmp_volume = st.second.nGems;
                 int tmp_chronon = st.second.feed_chronon;
-                if ((tmp_volume > 0) && (st.second.feed_price > 0))
+                if ((tmp_volume > 0) && (st.second.feed_price > 0) && (tmp_chronon > tmp_oldexp_chronon - AUX_EXPIRY_INTERVAL(fTestNet)))
                 {
-                    if (tmp_chronon > tmp_oldexp_chronon)
-                        fprintf(fp, "%s   %-10s   %-7s   %7d     %6s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon, FormatMoney(tmp_volume).c_str());
-                    else if (st.second.vaultflags & VAULTFLAG_FEED_REWARD)
-                        fprintf(fp, "%s   %-10s   %-7s   %7d                    yes, payable %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon, tmp_oldexp_chronon + 50);
-                    else if (tmp_chronon > tmp_oldexp_chronon - AUX_EXPIRY_INTERVAL(fTestNet))
-                        fprintf(fp, "%s   %-10s   %-7s   %7d     stale\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon);
+                    std::string s = (st.second.vaultflags & VAULTFLAG_FEED_REWARD) ? "yes" : "   ";
+//                    if (tmp_chronon > tmp_oldexp_chronon)
+                        fprintf(fp, "%s   %-10s   %-7s   %7d     %6s         %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon, (tmp_chronon > tmp_oldexp_chronon) ? FormatMoney(tmp_volume).c_str() : " stale", s.c_str());
+//                    else if (st.second.vaultflags & VAULTFLAG_FEED_REWARD)
+//                        fprintf(fp, "%s   %-10s   %-7s   %7d                    yes, payable %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon, tmp_oldexp_chronon + 50);
+//                    else if (tmp_chronon > tmp_oldexp_chronon - AUX_EXPIRY_INTERVAL(fTestNet))
+//                        fprintf(fp, "%s   %-10s   %-7s   %7d     stale\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.feed_price).c_str(), tmp_chronon);
                 }
             }
             // quota is in coins, not sats
@@ -2572,9 +2581,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
             fprintf(fp, "->example chat message to feed HUC price:\n");
             fprintf(fp, "HUC:USD feed price %s\n\n\n", FormatMoney(gameState.feed_nextexp_price).c_str());
 
-//            fprintf(fp, "cached volume: total %s, participation %s, higher than median %s, at median %s, lower than median %s\n", FormatMoney(feedcache_volume_total).c_str(), FormatMoney(feedcache_volume_participation).c_str(), FormatMoney(feedcache_volume_bull).c_str(), FormatMoney(feedcache_volume_neutral).c_str(), FormatMoney(feedcache_volume_bear).c_str());
-//            fprintf(fp, "cached reward: %s\n", FormatMoney(feedcache_volume_reward).c_str());
-//            fprintf(fp, "\nfeed reward fund           %9s, reward quota for previous feed: %d/%d\n", FormatMoney(gameState.feed_reward_remaining).c_str(), tmp_dividend, tmp_divisor);
+            // only used for expiry blocks
+//          fprintf(fp, "cached reward: %s\n", FormatMoney(feedcache_volume_reward).c_str());
 
 #ifdef PERMANENT_LUGGAGE_TALLY
             fprintf(fp, "\nliquidity reward fund      %9s\n", FormatMoney(gameState.liquidity_reward_remaining).c_str());
@@ -2638,13 +2646,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         if (tmp_orderflags & ORDERFLAG_ASK_INVALID) s += " *no funds*";
                         else if (tmp_orderflags & ORDERFLAG_ASK_ACTIVE) s += " ok";
 
-                        fprintf(fp, "%s   %-10s %6s at %7s     %7d         %-7s %-10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(tmp_ask_price).c_str(), tmp_ask_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_askorder).c_str(), FormatMoney(pl_a).c_str(), s.c_str());
+                        fprintf(fp, "%s   %-10s %6s at %7s     %7d       %7s   %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(tmp_ask_price).c_str(), tmp_ask_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_askorder).c_str(), FormatMoney(pl_a).c_str(), s.c_str());
                     }
                 }
                 fprintf(fp, "\n");
                 if (tradecache_bestask_price > 0)
                 {
-                    fprintf(fp, "best ask full size = %6s                     %6s at %7s    %7d\n\n", FormatMoney(tradecache_bestask_fullsize).c_str(), FormatMoney(tradecache_bestask_size).c_str(), FormatMoney(tradecache_bestask_price).c_str(), tradecache_bestask_chronon);
+                    fprintf(fp, "best ask full size = %6s                     %6s at %7s     %7d\n\n", FormatMoney(tradecache_bestask_fullsize).c_str(), FormatMoney(tradecache_bestask_size).c_str(), FormatMoney(tradecache_bestask_price).c_str(), tradecache_bestask_chronon);
                 }
 
                 std::string sp = tradecache_is_print ? "matching orders, " : "                 ";
@@ -2676,7 +2684,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                       if (tmp_orderflags & ORDERFLAG_BID_INVALID) s += " *no funds*";
                       else if (tmp_orderflags & ORDERFLAG_BID_ACTIVE) s += " ok";
 
-                      fprintf(fp, "%s   %-10s %6s at %7s     %7d         %-7s %-10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), tmp_bid_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_bidorder).c_str(), FormatMoney(pl_b).c_str(), s.c_str());
+                      fprintf(fp, "%s   %-10s %6s at %7s     %7d       %7s   %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), tmp_bid_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_bidorder).c_str(), FormatMoney(pl_b).c_str(), s.c_str());
                   }
                 }
                 fprintf(fp, "\n\n");
@@ -2710,6 +2718,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   }
                 }
 
+
+                fprintf(fp, "\n\n CRD:GEM settlement (chronon %7d, %s, first regular settlement: %7d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUX_MINHEIGHT_SETTLE(fTestNet));
+                fprintf(fp, " --------------------------------------------------------------------------------\n\n");
+
                 if (gameState.auction_settle_price == 0)
                 {
                      printf("trade test: ERROR: gameState.auction_settle_price == 0\n");
@@ -2724,8 +2736,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     int64 tmp_settlement = (((AUX_COIN * AUX_COIN) / gameState.auction_settle_conservative) * AUX_COIN) / gameState.feed_nextexp_price;
                     tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
 
-                    fprintf(fp, "\n");
-                    fprintf(fp, "settlement:                                                  chronon    covered call strike\n\n");
+                    fprintf(fp, "                                      settlement price       chronon    covered call strike\n\n");
                     fprintf(fp, "previous                                          %-7s    %7d    %-7s\n", FormatMoney(gameState.crd_prevexp_price).c_str(), tmp_oldexp_chronon, FormatMoney(gameState.crd_prevexp_price * 3).c_str());
                     fprintf(fp, "pending                                           %-7s    %7d    %-7s\n", FormatMoney(tmp_settlement).c_str(), tmp_newexp_chronon, FormatMoney(tmp_settlement * 3).c_str());
 
@@ -2742,7 +2753,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 if (gameState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
                 {
                     fprintf(fp, "\n\n HUC:CRD market maker order limits vote\n");
-                    fprintf(fp, " --------------------------------------\n");
+                    fprintf(fp, " --------------------------------------\n\n");
                     fprintf(fp, "                                     hunter\n");
                     fprintf(fp, "storage vault key                    name         max bid   min ask    updated     weight\n");
                     fprintf(fp, "\n");
@@ -2771,6 +2782,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     fprintf(fp, "\n");
                     fprintf(fp, "cached volume (max bid): total %s, participation %s, higher than median %s, at median %s, lower than median %s\n", FormatMoney(mmlimitcache_volume_total).c_str(), FormatMoney(mmlimitcache_volume_participation).c_str(), FormatMoney(mmmaxbidcache_volume_bull).c_str(), FormatMoney(mmmaxbidcache_volume_neutral).c_str(), FormatMoney(mmmaxbidcache_volume_bear).c_str());
                     fprintf(fp, "cached volume (min ask): total %s, participation %s, higher than median %s, at median %s, lower than median %s\n", FormatMoney(mmlimitcache_volume_total).c_str(), FormatMoney(mmlimitcache_volume_participation).c_str(), FormatMoney(mmminaskcache_volume_bull).c_str(), FormatMoney(mmminaskcache_volume_neutral).c_str(), FormatMoney(mmminaskcache_volume_bear).c_str());
+                    fprintf(fp, "\n");
                 }
 
                 fclose(fp);
