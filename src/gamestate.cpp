@@ -1023,6 +1023,7 @@ int64 tradecache_bestbid_size;
 int64 tradecache_bestbid_fullsize;
 int64 tradecache_bestask_size;
 int64 tradecache_bestask_fullsize;
+int64 tradecache_crd_nextexp_mm_adjusted;
 int tradecache_bestbid_chronon;
 int tradecache_bestask_chronon;
 bool tradecache_is_print;
@@ -1477,7 +1478,7 @@ GameState::GameState()
     gs_reserve32 = 0;
     gs_reserve33 = 0;
     gs_reserve34 = 0;
-    gs_reserve35 = 0;
+    crd_nextexp_price = 0;
 #endif
     crd_last_price = 0;
     crd_last_size = 0;
@@ -2458,6 +2459,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         tradecache_bestbid_fullsize = 0;
         tradecache_bestask_size = 0;
         tradecache_bestask_fullsize = 0;
+        tradecache_crd_nextexp_mm_adjusted = 0;
         tradecache_bestbid_chronon = 0;
         tradecache_bestask_chronon = 0;
         tradecache_is_print = false;
@@ -2492,8 +2494,6 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     tmp_bid_size = (st.second.nGems / tmp_bid_price) * COIN / 100; // 1%, rounded down to COIN, minimum 1*COIN
                     tmp_bid_size -= (tmp_bid_size % COIN);
                     if (tmp_bid_size < COIN) tmp_bid_size = COIN;
-//                    if (tmp_bid_size == 0) tmp_bid_price = 0;
-//                    else tmp_bid_chronon = out_height;
                     tmp_bid_chronon = out_height;
                 }
                 if (tmp_ask_price <= 0)
@@ -2505,8 +2505,6 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     tmp_ask_size = (st.second.nGems / tmp_ask_price) * COIN / 100; // 1%, rounded down to COIN, minimum 1*COIN
                     tmp_ask_size -= (tmp_ask_size % COIN);
                     if (tmp_ask_size < COIN) tmp_ask_size = COIN;
-//                    if (tmp_ask_size == 0) tmp_ask_price = 0;
-//                    else tmp_ask_chronon = out_height;
                     tmp_ask_chronon = out_height;
                 }
 
@@ -2518,8 +2516,6 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     tmp_bid_size = (st.second.nGems / tmp_bid_price) * COIN / 100; // 1%, rounded down to COIN, minimum 1*COIN
                     tmp_bid_size -= (tmp_bid_size % COIN);
                     if (tmp_bid_size < COIN) tmp_bid_size = COIN;
-//                    if (tmp_bid_size == 0) tmp_bid_price = 0;
-//                    else tmp_bid_chronon = out_height;
                     tmp_bid_chronon = out_height;
                 }
                 if ((tmp_ask_size == 0) && (tmp_ask_price > 0))
@@ -2529,13 +2525,11 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     tmp_ask_size = (st.second.nGems / tmp_ask_price) * COIN / 100; // 1%, rounded down to COIN, minimum 1*COIN
                     tmp_ask_size -= (tmp_ask_size % COIN);
                     if (tmp_ask_size < COIN) tmp_ask_size = COIN;
-//                    if (tmp_ask_size == 0) tmp_ask_price = 0;
-//                    else tmp_ask_chronon = out_height;
                     tmp_ask_chronon = out_height;
                 }
 
                 // improve price (up to 3% spread) or size (up to 2% of your coins)
-                int n = out_height % 10; // rnd.GetIntRnd(10);
+                int n = out_height % 10;
 
                 // the following only works because mm is last in the list (after all hunters)
                 // and tradecache_best..._price is already known
@@ -2548,6 +2542,49 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     int64 desired_bid_max = 0;
                     int64 desired_ask_min = 0;
                     MM_ORDERLIMIT_UNPACK(outState.crd_mm_orderlimits, desired_bid_max, desired_ask_min);
+
+                    // make the MM smarter
+                    //
+                    // notes: - current block processing will not change outState.auction_settle_conservative
+                    //          unless (outState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL == 0)
+                    //        - outState.feed_nextexp_price is used in calculation of settlement price, before being updated rather late in block processing
+                    //        - could use stale data for MM (but order of processing can only change after a new AUX_MINHEIGHT_...)
+                    if ((out_height >= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet)) &&
+                        (outState.auction_settle_conservative > 0) && (outState.feed_nextexp_price > 0) && (st.second.nGems > 0))
+                    {
+                        int64 tmp_settlement = (((COIN * COIN) / outState.auction_settle_conservative) * COIN) / outState.feed_nextexp_price;
+//                      tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
+                        int maxed_out_20th = int(((tmp_position_size / COIN) * tmp_settlement * 20) / st.second.nGems); // 20 == maxed out
+                        if (maxed_out_20th > 0)
+                            for (int n = 0; n < maxed_out_20th; n++)
+                                tmp_settlement = tradecache_pricetick_down(tmp_settlement);
+                        if (maxed_out_20th < 0)
+                            for (int n = 0; n > maxed_out_20th; n--)
+                                tmp_settlement = tradecache_pricetick_up(tmp_settlement);
+
+                        if (tmp_settlement < desired_bid_max) desired_bid_max = tmp_settlement;
+                        if (tmp_settlement > desired_ask_min) desired_ask_min = tmp_settlement;
+                        tradecache_crd_nextexp_mm_adjusted = tmp_settlement;
+
+                        // cancel bid and set lower
+                        if (tmp_bid_price > desired_bid_max)
+                        {
+                            tmp_bid_price = tradecache_pricetick_down(tmp_bid_price);
+                            tmp_bid_size = (st.second.nGems / tmp_bid_price) * COIN / 100; // 1%, rounded down to COIN, minimum 1*COIN
+                            tmp_bid_size -= (tmp_bid_size % COIN);
+                            if (tmp_bid_size < COIN) tmp_bid_size = COIN;
+                            tmp_bid_chronon = out_height;
+                        }
+                        // cancel ask and set higher
+                        if (tmp_ask_price < desired_ask_min)
+                        {
+                            tmp_ask_price = tradecache_pricetick_up(tmp_ask_price);
+                            tmp_ask_size = (st.second.nGems / tmp_ask_price) * COIN / 100; // 1%, rounded down to COIN, minimum 1*COIN
+                            tmp_ask_size -= (tmp_ask_size % COIN);
+                            if (tmp_ask_size < COIN) tmp_ask_size = COIN;
+                            tmp_ask_chronon = out_height;
+                        }
+                    }
 
                     double spread_bid = 1.03;
                     double spread_ask = 0.97;

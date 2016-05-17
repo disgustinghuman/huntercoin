@@ -2739,7 +2739,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     fprintf(fp, "                                      settlement price       chronon    covered call strike\n\n");
                     fprintf(fp, "previous                                          %-7s    %7d    %-7s\n", FormatMoney(gameState.crd_prevexp_price).c_str(), tmp_oldexp_chronon, FormatMoney(gameState.crd_prevexp_price * 3).c_str());
                     fprintf(fp, "pending                                           %-7s    %7d    %-7s\n", FormatMoney(tmp_settlement).c_str(), tmp_newexp_chronon, FormatMoney(tmp_settlement * 3).c_str());
-
+                    if ((gameState.nHeight >= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet)) && (tradecache_crd_nextexp_mm_adjusted > 0))
+                    {
+                    fprintf(fp, "pending (adjusted for market maker)               %-7s\n", FormatMoney(tradecache_crd_nextexp_mm_adjusted).c_str());
+                    }
                     fprintf(fp, "\n");
                     fprintf(fp, "->example chat message to buy 1 chronoDollar (and sell 1 covered call)\n");
                     fprintf(fp, "CRD:GEM set bid 1 at %s\n", FormatMoney(tmp_settlement).c_str());

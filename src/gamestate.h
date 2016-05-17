@@ -867,7 +867,7 @@ struct GameState
     int64_t gs_reserve32;
     int64_t gs_reserve33;
     int64_t gs_reserve34;
-    int64_t gs_reserve35;
+    int64_t crd_nextexp_price; // not used
 #endif
     int64_t crd_last_price;
     int64_t crd_last_size;
@@ -950,7 +950,7 @@ struct GameState
       READWRITE(gs_reserve32);
       READWRITE(gs_reserve33);
       READWRITE(gs_reserve34);
-      READWRITE(gs_reserve35);
+      READWRITE(crd_nextexp_price);
 #endif
       READWRITE(crd_last_price);
       READWRITE(crd_last_size);
@@ -1384,6 +1384,7 @@ extern int64 tradecache_pricetick_down(int64 old);
 
 // market maker
 #define AUX_MINHEIGHT_TRADE(T) (T?322700:1220000)
+#define AUX_MINHEIGHT_MM_AI_UPGRADE(T) (T?323000:1240000)
 #define AUX_MINHEIGHT_SETTLE(T) (T?325000:1260000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
@@ -1410,6 +1411,7 @@ extern int64 tradecache_bestbid_size;
 extern int64 tradecache_bestbid_fullsize;
 extern int64 tradecache_bestask_size;
 extern int64 tradecache_bestask_fullsize;
+extern int64 tradecache_crd_nextexp_mm_adjusted;
 extern int tradecache_bestbid_chronon;
 extern int tradecache_bestask_chronon;
 extern bool tradecache_is_print;
