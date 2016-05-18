@@ -2528,8 +2528,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     tmp_ask_chronon = out_height;
                 }
 
+
                 // improve price (up to 3% spread) or size (up to 2% of your coins)
-                int n = out_height % 10;
+                int n = out_height % MM_AI_TICK_INTERVAL;
 
                 // the following only works because mm is last in the list (after all hunters)
                 // and tradecache_best..._price is already known
@@ -2553,13 +2554,15 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         (outState.auction_settle_conservative > 0) && (outState.feed_nextexp_price > 0) && (st.second.nGems > 0))
                     {
                         int64 tmp_settlement = (((COIN * COIN) / outState.auction_settle_conservative) * COIN) / outState.feed_nextexp_price;
-//                      tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
-                        int maxed_out_20th = int(((tmp_position_size / COIN) * tmp_settlement * 20) / st.second.nGems); // 20 == maxed out
-                        if (maxed_out_20th > 0)
-                            for (int n = 0; n < maxed_out_20th; n++)
+                        tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
+
+                        int maxed_out_50th = int(((tmp_position_size / COIN) * tmp_settlement * 50) / st.second.nGems); // -50 ... +50
+//                        double adjustment = 1.0 + (double(maxed_out_50th) / 100.0) // 0.5 ... 1.5
+                        if (maxed_out_50th > 0)
+                            for (int n = 0; n < maxed_out_50th; n++)
                                 tmp_settlement = tradecache_pricetick_down(tmp_settlement);
-                        if (maxed_out_20th < 0)
-                            for (int n = 0; n > maxed_out_20th; n--)
+                        if (maxed_out_50th < 0)
+                            for (int n = 0; n > maxed_out_50th; n--)
                                 tmp_settlement = tradecache_pricetick_up(tmp_settlement);
 
                         if (tmp_settlement < desired_bid_max) desired_bid_max = tmp_settlement;
@@ -2661,6 +2664,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         tmp_ask_size = tmp_ask_price = 0;
                     }
                 }
+
                 // write back
                 st.second.ex_order_price_bid = tmp_bid_price;
                 st.second.ex_order_size_bid = tmp_bid_size;
@@ -2668,6 +2672,13 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 st.second.ex_order_price_ask = tmp_ask_price;
                 st.second.ex_order_size_ask = tmp_ask_size;
                 st.second.ex_order_chronon_ask = tmp_ask_chronon;
+
+                // MM receives 7/3 of gems that spawn on map
+                if (out_height >= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet))
+                {
+                    if (outState.nHeight % GEM_RESET_INTERVAL(fTestNet) == 0)
+                        st.second.nGems += 34000000 * 7;
+                }
             }
 
 

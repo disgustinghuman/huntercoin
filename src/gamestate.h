@@ -1389,6 +1389,7 @@ extern int64 tradecache_pricetick_down(int64 old);
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
 #define MM_ORDERLIMIT_UNPACK(I64,B,A) {B=(I64%1000000000)*1000;A=(I64/1000000000)*1000;}
+#define MM_AI_TICK_INTERVAL 10
 extern int64 mmlimitcache_volume_total;
 extern int64 mmlimitcache_volume_participation;
 extern int64 mmmaxbidcache_volume_bull;
