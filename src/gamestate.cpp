@@ -2681,6 +2681,13 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 }
             }
 
+            // settlement test
+            if ((outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet)) &&
+                 (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 2))
+            {
+                if (tmp_order_flags & ORDERFLAG_BID_SETTLE) tmp_bid_price = outState.crd_prevexp_price; // price is correct for a short time after exp. block
+                if (tmp_order_flags & ORDERFLAG_ASK_SETTLE) tmp_ask_price = outState.crd_prevexp_price;
+            }
 
             // check if we can afford our orders
             // note: all price and size values are in standard bitcoin notation (100000000 means 1.0)
@@ -2735,8 +2742,40 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             if ((tmp_order_flags & ORDERFLAG_ASK_INVALID) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE))
               tmp_order_flags -= ORDERFLAG_ASK_ACTIVE;
 
-            st.second.ex_order_flags = tmp_order_flags;
 
+            // settlement test
+            if ((outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet)) &&
+                (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 2))
+            {
+                if ((tmp_order_flags & ORDERFLAG_BID_SETTLE) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE) && (st.second.ex_position_size == 0))
+                {
+                    int64 print_price = tmp_bid_price = outState.crd_prevexp_price; // price is correct for a short time after exp. block
+                    int64 s = tmp_bid_size;
+
+//                    st.second.ex_order_flags -= (ORDERFLAG_BID_ACTIVE + ORDERFLAG_BID_SETTLE); // filled
+                    st.second.ex_order_flags -= ORDERFLAG_BID_ACTIVE; // filled (settle flag remains, active flag is re-set automatically next block)
+                    st.second.ex_order_size_bid = 0;
+
+                    st.second.ex_position_size += s; // we bought something
+                    st.second.ex_position_price = print_price; // start new pl calculation
+
+                }
+                if ((tmp_order_flags & ORDERFLAG_ASK_SETTLE) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE) && (st.second.ex_position_size == 0))
+                {
+                    int64 print_price = tmp_ask_price = outState.crd_prevexp_price; // price is correct for a short time after exp. block
+                    int64 s = tmp_ask_size;
+
+//                    st.second.ex_order_flags -= (ORDERFLAG_ASK_ACTIVE + ORDERFLAG_ASK_SETTLE); // filled
+                    st.second.ex_order_flags -= ORDERFLAG_ASK_ACTIVE; // filled (settle flag remains, active flag is re-set automatically next block)
+                    st.second.ex_order_size_ask = 0;
+
+                    st.second.ex_position_size -= s; // we sold something
+                    st.second.ex_position_price = print_price; // start new pl calculation
+                }
+            }
+
+
+            st.second.ex_order_flags = tmp_order_flags;
 
             if (tmp_order_flags & ORDERFLAG_BID_ACTIVE)
             if ((tmp_bid_size) && (tmp_bid_price))
@@ -3187,6 +3226,18 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                       {
                         s_amount = p.second.message.substr(16, lat3 - 16);
                         s_price = p.second.message.substr(lat3 + 4);
+
+                        // settlement test
+                        if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet))
+                        {
+                            if (s_price == "settlement")
+                            {
+                                s_price = "0.001"; // set to minimum
+                                mi->second.ex_order_flags |= ORDERFLAG_BID_SETTLE;
+                            }
+                        }
+
+                        if (true)
                         {
                             if ((ParseMoney(s_amount, tmp_amount)) &&
                                 (ParseMoney(s_price, tmp_price)))
@@ -3218,6 +3269,18 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                       {
                         s_amount = p.second.message.substr(16, lat3 - 16);
                         s_price = p.second.message.substr(lat3 + 4);
+
+                        // settlement test
+                        if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet))
+                        {
+                            if (s_price == "settlement")
+                            {
+                                s_price = "1000.0"; // set to maximum
+                                mi->second.ex_order_flags |= ORDERFLAG_ASK_SETTLE;
+                            }
+                        }
+
+                        if (true)
                         {
                             if ((ParseMoney(s_amount, tmp_amount)) &&
                                 (ParseMoney(s_price, tmp_price)))

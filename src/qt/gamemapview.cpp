@@ -2643,6 +2643,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                         std::string s = "";
                         int tmp_orderflags = st.second.ex_order_flags;
+                        if (tmp_orderflags & ORDERFLAG_ASK_SETTLE) s += " rollover";
                         if (tmp_orderflags & ORDERFLAG_ASK_INVALID) s += " *no funds*";
                         else if (tmp_orderflags & ORDERFLAG_ASK_ACTIVE) s += " ok";
 
@@ -2681,6 +2682,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                       std::string s = "";
                       int tmp_orderflags = st.second.ex_order_flags;
+                      if (tmp_orderflags & ORDERFLAG_BID_SETTLE) s += " rollover";
                       if (tmp_orderflags & ORDERFLAG_BID_INVALID) s += " *no funds*";
                       else if (tmp_orderflags & ORDERFLAG_BID_ACTIVE) s += " ok";
 

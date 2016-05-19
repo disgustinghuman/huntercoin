@@ -1406,6 +1406,8 @@ extern int64 mmminaskcache_volume_neutral;
 #define ORDERFLAG_ASK_INVALID 8
 #define ORDERFLAG_BID_EXECUTING 16
 #define ORDERFLAG_ASK_EXECUTING 32
+#define ORDERFLAG_BID_SETTLE 64
+#define ORDERFLAG_ASK_SETTLE 128
 extern int64 tradecache_bestbid_price;
 extern int64 tradecache_bestask_price;
 extern int64 tradecache_bestbid_size;
