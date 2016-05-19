@@ -1024,6 +1024,7 @@ int64 tradecache_bestbid_fullsize;
 int64 tradecache_bestask_size;
 int64 tradecache_bestask_fullsize;
 int64 tradecache_crd_nextexp_mm_adjusted;
+int64 tradecache_crd_settlement_mm_size;
 int tradecache_bestbid_chronon;
 int tradecache_bestask_chronon;
 bool tradecache_is_print;
@@ -2460,6 +2461,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         tradecache_bestask_size = 0;
         tradecache_bestask_fullsize = 0;
         tradecache_crd_nextexp_mm_adjusted = 0;
+        tradecache_crd_settlement_mm_size = 0;
         tradecache_bestbid_chronon = 0;
         tradecache_bestask_chronon = 0;
         tradecache_is_print = false;
@@ -2683,7 +2685,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
             // settlement test
             if ((outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet)) &&
-                 (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 2))
+                 (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 1))
             {
                 if (tmp_order_flags & ORDERFLAG_BID_SETTLE) tmp_bid_price = outState.crd_prevexp_price; // price is correct for a short time after exp. block
                 if (tmp_order_flags & ORDERFLAG_ASK_SETTLE) tmp_ask_price = outState.crd_prevexp_price;
@@ -2743,35 +2745,66 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
               tmp_order_flags -= ORDERFLAG_ASK_ACTIVE;
 
 
-            // settlement test
+            // settlement test -- rollover
             if ((outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet)) &&
-                (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 2))
+                (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 1))
             {
-                if ((tmp_order_flags & ORDERFLAG_BID_SETTLE) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE) && (st.second.ex_position_size == 0))
-                {
-                    int64 print_price = tmp_bid_price = outState.crd_prevexp_price; // price is correct for a short time after exp. block
-                    int64 s = tmp_bid_size;
+                // market maker -- MM is last in the alphabetically sorted list, and must take the other side of all rollover trades
+                bool is_market_maker = (st.first == "npc.marketmaker.zeSoKxK3rp3dX3it1Y");
+                bool can_do_rollover = (st.second.ex_position_size == 0); // not sure if this is really required (fixme)
 
-//                    st.second.ex_order_flags -= (ORDERFLAG_BID_ACTIVE + ORDERFLAG_BID_SETTLE); // filled
-                    st.second.ex_order_flags -= ORDERFLAG_BID_ACTIVE; // filled (settle flag remains, active flag is re-set automatically next block)
-                    st.second.ex_order_size_bid = 0;
+                if ( ((tmp_order_flags & ORDERFLAG_BID_SETTLE) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE)) ||
+                     ((is_market_maker) && (tradecache_crd_settlement_mm_size > 0)) )
+                {
+                    int64 print_price = outState.crd_prevexp_price; // this price is correct for a short time after exp. block
+
+                    int64 s = tmp_bid_size;
+                    // market maker -- MM is last in the alphabetically sorted list, and must take the other side of all rollover trades
+                    if (is_market_maker)
+                    {
+                        s = tradecache_crd_settlement_mm_size;
+                    }
+                    else
+                    {
+                        tradecache_crd_settlement_mm_size -= s; // MM will sell it to us
+                    }
+
+                    if (tmp_order_flags & ORDERFLAG_BID_ACTIVE)
+                        tmp_order_flags -= ORDERFLAG_BID_ACTIVE; // filled (settle flag remains, active flag is re-set automatically next block)
 
                     st.second.ex_position_size += s; // we bought something
                     st.second.ex_position_price = print_price; // start new pl calculation
-
                 }
-                if ((tmp_order_flags & ORDERFLAG_ASK_SETTLE) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE) && (st.second.ex_position_size == 0))
-                {
-                    int64 print_price = tmp_ask_price = outState.crd_prevexp_price; // price is correct for a short time after exp. block
-                    int64 s = tmp_ask_size;
 
-//                    st.second.ex_order_flags -= (ORDERFLAG_ASK_ACTIVE + ORDERFLAG_ASK_SETTLE); // filled
-                    st.second.ex_order_flags -= ORDERFLAG_ASK_ACTIVE; // filled (settle flag remains, active flag is re-set automatically next block)
-                    st.second.ex_order_size_ask = 0;
+                if ( ((tmp_order_flags & ORDERFLAG_ASK_SETTLE) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE)) ||
+                     ((is_market_maker) && (tradecache_crd_settlement_mm_size < 0)) )
+                {
+                    int64 print_price = outState.crd_prevexp_price; // this price is correct for a short time after exp. block
+
+                    int64 s = tmp_ask_size;
+                    // market maker -- MM is last in the alphabetically sorted list, and must take the other side of all rollover trades
+                    if (is_market_maker)
+                    {
+                        s = -tradecache_crd_settlement_mm_size; // s is always >0
+                    }
+                    else
+                    {
+                        tradecache_crd_settlement_mm_size += s; // MM will buy it from us
+                    }
+
+                    if (tmp_order_flags & ORDERFLAG_ASK_ACTIVE)
+                        tmp_order_flags -= ORDERFLAG_ASK_ACTIVE; // filled (settle flag remains, active flag is re-set automatically next block)
 
                     st.second.ex_position_size -= s; // we sold something
                     st.second.ex_position_price = print_price; // start new pl calculation
                 }
+
+                if (!is_market_maker)
+                {
+                    if (tmp_order_flags & ORDERFLAG_BID_SETTLE) tmp_bid_price = 100000; // reset to min
+                    if (tmp_order_flags & ORDERFLAG_ASK_SETTLE) tmp_ask_price = COIN*1000; // reset to max
+                }
+
             }
 
 

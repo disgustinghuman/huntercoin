@@ -1415,6 +1415,7 @@ extern int64 tradecache_bestbid_fullsize;
 extern int64 tradecache_bestask_size;
 extern int64 tradecache_bestask_fullsize;
 extern int64 tradecache_crd_nextexp_mm_adjusted;
+extern int64 tradecache_crd_settlement_mm_size;
 extern int tradecache_bestbid_chronon;
 extern int tradecache_bestask_chronon;
 extern bool tradecache_is_print;

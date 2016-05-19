@@ -2715,7 +2715,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                       // if collateral is about to be sold for coins
                       if (st.second.auction_ask_size > 0) nw -= st.second.auction_ask_size;
 
-                      fprintf(fp, "%s   %-10s %6s    %9s   %6s  %6s         %6s         %6s %6s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str(), FormatMoney(nw).c_str(),
+                      //                                                 not rounded
+                      fprintf(fp, "%s   %-10s %6s    %9s   %6s  %6s         %8s       %6s %6s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str(), FormatMoney(nw).c_str(),
                               FormatMoney(st.second.ex_order_size_bid).c_str(), FormatMoney(st.second.ex_order_size_ask).c_str());
                   }
                 }
