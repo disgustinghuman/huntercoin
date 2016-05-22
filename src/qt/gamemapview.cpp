@@ -2368,17 +2368,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
           }
           else
           {
-#ifdef AUX_STORAGE_VERSION2
-            if (gameState.upgrade_test <= -1)
+            if (gameState.upgrade_test != gameState.nHeight * 2)
             {
               fprintf(fp, "GAMESTATE OUT OF SYNC: !!! DON'T USE THIS AUCTION PAGE !!!\n");
-              fprintf(fp, "Either game.dat_sv2 was used with an old version of this client (unlikely before block 1200000),\n");
-#else
-            if (gameState.upgrade_test != gameState.nHeight)
-            {
-              fprintf(fp, "GAMESTATE OUT OF SYNC: !!! DON'T USE THIS AUCTION PAGE !!!\n");
-              fprintf(fp, "Either game.dat was used with an old version of this client\n");
-#endif
+              fprintf(fp, "Either the gamestate was used with an old version of this client\n");
               fprintf(fp, "or the alarm (only for auction, different from 'network alert') was triggered\n");
               fprintf(fp, "or this client version itself is too old.\n");
             }
@@ -2888,9 +2881,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
         for (int tl = 0; tl < bank_timeleft[m]; tl++)
             tmp_name += QString::fromStdString("|");
 
+        int bs = 13;
+        if (m % 7 == 1) bs = 10;
+        else if (m % 7 == 2) bs = 11;
         int bd = (m % 9) + 1;
         if (bd == 5) bd = 2;
-        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * bank_xpos[m], TILE_SIZE * bank_ypos[m], 1 + 0, 22, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, bd, 0);
+        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * bank_xpos[m], TILE_SIZE * bank_ypos[m], 1 + 0, bs, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, bd, 0);
     }
     // gems and storage
     if (gem_visualonly_state == GEM_SPAWNED)

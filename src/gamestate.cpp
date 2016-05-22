@@ -970,7 +970,7 @@ int rpg_timeshift_tnet[RPG_NUM_NPCS] = {-40,  -70,    0,  -15,  -17,    0};
 int rpg_finished[RPG_NUM_NPCS] =      { 100,  100,  100,   12,   12,   50};
 int rpg_finished_tnet[RPG_NUM_NPCS] = {  25,   25,   25,   12,   12,   50};
 
-int rpg_sprite[RPG_NUM_NPCS] =        {  27,   16,   18,   10,   11,    5};
+int rpg_sprite[RPG_NUM_NPCS] =        {  27,   16,   18,   10,   11,   20};
 
 int rpg_path_x[RPG_NUM_NPCS][RPG_PATH_LEN] = {{143, 143, 143, 143, 142, 141, 140, 139, 115, 115, 115, 115},
                                               {143, 143, 143, 143, 142, 141, 140, 139, 115, 115, 115, 115},
@@ -3114,11 +3114,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 if (((fTestNet) && (p.second.playernameaddress == "hTHxwjD6askQj6Y4QiiEDWbS323P5fHCBg")) ||
                     ((!fTestNet) && (p.second.playernameaddress == "HURqbkug5dkrRCKxqqXqDHqwSWgNsuQSQC")))
                 {
-#ifdef AUX_STORAGE_VERSION2
                     outState.upgrade_test = -1;
-#else
-                    outState.upgrade_test--;
-#endif
                 }
 
                 std::map<std::string, StorageVault>::iterator mi = outState.vault.find(p.second.playernameaddress);
@@ -3260,8 +3256,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         s_amount = p.second.message.substr(16, lat3 - 16);
                         s_price = p.second.message.substr(lat3 + 4);
 
-                        // settlement test
-                        if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet))
+                        // settlement test -- parse orders "at settlement price" for 10 days before they become effective
+                        if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet) - 14400)
                         {
                             if (s_price == "settlement")
                             {
@@ -3303,8 +3299,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         s_amount = p.second.message.substr(16, lat3 - 16);
                         s_price = p.second.message.substr(lat3 + 4);
 
-                        // settlement test
-                        if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet))
+                        // settlement test -- parse orders "at settlement price" for 10 days before they become effective
+                        if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet) - 14400)
                         {
                             if (s_price == "settlement")
                             {
@@ -3431,7 +3427,12 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             feedcache_status = FEEDCACHE_NORMAL;
             if (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 0) feedcache_status = FEEDCACHE_EXPIRY;
 
-            outState.upgrade_test += 1;
+            if (outState.nHeight <= AUX_MINHEIGHT_WARN_UPGRADE(fTestNet))
+                outState.upgrade_test += 2;
+
+            // delete me (for storage version 4)
+            if (outState.nHeight <= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet))
+                outState.upgrade_test = outState.nHeight * 2;
 
 #ifdef AUX_STORAGE_VERSION2
             // market maker -- initialize
@@ -3452,7 +3453,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             outState.auction_settle_price = 10000000000; // 100 coins
             outState.auction_settle_conservative = 10000000000; // 100 coins
 
-            outState.upgrade_test += 1;
+            outState.upgrade_test = outState.nHeight * 2;
         }
         else
         {
@@ -3465,7 +3466,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             outState.feed_reward_dividend = 0;
             outState.feed_reward_divisor = 0;
             outState.feed_reward_remaining = 0;
-            outState.upgrade_test = outState.nHeight;
+            outState.upgrade_test = 0;
             outState.liquidity_reward_remaining = 0;
             outState.auction_settle_price = 0;
             outState.auction_last_price = 0;
