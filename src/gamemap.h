@@ -80,7 +80,7 @@ extern int Displaycache_gamemapgood[RPG_MAP_HEIGHT][RPG_MAP_WIDTH];
 extern int Displaycache_gamemap[RPG_MAP_HEIGHT][RPG_MAP_WIDTH][Game::MAP_LAYERS + SHADOW_LAYERS + SHADOW_EXTRALAYERS];
 //extern bool Display_dbg_obstacle_marker;
 
-#define RPG_EXTRA_TEAM_COLORS 26
+#define RPG_EXTRA_TEAM_COLORS 33
 
 #define RPG_ICON_EMPTY 276
 #define RPG_ICON_HUC_BANDIT 411

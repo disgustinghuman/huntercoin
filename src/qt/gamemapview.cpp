@@ -50,9 +50,9 @@ struct GameGraphicsObjects
         player_text_brush[5] = QBrush(QColor(255, 255, 255));
 
         player_text_brush[6] = QBrush(QColor(255, 255, 100)); // yellow
-        player_text_brush[7] = QBrush(QColor(0, 170, 255));   // blue
-        player_text_brush[8] = QBrush(QColor(255, 80, 80));   // red
-        player_text_brush[9] = QBrush(QColor(100, 255, 100)); // green
+        player_text_brush[7] = QBrush(QColor(255, 80, 80));   // red
+        player_text_brush[8] = QBrush(QColor(100, 255, 100)); // green
+        player_text_brush[9] = QBrush(QColor(0, 170, 255));   // blue
 
         player_text_brush[10] = QBrush(QColor(255, 255, 255)); // NPCs
         player_text_brush[11] = QBrush(QColor(255, 255, 255));
@@ -78,6 +78,15 @@ struct GameGraphicsObjects
         player_text_brush[27] = QBrush(QColor(255, 255, 255));
         player_text_brush[28] = QBrush(QColor(255, 255, 255));
         player_text_brush[29] = QBrush(QColor(255, 255, 255));
+
+        player_text_brush[30] = QBrush(QColor(255, 255, 255)); // sfx
+        player_text_brush[31] = QBrush(QColor(255, 255, 255));
+        player_text_brush[32] = QBrush(QColor(255, 255, 255));
+
+        player_text_brush[33] = QBrush(QColor(255, 255, 100)); // yellow
+        player_text_brush[34] = QBrush(QColor(255, 80, 80));   // red
+        player_text_brush[35] = QBrush(QColor(100, 255, 100)); // green
+        player_text_brush[36] = QBrush(QColor(0, 170, 255));   // blue
 
         for (int i = 0; i < Game::NUM_TEAM_COLORS + RPG_EXTRA_TEAM_COLORS; i++)
             for (int j = 1; j < 10; j++)
@@ -2273,7 +2282,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
               std::string s = "-";
               if (tmp_outfit == 1) s = "mage";
               else if (tmp_outfit == 2) s = "fighter";
-              else if (tmp_outfit == 4) s = "hunter";
+              else if (tmp_outfit == 4) s = "rogue";
 
               fprintf(fp, "%s    %10s    %6s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str());
 #else
@@ -2839,10 +2848,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
         if (characterState.rpg_gems_in_purse & 1)
         {
             // "mage" sprite
-            if (tmp_color == 0) tmp_color = 6;
-            else if (tmp_color == 1) tmp_color = 8;
-            else if (tmp_color == 2) tmp_color = 9;
-            else if (tmp_color == 3) tmp_color = 7;
+            if (tmp_color == 0) tmp_color = 33;
+            else if (tmp_color == 1) tmp_color = 34;
+            else if (tmp_color == 2) tmp_color = 35;
+            else if (tmp_color == 3) tmp_color = 36;
         }
         else if (characterState.rpg_gems_in_purse & 2)
         {
@@ -2851,6 +2860,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
             else if (tmp_color == 1) tmp_color = 15;
             else if (tmp_color == 2) tmp_color = 24;
             else if (tmp_color == 3) tmp_color = 14;
+        }
+        else if (characterState.rpg_gems_in_purse & 4)
+        {
+            // "rogue" sprite
+            if (tmp_color == 0) tmp_color = 6;
+            else if (tmp_color == 1) tmp_color = 7;
+            else if (tmp_color == 2) tmp_color = 8;
+            else if (tmp_color == 3) tmp_color = 9;
         }
 #endif
 #endif
@@ -2863,19 +2880,22 @@ void GameMapView::updateGameMap(const GameState &gameState)
     // note: players need unique names
     for (int m = 0; m < bank_idx; m++)
     {
-        QString tmp_name = QString::number(m);
+        QString tmp_name = QString::fromStdString("bank");
+        tmp_name += QString::number(m);
         tmp_name += QString::fromStdString(":");
         tmp_name += QString::number(bank_timeleft[m]);
         tmp_name += QString::fromStdString(" ");
         for (int tl = 0; tl < bank_timeleft[m]; tl++)
             tmp_name += QString::fromStdString("|");
 
-        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * bank_xpos[m], TILE_SIZE * bank_ypos[m], 1 + 0, 4, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 3, 0);
+        int bd = (m % 9) + 1;
+        if (bd == 5) bd = 2;
+        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * bank_xpos[m], TILE_SIZE * bank_ypos[m], 1 + 0, 22, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, bd, 0);
     }
     // gems and storage
     if (gem_visualonly_state == GEM_SPAWNED)
     {
-        gameMapCache->AddPlayer("Tia'tha", TILE_SIZE * gem_visualonly_x, TILE_SIZE * gem_visualonly_y, 1 + 0, 5, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
+        gameMapCache->AddPlayer("Tia'tha '1 soul gem here, for free", TILE_SIZE * gem_visualonly_x, TILE_SIZE * gem_visualonly_y, 1 + 0, 20, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
     }
 #ifdef PERMANENT_LUGGAGE
 #ifndef RPG_OUTFIT_NPCS
@@ -2929,7 +2949,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         {
             if (tmp_npc == 0) tmp_name += QString::fromStdString(" 'mage outfit here, for free'");
             else if (tmp_npc == 1) tmp_name += QString::fromStdString(" 'fighter outfit here, for free'");
-            else if (tmp_npc == 2) tmp_name += QString::fromStdString(" 'hunter outfit here, for free'");
+            else if (tmp_npc == 2) tmp_name += QString::fromStdString(" 'rogue outfit here, for free'");
         }
 
 #ifdef RPG_OUTFIT_DEBUG
