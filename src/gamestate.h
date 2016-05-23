@@ -34,6 +34,7 @@
 // windows stability bug workaround
 #ifdef WIN32
 #define PMON_DEBUG_WIN32_GUI
+#define PMON_DBGWIN_T0MICROMAN 2
 #define PMON_DBGWIN_T012SEPARATE 4
 #define PMON_DBGWIN_MORESLEEP 8
 #define PMON_DBGWIN_LOG 16

@@ -2891,7 +2891,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
     // gems and storage
     if (gem_visualonly_state == GEM_SPAWNED)
     {
-        gameMapCache->AddPlayer("Tia'tha '1 soul gem here, for free", TILE_SIZE * gem_visualonly_x, TILE_SIZE * gem_visualonly_y, 1 + 0, 20, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
+        gameMapCache->AddPlayer("Tia'tha '1 soul gem here, for free'", TILE_SIZE * gem_visualonly_x, TILE_SIZE * gem_visualonly_y, 1 + 0, 20, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
     }
 #ifdef PERMANENT_LUGGAGE
 #ifndef RPG_OUTFIT_NPCS
@@ -2901,7 +2901,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         QString qs = QString::fromStdString("Tia'tha 'next gem at ");
         qs += QString::number(gameState.nHeight - (gameState.nHeight % GEM_RESET_INTERVAL(fTestNet)) + GEM_RESET_INTERVAL(fTestNet));
         qs += QString::fromStdString("'");
-        gameMapCache->AddPlayer(qs, TILE_SIZE * 128, TILE_SIZE * 486, 1 + 0, 5, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
+        gameMapCache->AddPlayer(qs, TILE_SIZE * 128, TILE_SIZE * 486, 1 + 0, 20, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
     }
 #endif
 #ifdef RPG_OUTFIT_NPCS
@@ -2926,7 +2926,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 QString qs = QString::fromStdString("Tia'tha 'next gem at ");
                 qs += QString::number(gameState.nHeight - (gameState.nHeight % GEM_RESET_INTERVAL(fTestNet)) + GEM_RESET_INTERVAL(fTestNet));
                 qs += QString::fromStdString("'");
-                gameMapCache->AddPlayer(qs, TILE_SIZE * 128, TILE_SIZE * 486, 1 + 0, 5, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
+                gameMapCache->AddPlayer(qs, TILE_SIZE * 128, TILE_SIZE * 486, 1 + 0, 20, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
 
                 continue;
             }
