@@ -134,6 +134,12 @@ bool AppInit(int argc, char* argv[])
 
 
 #ifdef GUI
+char Displaycache_book[SORTED_ORDER_BOOK_LINES][200];
+long long Displaycache_book_sort1[SORTED_ORDER_BOOK_LINES];
+long long Displaycache_book_sort2[SORTED_ORDER_BOOK_LINES];
+long long Displaycache_book_sort3[SORTED_ORDER_BOOK_LINES];
+bool Displaycache_book_done[SORTED_ORDER_BOOK_LINES];
+
 // better GUI -- asciiart map
 // note: need at least 3 additional columns (CR, LF, '\0') and 2 additional lines (2 tiles offset for cliffs because of their "height")
 char AsciiArtMap[RPG_MAP_HEIGHT + 4][RPG_MAP_WIDTH + 4];

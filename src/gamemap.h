@@ -67,6 +67,13 @@ inline bool IsOriginalSpawnArea(int x, int y)
 
 
 #ifdef GUI
+#define SORTED_ORDER_BOOK_LINES 100
+extern char Displaycache_book[SORTED_ORDER_BOOK_LINES][200];
+extern long long Displaycache_book_sort1[SORTED_ORDER_BOOK_LINES];
+extern long long Displaycache_book_sort2[SORTED_ORDER_BOOK_LINES];
+extern long long Displaycache_book_sort3[SORTED_ORDER_BOOK_LINES];
+extern bool Displaycache_book_done[SORTED_ORDER_BOOK_LINES];
+
 // better GUI -- variables declaration
 #define RPG_MAP_HEIGHT 512
 #define RPG_MAP_WIDTH 542

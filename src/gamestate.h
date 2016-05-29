@@ -1421,6 +1421,8 @@ extern int64 tradecache_crd_settlement_mm_size;
 extern int tradecache_bestbid_chronon;
 extern int tradecache_bestask_chronon;
 extern bool tradecache_is_print;
+extern bool tradecache_bid_filled;
+extern bool tradecache_ask_filled;
 #endif
 
 #ifdef AUX_STORAGE_VOTING

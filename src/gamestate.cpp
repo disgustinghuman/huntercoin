@@ -1028,6 +1028,8 @@ int64 tradecache_crd_settlement_mm_size;
 int tradecache_bestbid_chronon;
 int tradecache_bestask_chronon;
 bool tradecache_is_print;
+bool tradecache_bid_filled;
+bool tradecache_ask_filled;
 
 // market maker -- variables (mm cache)
 int64 mmlimitcache_volume_total;
@@ -2464,7 +2466,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         tradecache_crd_settlement_mm_size = 0;
         tradecache_bestbid_chronon = 0;
         tradecache_bestask_chronon = 0;
-        tradecache_is_print = false;
+        tradecache_is_print = tradecache_bid_filled = tradecache_ask_filled = false;
 //        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         {
@@ -2481,6 +2483,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
 
             // market maker
+            // the following only works because mm is last in the list (after all hunters)
+            // and tradecache_best..._price is already known
             if ((outState.crd_prevexp_price > 0) &&
                 (st.first == "npc.marketmaker.zeSoKxK3rp3dX3it1Y"))
             {
@@ -2533,9 +2537,6 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                 // improve price (up to 3% spread) or size (up to 2% of your coins)
                 int n = out_height % MM_AI_TICK_INTERVAL;
-
-                // the following only works because mm is last in the list (after all hunters)
-                // and tradecache_best..._price is already known
 
 //                if ((tradecache_bestbid_price > tmp_bid_price) && (n == 6)) n = 1;
 //                if ((tradecache_bestask_price < tmp_ask_price) && (n == 6)) n = 1;
@@ -2621,7 +2622,6 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                 tmp_bid_chronon = out_height;
                             }
 
-//                            if (tmp_ask_size < tmp_bid_size)
                             if ((tmp_ask_size < tmp_bid_size) && (tmp_ask_price > 0))
                             {
                                 tmp_ask_size = tmp_bid_size;
@@ -2651,7 +2651,6 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                 tmp_ask_chronon = out_height;
                             }
 
-//                            if (tmp_bid_size < tmp_ask_size)
                             if ((tmp_bid_size < tmp_ask_size) && (tmp_bid_price > 0))
                             {
                                 tmp_bid_size = tmp_ask_size;
@@ -2684,11 +2683,11 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             }
 
             // settlement test
-            if ((outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet)) &&
-                 (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 1))
+            if ((outState.crd_prevexp_price > 0) &&
+                (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet) - 14400))
             {
-                if (tmp_order_flags & ORDERFLAG_BID_SETTLE) tmp_bid_price = outState.crd_prevexp_price; // price is correct for a short time after exp. block
-                if (tmp_order_flags & ORDERFLAG_ASK_SETTLE) tmp_ask_price = outState.crd_prevexp_price;
+                if (tmp_order_flags & ORDERFLAG_BID_SETTLE) st.second.ex_order_price_bid = tmp_bid_price = outState.crd_prevexp_price;
+                if (tmp_order_flags & ORDERFLAG_ASK_SETTLE) st.second.ex_order_price_ask = tmp_ask_price = outState.crd_prevexp_price;
             }
 
             // check if we can afford our orders
@@ -2707,9 +2706,13 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             if (st.second.auction_ask_size > 0) nw -= st.second.auction_ask_size;
 
             //   can drop to 0
-            int64 risk_bidorder = ((tmp_position_size + tmp_bid_size) / COIN) * tmp_bid_price;
+            int64 position_after_fill = (tmp_order_flags & ORDERFLAG_BID_SETTLE) ? tmp_bid_size : (tmp_position_size + tmp_bid_size);
+            int64 risk_bidorder = (position_after_fill / COIN) * tmp_bid_price;
+
             //   can go to strike price
-            int64 risk_askorder = ((-tmp_position_size + tmp_ask_size) / COIN) * (outState.crd_prevexp_price * 3 - tmp_ask_price);
+            position_after_fill = (tmp_order_flags & ORDERFLAG_ASK_SETTLE) ? tmp_ask_size : (-tmp_position_size + tmp_ask_size);
+            int64 risk_askorder = (position_after_fill / COIN) * (outState.crd_prevexp_price * 3 - tmp_ask_price);
+
             //   if order would reduce position size
             if (risk_bidorder < 0) risk_bidorder = 0;
             if (risk_askorder < 0) risk_askorder = 0;
@@ -2751,9 +2754,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             {
                 // market maker -- MM is last in the alphabetically sorted list, and must take the other side of all rollover trades
                 bool is_market_maker = (st.first == "npc.marketmaker.zeSoKxK3rp3dX3it1Y");
-                bool can_do_rollover = (st.second.ex_position_size == 0); // not sure if this is really required (fixme)
+                bool has_no_positions = (st.second.ex_position_size == 0); // allows to simplify the "can afford" calculation
 
-                if ( ((tmp_order_flags & ORDERFLAG_BID_SETTLE) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE)) ||
+                // note that "tradecache_crd_settlement_mm_size != 0" would result in double position size for the MM
+                if ( ((tmp_order_flags & ORDERFLAG_BID_SETTLE) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE) && (has_no_positions)) ||
                      ((is_market_maker) && (tradecache_crd_settlement_mm_size > 0)) )
                 {
                     int64 print_price = outState.crd_prevexp_price; // this price is correct for a short time after exp. block
@@ -2774,9 +2778,11 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                     st.second.ex_position_size += s; // we bought something
                     st.second.ex_position_price = print_price; // start new pl calculation
+
+                    printf("trade log: rollover (bid) key %s size %s new position %s price %s\n", st.first.c_str(), FormatMoney(s).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str());
                 }
 
-                if ( ((tmp_order_flags & ORDERFLAG_ASK_SETTLE) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE)) ||
+                if ( ((tmp_order_flags & ORDERFLAG_ASK_SETTLE) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE) && (has_no_positions)) ||
                      ((is_market_maker) && (tradecache_crd_settlement_mm_size < 0)) )
                 {
                     int64 print_price = outState.crd_prevexp_price; // this price is correct for a short time after exp. block
@@ -2797,20 +2803,14 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                     st.second.ex_position_size -= s; // we sold something
                     st.second.ex_position_price = print_price; // start new pl calculation
-                }
 
-                if (!is_market_maker)
-                {
-                    if (tmp_order_flags & ORDERFLAG_BID_SETTLE) tmp_bid_price = 100000; // reset to min
-                    if (tmp_order_flags & ORDERFLAG_ASK_SETTLE) tmp_ask_price = COIN*1000; // reset to max
+                    printf("trade log: rollover (ask) key %s size %s new position %s price %s\n", st.first.c_str(), FormatMoney(s).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str());
                 }
-
             }
-
-
             st.second.ex_order_flags = tmp_order_flags;
 
             if (tmp_order_flags & ORDERFLAG_BID_ACTIVE)
+            if (!(tmp_order_flags & ORDERFLAG_BID_SETTLE))
             if ((tmp_bid_size) && (tmp_bid_price))
             if ((tmp_bid_price > tradecache_bestbid_price))
             {
@@ -2828,6 +2828,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             }
 
             if (tmp_order_flags & ORDERFLAG_ASK_ACTIVE)
+            if (!(tmp_order_flags & ORDERFLAG_ASK_SETTLE))
             if ((tmp_ask_price) && (tmp_ask_size))
             if ((tmp_ask_price < tradecache_bestask_price) || (tradecache_bestask_price == 0))
             {
@@ -2850,10 +2851,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             tradecache_is_print = true;
         }
 #define ORDER_BID_FILL ((tmp_bid_price == tradecache_bestbid_price) && (tmp_bid_size == tradecache_bestbid_size) && \
-                    (tmp_bid_chronon == tradecache_bestbid_chronon) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE))
+                    (tmp_bid_chronon == tradecache_bestbid_chronon) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE) && (!tradecache_bid_filled))
 
 #define ORDER_ASK_FILL ((tmp_ask_price == tradecache_bestask_price) && (tmp_ask_size == tradecache_bestask_size) && \
-                    (tmp_ask_chronon == tradecache_bestask_chronon) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE))
+                    (tmp_ask_chronon == tradecache_bestask_chronon) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE) && (!tradecache_ask_filled))
 
 //        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
@@ -2932,6 +2933,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     st.second.ex_position_price = print_price; // start new pl calculation
 
                     st.second.ex_trade_profitloss += profitloss;
+                    tradecache_bid_filled = true;
+
+                    printf("trade log: normal trade (bid) key %s size %s new position %s price %s\n", st.first.c_str(), FormatMoney(s).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str());
                 }
                 if (ORDER_ASK_FILL)
                 {
@@ -2960,6 +2964,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     st.second.ex_position_price = print_price; // start new pl calculation
 
                     st.second.ex_trade_profitloss += profitloss;
+                    tradecache_ask_filled = true;
+
+                    printf("trade log: normal trade (ask) key %s size %s new position %s price %s\n", st.first.c_str(), FormatMoney(s).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str());
                 }
             }
         }
