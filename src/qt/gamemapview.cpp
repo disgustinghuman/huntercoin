@@ -41,10 +41,8 @@ struct GameGraphicsObjects
         gray_pen(QColor(170, 170, 170), 2.0)
     {
         player_text_brush[0] = QBrush(QColor(255, 255, 100));
-//        player_text_brush[1] = QBrush(QColor(255, 80, 80));
-        player_text_brush[1] = QBrush(QColor(255, 100, 120));
+        player_text_brush[1] = QBrush(QColor(255, 120, 150));
         player_text_brush[2] = QBrush(QColor(100, 255, 100));
-//        player_text_brush[3] = QBrush(QColor(0, 170, 255));
         player_text_brush[3] = QBrush(QColor(20, 190, 255));
 
         // better GUI -- more player sprites
@@ -52,21 +50,17 @@ struct GameGraphicsObjects
         player_text_brush[5] = QBrush(QColor(255, 255, 255));
 
         player_text_brush[6] = QBrush(QColor(255, 255, 100)); // yellow
-//        player_text_brush[7] = QBrush(QColor(255, 80, 80));   // red
-        player_text_brush[7] = QBrush(QColor(255, 100, 120));   // red
+        player_text_brush[7] = QBrush(QColor(255, 120, 150)); // red 255, 80, 80
         player_text_brush[8] = QBrush(QColor(100, 255, 100)); // green
-//        player_text_brush[9] = QBrush(QColor(0, 170, 255));   // blue
-        player_text_brush[9] = QBrush(QColor(20, 190, 255));   // blue
+        player_text_brush[9] = QBrush(QColor(20, 190, 255));  // blue 0, 170, 255
 
         player_text_brush[10] = QBrush(QColor(255, 255, 255)); // NPCs
         player_text_brush[11] = QBrush(QColor(255, 255, 255));
         player_text_brush[12] = QBrush(QColor(255, 255, 255));
         player_text_brush[13] = QBrush(QColor(255, 255, 255));
 
-//        player_text_brush[14] = QBrush(QColor(0, 170, 255)); // blue
-        player_text_brush[14] = QBrush(QColor(20, 190, 255)); // blue
-//        player_text_brush[15] = QBrush(QColor(255, 80, 80)); // red
-        player_text_brush[15] = QBrush(QColor(255, 100, 120)); // red
+        player_text_brush[14] = QBrush(QColor(20, 190, 255));  // blue 0, 170, 255
+        player_text_brush[15] = QBrush(QColor(255, 120, 150)); // red 255, 80, 80
 
         player_text_brush[16] = QBrush(QColor(255, 255, 255)); // NPCs
         player_text_brush[17] = QBrush(QColor(255, 255, 255));
@@ -90,11 +84,9 @@ struct GameGraphicsObjects
         player_text_brush[32] = QBrush(QColor(255, 255, 255));
 
         player_text_brush[33] = QBrush(QColor(255, 255, 100)); // yellow
-//        player_text_brush[34] = QBrush(QColor(255, 80, 80));   // red
-        player_text_brush[34] = QBrush(QColor(255, 100, 120));   // red
+        player_text_brush[34] = QBrush(QColor(255, 120, 150)); // red 255, 80, 80
         player_text_brush[35] = QBrush(QColor(100, 255, 100)); // green
-//        player_text_brush[36] = QBrush(QColor(0, 170, 255));   // blue
-        player_text_brush[36] = QBrush(QColor(20, 190, 255));   // blue
+        player_text_brush[36] = QBrush(QColor(20, 190, 255));  // blue 0, 170, 255
 
         for (int i = 0; i < Game::NUM_TEAM_COLORS + RPG_EXTRA_TEAM_COLORS; i++)
             for (int j = 1; j < 10; j++)
@@ -2389,11 +2381,60 @@ void GameMapView::updateGameMap(const GameState &gameState)
             fprintf(fp, "                                     hunter                 ask\n");
             fprintf(fp, "storage vault key                    name        gems       price    chronon\n");
             fprintf(fp, "\n");
+
+            // sorted order book
+            int bs_count = 0;
+            int64 bs1_max = 0;
+            int64 bs2_max = 0;
+            int64 bs2_min = AUX_COIN * AUX_COIN;
+            int bs_idx = 0;
+
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
               if (st.second.auction_ask_price > 0)
-                  fprintf(fp, "%s   %-10s %5s at %9s   %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+              {
+                  // sorted order book
+                  if (bs_count < SORTED_ORDER_BOOK_LINES - 1)
+                  {
+                      sprintf(Displaycache_book[bs_count], "%s   %-10s %5s at %9s   %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+                      Displaycache_book_sort1[bs_count] = st.second.auction_ask_price;
+                      Displaycache_book_sort2[bs_count] = st.second.auction_ask_chronon;
+                      Displaycache_book_done[bs_count] = false;
+                      bs_count++;
+                  }
+                  else
+                  {
+                      fprintf(fp, "%s   %-10s %5s at %9s   %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+                  }
+              }
             }
+            // sorted order book
+            if (bs_count > 0)
+            for (int j = 0; j < bs_count; j++)
+            {
+              bs1_max = 0;
+              for (int i = 0; i < bs_count; i++)
+              {
+                if (!Displaycache_book_done[i])
+                {
+                    if (Displaycache_book_sort1[i] > bs1_max) // higher prices go first
+                    {
+                        bs_idx = i;
+                        bs1_max = Displaycache_book_sort1[i];
+                        bs2_max = 0;
+                    }
+                    else if ((Displaycache_book_sort1[i] == bs1_max) && (Displaycache_book_sort2[i] > bs2_max)) // later timestamp goes first
+                    {
+                        bs_idx = i;
+                        bs2_max = Displaycache_book_sort2[i];
+                    }
+                }
+              }
+              fprintf(fp, "%s", Displaycache_book[bs_idx]);
+              Displaycache_book_done[bs_idx] = true;
+            }
+            bs_count = 0;
+
             if (auctioncache_bestask_price > 0)
             {
                 // liquidity reward
@@ -2653,12 +2694,11 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         int tmp_ask_chronon = st.second.ex_order_chronon_ask;
                         int64 tmp_position_size = st.second.ex_position_size;
                         int64 tmp_position_price = st.second.ex_position_price;
-                        int64 pl_a = (tmp_position_size / AUX_COIN) * (tmp_ask_price - tmp_position_price);
-                        int64 position_after_fill = (st.second.ex_order_flags & ORDERFLAG_ASK_SETTLE) ? tmp_ask_size : (-tmp_position_size + tmp_ask_size);
-                        int64 risk_askorder = (position_after_fill / AUX_COIN) * (gameState.crd_prevexp_price * 3 - tmp_ask_price);
-                        if (risk_askorder < 0) risk_askorder = 0;
-                        // in case above division has rounded it down (which is ok for risk_bidorder)
-                        if (risk_askorder) risk_askorder = tradecache_pricetick_up(risk_askorder);
+
+                        // if we get a fill, this will be our (additional) profit or loss
+                        int64 pl_a = pl_when_ask_filled(tmp_ask_price, tmp_position_size, tmp_position_price, gameState.crd_prevexp_price * 3);
+                        // can go to strike price
+                        int64 risk_askorder = risk_after_ask_filled(tmp_ask_size, tmp_ask_price, tmp_position_size, gameState.crd_prevexp_price * 3, st.second.ex_order_flags);
 
                         std::string s = "";
                         int tmp_orderflags = st.second.ex_order_flags;
@@ -2671,7 +2711,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         {
                             sprintf(Displaycache_book[bs_count], "%s   %-10s %6s at %7s     %7d       %7s   %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(tmp_ask_price).c_str(), tmp_ask_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_askorder).c_str(), FormatMoney(pl_a).c_str(), s.c_str());
                             Displaycache_book_sort1[bs_count] = tmp_ask_price;
-                            Displaycache_book_sort2[bs_count] = tmp_ask_size;
+                            Displaycache_book_sort2[bs_count] = tmp_ask_chronon;
                             Displaycache_book_done[bs_count] = false;
                             bs_count++;
                         }
@@ -2735,10 +2775,11 @@ void GameMapView::updateGameMap(const GameState &gameState)
                       int tmp_bid_chronon = st.second.ex_order_chronon_bid;
                       int64 tmp_position_size = st.second.ex_position_size;
                       int64 tmp_position_price = st.second.ex_position_price;
-                      int64 pl_b = (tmp_position_size / AUX_COIN) * (tmp_bid_price - tmp_position_price);
-                      int64 position_after_fill = (st.second.ex_order_flags & ORDERFLAG_BID_SETTLE) ? tmp_bid_size : (tmp_position_size + tmp_bid_size);
-                      int64 risk_bidorder = (position_after_fill / AUX_COIN) * tmp_bid_price;
-                      if (risk_bidorder < 0) risk_bidorder = 0;
+
+                      // if we get a fill, this will be our (additional) profit or loss
+                      int64 pl_b = pl_when_bid_filled(tmp_bid_price, tmp_position_size, tmp_position_price);
+                      // can drop to 0
+                      int64 risk_bidorder = risk_after_bid_filled(tmp_bid_size, tmp_bid_price, tmp_position_size, st.second.ex_order_flags);
 
                       std::string s = "";
                       int tmp_orderflags = st.second.ex_order_flags;
@@ -2751,7 +2792,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                       {
                           sprintf(Displaycache_book[bs_count], "%s   %-10s %6s at %7s     %7d       %7s   %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), tmp_bid_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_bidorder).c_str(), FormatMoney(pl_b).c_str(), s.c_str());
                           Displaycache_book_sort1[bs_count] = tmp_bid_price;
-                          Displaycache_book_sort2[bs_count] = tmp_bid_size;
+                          Displaycache_book_sort2[bs_count] = tmp_bid_chronon;
                           Displaycache_book_done[bs_count] = false;
                           bs_count++;
                       }
@@ -2792,37 +2833,59 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                 fprintf(fp, "\n CRD:GEM trader positions (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
                 fprintf(fp, " ---------------------------------------------------\n\n");
-                fprintf(fp, "                                                                                        net worth\n");
-                fprintf(fp, "                                     hunter             chronoDollar   trade     trade  after fill       bid    ask\n");
-                fprintf(fp, "storage vault key                    name        gems   position       price     P/L    (worst case)     size   size\n");
+//                fprintf(fp, "                                                                                               \n");
+                fprintf(fp, "                                     hunter             chronoDollar   trade     trade  gems, not       long    bid    bid      ask     ask     short\n");
+                fprintf(fp, "storage vault key                    name        gems   position       price     P/L    at risk         risk    size   price    price   size    risk    flags\n");
                 fprintf(fp, "\n");
                 BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
                 {
                   if ((st.second.ex_order_size_bid != 0) || (st.second.ex_order_size_ask != 0) ||
                       (st.second.ex_position_size != 0) || (st.second.ex_trade_profitloss != 0))
                   {
+                      int64 tmp_bid_price = st.second.ex_order_price_bid;
+                      int64 tmp_bid_size = st.second.ex_order_size_bid;
+                      int64 tmp_ask_price = st.second.ex_order_price_ask;
+                      int64 tmp_ask_size = st.second.ex_order_size_ask;
+
+                      int tmp_order_flags = st.second.ex_order_flags;
                       int64 tmp_position_size = st.second.ex_position_size;
                       int64 tmp_position_price = st.second.ex_position_price;
-                      int64 tmp_ask_price = st.second.ex_order_price_ask;
-                      int64 tmp_bid_price = st.second.ex_order_price_bid;
-                      int64 pl_a = 0;
-                      int64 pl_b = 0;
-                      if (tmp_ask_price) pl_a = (tmp_position_size / AUX_COIN) * (tmp_ask_price - tmp_position_price);
-                      if (tmp_bid_price) pl_b = (tmp_position_size / AUX_COIN) * (tmp_bid_price - tmp_position_price);
-                      int64 pl = pl_b < pl_a ? pl_b : pl_a;
-                      //   net worth ignoring "unsettled profits"
-                      int64 nw = st.second.ex_trade_profitloss < 0 ? pl + st.second.nGems + st.second.ex_trade_profitloss : pl + st.second.nGems;
-                      // if collateral is about to be sold for coins
-                      if (st.second.auction_ask_size > 0) nw -= st.second.auction_ask_size;
 
-                      // not rounded ----------------------------v--------v
-                      fprintf(fp, "%s   %-10s %6s    %9s   %6s  %8s      %8s     %6s %6s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(st.second.ex_position_size).c_str(), FormatMoney(st.second.ex_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str(), FormatMoney(nw).c_str(),
-                              FormatMoney(st.second.ex_order_size_bid).c_str(), FormatMoney(st.second.ex_order_size_ask).c_str());
+                      // if we get a fill, this will be our (additional) profit or loss
+                      // (assume extreme values in case of no order)
+                      int64 pl_a = pl_when_ask_filled(tmp_ask_price, tmp_position_size, tmp_position_price, gameState.crd_prevexp_price * 3);
+                      int64 pl_b = pl_when_bid_filled(tmp_bid_price, tmp_position_size, tmp_position_price);
+                      int64 pl = pl_b < pl_a ? pl_b : pl_a;
+
+                      // can drop to 0
+                      int64 risk_bidorder = risk_after_bid_filled(tmp_bid_size, tmp_bid_price, tmp_position_size, tmp_order_flags);
+                      // can go to strike price
+                      int64 risk_askorder = risk_after_ask_filled(tmp_ask_size, tmp_ask_price, tmp_position_size, gameState.crd_prevexp_price * 3, tmp_order_flags);
+
+                      int64 not_at_risk = pl + st.second.nGems - (risk_bidorder > risk_askorder ? risk_bidorder : risk_askorder);
+                      // ignoring "unsettled profits"
+                      if (st.second.ex_trade_profitloss < 0) not_at_risk += st.second.ex_trade_profitloss;
+                      // if collateral is about to be sold for coins
+                      if (st.second.auction_ask_size > 0) not_at_risk -= st.second.auction_ask_size;
+
+                      std::string s = "";
+                      if (tmp_order_flags & (ORDERFLAG_BID_SETTLE|ORDERFLAG_BID_INVALID|ORDERFLAG_BID_ACTIVE)) s += " bid:";
+                      if (tmp_order_flags & ORDERFLAG_BID_SETTLE) s += " rollover";
+                      if (tmp_order_flags & ORDERFLAG_BID_INVALID) s += " *no funds*";
+                      else if (tmp_order_flags & ORDERFLAG_BID_ACTIVE) s += " ok";
+                      if (tmp_order_flags & (ORDERFLAG_ASK_SETTLE|ORDERFLAG_ASK_INVALID|ORDERFLAG_ASK_ACTIVE)) s += " ask:";
+                      if (tmp_order_flags & ORDERFLAG_ASK_SETTLE) s += " rollover";
+                      if (tmp_order_flags & ORDERFLAG_ASK_INVALID) s += " *no funds*";
+                      else if (tmp_order_flags & ORDERFLAG_ASK_ACTIVE) s += " ok";
+
+                      // not rounded ----------------------------v-----v
+                      fprintf(fp, "%s   %-10s %6s    %9s   %6s  %8s   %8s     %6s  %6s  %6s  %6s  %6s  %6s   %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(tmp_position_size).c_str(), FormatMoney(tmp_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str(), FormatMoney(not_at_risk).c_str(),
+                              FormatMoney(risk_bidorder).c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), FormatMoney(tmp_ask_price).c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(risk_askorder).c_str(), s.c_str());
                   }
                 }
 
 
-                fprintf(fp, "\n\n CRD:GEM settlement (chronon %7d, %s, first regular settlement: %7d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUX_MINHEIGHT_SETTLE(fTestNet));
+                fprintf(fp, "\n\n CRD:GEM settlement (chronon %7d, %s, first regular expiration: %7d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUX_MINHEIGHT_SETTLE(fTestNet));
                 fprintf(fp, " --------------------------------------------------------------------------------\n\n");
 
                 if (gameState.auction_settle_price == 0)
@@ -2839,6 +2902,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     int64 tmp_settlement = (((AUX_COIN * AUX_COIN) / gameState.auction_settle_conservative) * AUX_COIN) / gameState.feed_nextexp_price;
                     tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
 
+                    fprintf(fp, "                                                             expiry\n");
                     fprintf(fp, "                                      settlement price       chronon    covered call strike\n\n");
                     fprintf(fp, "previous                                          %-7s    %7d    %-7s\n", FormatMoney(gameState.crd_prevexp_price).c_str(), tmp_oldexp_chronon, FormatMoney(gameState.crd_prevexp_price * 3).c_str());
                     fprintf(fp, "pending                                           %-7s    %7d    %-7s\n", FormatMoney(tmp_settlement).c_str(), tmp_newexp_chronon, FormatMoney(tmp_settlement * 3).c_str());
@@ -2852,6 +2916,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     fprintf(fp, "\n");
                     fprintf(fp, "->example chat message to sell 1 chronoDollar (and buy 1 covered call)\n");
                     fprintf(fp, "CRD:GEM set ask 1 at %s\n", FormatMoney(tmp_settlement).c_str());
+                    fprintf(fp, "\n");
+                    fprintf(fp, "->chat messages to order rollover of an 1 chronoDollar (long or short) position\n");
+                    fprintf(fp, "CRD:GEM set bid 1 at settlement\n");
+                    fprintf(fp, "CRD:GEM set ask 1 at settlement\n");
                     fprintf(fp, "\n");
                 }
 

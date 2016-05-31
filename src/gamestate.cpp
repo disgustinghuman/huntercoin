@@ -1145,6 +1145,58 @@ int64 tradecache_pricetick_down(int64 old)
 {
     return (feedcache_pricetick_down(old / 10) * 10);
 }
+
+int64 pl_when_ask_filled(int64 ask_price, int64 position_size, int64 position_price, int64 strike)
+{
+    int64 pl_a = 0;
+    if (position_size)
+    {
+        if (ask_price)
+            pl_a = (position_size / COIN) * (ask_price - position_price);
+        else
+            pl_a = (position_size / COIN) * (strike - position_price);
+    }
+    return pl_a;
+}
+int64 pl_when_bid_filled(int64 bid_price, int64 position_size, int64 position_price)
+{
+    int64 pl_b = 0;
+    if (position_size)
+    {
+        if (bid_price)
+            pl_b = (position_size / COIN) * (bid_price - position_price);
+        else
+            pl_b = (position_size / COIN) * (0 - position_price);
+    }
+    return pl_b;
+}
+int64 risk_after_ask_filled(int64 ask_size, int64 ask_price, int64 position_size, int64 strike, int orderflags)
+{
+    int64 position_after_fill = -position_size + ask_size;
+//    int64 position_after_fill = position_size - ask_size;
+//    if (orderflags & ORDERFLAG_ASK_SETTLE) position_after_fill = ask_size > -tmp_position_size ? -ask_size : position_size;
+    if (orderflags & ORDERFLAG_ASK_SETTLE) position_after_fill = ask_size > -position_size ? ask_size : -position_size;
+    int64 risk_askorder = ask_price ? (position_after_fill / COIN) * (strike - ask_price) : 0;
+    if (risk_askorder < 0) risk_askorder = 0;
+
+    // in case above division has rounded it down (which is ok for risk_bidorder)
+    if (risk_askorder) risk_askorder = tradecache_pricetick_up(risk_askorder);
+
+    return risk_askorder;
+}
+int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 position_size, int orderflags)
+{
+    int64 position_after_fill = position_size + bid_size;
+    if (orderflags & ORDERFLAG_BID_SETTLE) position_after_fill = bid_size > position_size ? bid_size : position_size;
+    int64 risk_bidorder = bid_price ? (position_after_fill / COIN) * bid_price : 0;
+    if (risk_bidorder < 0) risk_bidorder = 0;
+
+    // not really needed for risk_bidorder
+    if (risk_bidorder) risk_bidorder = tradecache_pricetick_up(risk_bidorder);
+
+    return risk_bidorder;
+}
+
 #endif
 
 #ifdef AUX_STORAGE_VOTING
@@ -2694,30 +2746,25 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             // note: all price and size values are in standard bitcoin notation (100000000 means 1.0)
             //       this is different from the "playground" testnet
             //       size is multiple of TRADE_CRD_MIN_SIZE (TRADE_CRD_MIN_SIZE == COIN, i.e. 1 dollar minimum size)
-            //   if we get a fill, this will be our (additional) profit or loss
-            int64 pl_a = 0;
-            int64 pl_b = 0;
-            if (tmp_ask_price) pl_a = (tmp_position_size / COIN) * (tmp_ask_price - tmp_position_price);
-            if (tmp_bid_price) pl_b = (tmp_position_size / COIN) * (tmp_bid_price - tmp_position_price);
+
+            // if we get a fill, this will be our (additional) profit or loss
+            // (assume extreme values in case of no order)
+            int64 pl_a = pl_when_ask_filled(tmp_ask_price, tmp_position_size, tmp_position_price, outState.crd_prevexp_price * 3);
+            int64 pl_b = pl_when_bid_filled(tmp_bid_price, tmp_position_size, tmp_position_price);
             int64 pl = pl_b < pl_a ? pl_b : pl_a;
-            //   net worth ignoring "unsettled profits"
-            int64 nw = st.second.ex_trade_profitloss < 0 ? pl + st.second.nGems + st.second.ex_trade_profitloss : pl + st.second.nGems;
+
+            // can drop to 0
+            int64 risk_bidorder = risk_after_bid_filled(tmp_bid_size, tmp_bid_price, tmp_position_size, tmp_order_flags);
+            // can go to strike price
+            int64 risk_askorder = risk_after_ask_filled(tmp_ask_size, tmp_ask_price, tmp_position_size, outState.crd_prevexp_price * 3, tmp_order_flags);
+
+            // net worth vs risk from open orders
+//          int64 nw = pl + st.second.nGems - (risk_bidorder > risk_askorder ? risk_bidorder : risk_askorder);
+            int64 nw = pl + st.second.nGems;
+            // ignoring "unsettled profits"
+            if (st.second.ex_trade_profitloss < 0) nw += st.second.ex_trade_profitloss;
             // if collateral is about to be sold for coins
             if (st.second.auction_ask_size > 0) nw -= st.second.auction_ask_size;
-
-            //   can drop to 0
-            int64 position_after_fill = (tmp_order_flags & ORDERFLAG_BID_SETTLE) ? tmp_bid_size : (tmp_position_size + tmp_bid_size);
-            int64 risk_bidorder = (position_after_fill / COIN) * tmp_bid_price;
-
-            //   can go to strike price
-            position_after_fill = (tmp_order_flags & ORDERFLAG_ASK_SETTLE) ? tmp_ask_size : (-tmp_position_size + tmp_ask_size);
-            int64 risk_askorder = (position_after_fill / COIN) * (outState.crd_prevexp_price * 3 - tmp_ask_price);
-
-            //   if order would reduce position size
-            if (risk_bidorder < 0) risk_bidorder = 0;
-            if (risk_askorder < 0) risk_askorder = 0;
-            // in case above division has rounded it down (which is ok for risk_bidorder)
-            if (risk_askorder) risk_askorder = tradecache_pricetick_up(risk_askorder);
 
             //   autocancel unfunded bid order
             if (risk_bidorder > nw)
@@ -2889,12 +2936,16 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             if ((tmp_bid_size == 0) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE))
             {
               tmp_order_flags -= ORDERFLAG_BID_ACTIVE;
-//              st.second.ex_order_price_bid = 0;
+
+              if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
+                  st.second.ex_order_price_bid = 0;
             }
             if ((tmp_ask_size == 0) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE))
             {
               tmp_order_flags -= ORDERFLAG_ASK_ACTIVE;
-//              st.second.ex_order_price_ask = 0;
+
+              if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
+                  st.second.ex_order_price_ask = 0;
             }
 
             st.second.ex_order_flags = tmp_order_flags;
@@ -3199,6 +3250,32 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             if ((ParseMoney(s_amount, tmp_amount)) &&
                                 (ParseMoney(s_price, tmp_price)))
                             {
+                                int64 tmp_bid_price = mi->second.ex_order_price_bid;
+                                int64 tmp_bid_size = mi->second.ex_order_size_bid;
+                                int64 tmp_ask_price = mi->second.ex_order_price_ask;
+                                int64 tmp_ask_size = mi->second.ex_order_size_ask;
+
+                                int tmp_order_flags = mi->second.ex_order_flags;
+                                int64 tmp_position_size = mi->second.ex_position_size;
+                                int64 tmp_position_price = mi->second.ex_position_price;
+
+                                // if we get a fill, this will be our (additional) profit or loss
+                                // (assume extreme values in case of no order)
+                                int64 pl_a = pl_when_ask_filled(tmp_ask_price, tmp_position_size, tmp_position_price, outState.crd_prevexp_price * 3);
+                                int64 pl_b = pl_when_bid_filled(tmp_bid_price, tmp_position_size, tmp_position_price);
+                                int64 pl = pl_b < pl_a ? pl_b : pl_a;
+
+                                // can drop to 0
+                                int64 risk_bidorder = risk_after_bid_filled(tmp_bid_size, tmp_bid_price, tmp_position_size, tmp_order_flags);
+                                // can go to strike price
+                                int64 risk_askorder = risk_after_ask_filled(tmp_ask_size, tmp_ask_price, tmp_position_size, outState.crd_prevexp_price * 3, tmp_order_flags);
+
+                                int64 not_at_risk = pl + mi->second.nGems - (risk_bidorder > risk_askorder ? risk_bidorder : risk_askorder);
+                                // ignoring "unsettled profits"
+                                if (mi->second.ex_trade_profitloss < 0) not_at_risk += mi->second.ex_trade_profitloss;
+                                // if collateral is about to be sold for coins
+                                if (mi->second.auction_ask_size > 0) not_at_risk -= mi->second.auction_ask_size;
+
                                 printf("parsing message: ask: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
 
                                 // - auctioncache_pricetick_... does this already
@@ -3207,8 +3284,12 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                 else if (tmp_price < COIN) tmp_price = COIN;
 
                                 // this is not ripple
-                                if (tmp_amount > mi->second.nGems)
-                                    tmp_amount = mi->second.nGems;
+//                                if (tmp_amount > mi->second.nGems)
+//                                    tmp_amount = mi->second.nGems;
+                                if (not_at_risk < 0)
+                                    not_at_risk = 0;
+                                if (tmp_amount > not_at_risk)
+                                    tmp_amount = not_at_risk;
 
                                 tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
                                 if (tmp_amount == 0)
