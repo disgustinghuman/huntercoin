@@ -1375,6 +1375,12 @@ extern int64 feedcache_volume_bear;
 extern int64 feedcache_volume_neutral;
 extern int64 feedcache_volume_reward;
 extern int feedcache_status;
+
+// hunter 2 hunter payment
+#define HUNTERMSGCACHE_MAX 1000
+extern int huntermsgcache_idx;
+extern int64 huntermsgcache_amount[HUNTERMSGCACHE_MAX];
+
 #endif
 
 #ifdef AUX_STORAGE_VERSION2

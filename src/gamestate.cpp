@@ -3180,17 +3180,19 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 {
                     std::string s_amount = "";
                     std::string s_price = "";
-                    std::string s_feed = "";
                     int64 tmp_amount = 0;
                     int64 tmp_price = 0;
-                    int64 tmp_feed = 0;
 
                     int l = p.second.message.length();
                     int lat3 = p.second.message.find(" at ");
 
                     int lask2 = p.second.message.find("GEM:HUC set ask "); // length of "key phrase" is 16
                     int lfeed1 = p.second.message.find("HUC:USD feed price "); // length of "key phrase" is 19
-//                    printf("parsing message: found storage: l=%d lfeed1=%d lask2=%d\n", l, lfeed1, lask2);
+
+                    // hunter 2 hunter payment
+                    int lsend1 = p.second.message.find("VAULT: transfer "); // length of "key phrase" is 16
+                    int lraze1 = p.second.message.find("VAULT: raze");
+                    int lgems1 = p.second.message.find(" gems");
 
 #ifdef AUX_STORAGE_VERSION2
                     // CRD test
@@ -3242,6 +3244,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     }
 #endif
 #endif
+                    int what_do = 0;
+                    // auction sell order
                     if ((lask2 == 0) && (lat3 >= 17) && (l >= lat3 + 5) && (l <= 100))
                     {
                         s_amount = p.second.message.substr(16, lat3 - 16);
@@ -3250,78 +3254,156 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             if ((ParseMoney(s_amount, tmp_amount)) &&
                                 (ParseMoney(s_price, tmp_price)))
                             {
-                                int64 tmp_bid_price = mi->second.ex_order_price_bid;
-                                int64 tmp_bid_size = mi->second.ex_order_size_bid;
-                                int64 tmp_ask_price = mi->second.ex_order_price_ask;
-                                int64 tmp_ask_size = mi->second.ex_order_size_ask;
-
-                                int tmp_order_flags = mi->second.ex_order_flags;
-                                int64 tmp_position_size = mi->second.ex_position_size;
-                                int64 tmp_position_price = mi->second.ex_position_price;
-
-                                // if we get a fill, this will be our (additional) profit or loss
-                                // (assume extreme values in case of no order)
-                                int64 pl_a = pl_when_ask_filled(tmp_ask_price, tmp_position_size, tmp_position_price, outState.crd_prevexp_price * 3);
-                                int64 pl_b = pl_when_bid_filled(tmp_bid_price, tmp_position_size, tmp_position_price);
-                                int64 pl = pl_b < pl_a ? pl_b : pl_a;
-
-                                // can drop to 0
-                                int64 risk_bidorder = risk_after_bid_filled(tmp_bid_size, tmp_bid_price, tmp_position_size, tmp_order_flags);
-                                // can go to strike price
-                                int64 risk_askorder = risk_after_ask_filled(tmp_ask_size, tmp_ask_price, tmp_position_size, outState.crd_prevexp_price * 3, tmp_order_flags);
-
-                                int64 not_at_risk = pl + mi->second.nGems - (risk_bidorder > risk_askorder ? risk_bidorder : risk_askorder);
-                                // ignoring "unsettled profits"
-                                if (mi->second.ex_trade_profitloss < 0) not_at_risk += mi->second.ex_trade_profitloss;
-                                // if collateral is about to be sold for coins
-                                if (mi->second.auction_ask_size > 0) not_at_risk -= mi->second.auction_ask_size;
-
-                                printf("parsing message: ask: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
-
-                                // - auctioncache_pricetick_... does this already
-                                // - if not enforced, numbers higher than MAX_MONEY will freeze the node
-                                if (tmp_price > 1000000 * COIN) tmp_price = 1000000 * COIN;
-                                else if (tmp_price < COIN) tmp_price = COIN;
-
-                                // this is not ripple
-//                                if (tmp_amount > mi->second.nGems)
-//                                    tmp_amount = mi->second.nGems;
-                                if (not_at_risk < 0)
-                                    not_at_risk = 0;
-                                if (tmp_amount > not_at_risk)
-                                    tmp_amount = not_at_risk;
-
-                                tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
-                                if (tmp_amount == 0)
-                                    tmp_price = 0; // size 0 == cancel
-                                else
-                                    tmp_price = auctioncache_pricetick_down(auctioncache_pricetick_up(tmp_price)); // snap to grid
-
-                                // - can modify an existing sell order if current best bid is lower, or send a new one
-                                // - make sure the new ask price doesn't interfere with the auctioncache_bid_... order (because it's already executing)
-                                // - could also rely on time priority:
-                                //   (auctioncache_bestask_chronon < mi->second.auction_ask_chronon) // our order is not first in queue
-                                //   (auctioncache_bid_price <= tmp_price)                           // there's another ask at same price level and it's at least 1 block old
-                                if (((auctioncache_bid_price < mi->second.auction_ask_price) || (mi->second.auction_ask_price == 0)) &&
-                                    ((auctioncache_bid_price < tmp_price) || (tmp_price == 0)))
+                                what_do = 1;
+                            }
+                        }
+                    }
+                    // hunter 2 hunter payment
+                    if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
+                    {
+                        if ((lsend1 == 0) && (lgems1 >= 17) && (l <= 100))
+                        {
+                            s_amount = p.second.message.substr(16, lgems1 - 16);
+                            {
+                                if (ParseMoney(s_amount, tmp_amount))
                                 {
-                                    mi->second.auction_ask_size = tmp_amount;
-                                    mi->second.auction_ask_price = tmp_price;
-                                    mi->second.auction_ask_chronon = outState.nHeight;
+                                    what_do = 2;
+                                }
+                            }
+                        }
+                        else if ((lraze1 == 0) && (l <= 100))
+                        {
+                            tmp_amount = 0;
+                            what_do = 3;
+                        }
+                    }
+
+                    if (what_do > 0)
+                    {
+                        int64 tmp_bid_price = mi->second.ex_order_price_bid;
+                        int64 tmp_bid_size = mi->second.ex_order_size_bid;
+                        int64 tmp_ask_price = mi->second.ex_order_price_ask;
+                        int64 tmp_ask_size = mi->second.ex_order_size_ask;
+
+                        int tmp_order_flags = mi->second.ex_order_flags;
+                        int64 tmp_position_size = mi->second.ex_position_size;
+                        int64 tmp_position_price = mi->second.ex_position_price;
+
+                        // if we get a fill, this will be our (additional) profit or loss
+                        // (assume extreme values in case of no order)
+                        int64 pl_a = pl_when_ask_filled(tmp_ask_price, tmp_position_size, tmp_position_price, outState.crd_prevexp_price * 3);
+                        int64 pl_b = pl_when_bid_filled(tmp_bid_price, tmp_position_size, tmp_position_price);
+                        int64 pl = pl_b < pl_a ? pl_b : pl_a;
+
+                        // can drop to 0
+                        int64 risk_bidorder = risk_after_bid_filled(tmp_bid_size, tmp_bid_price, tmp_position_size, tmp_order_flags);
+                        // can go to strike price
+                        int64 risk_askorder = risk_after_ask_filled(tmp_ask_size, tmp_ask_price, tmp_position_size, outState.crd_prevexp_price * 3, tmp_order_flags);
+
+                        int64 not_at_risk = pl + mi->second.nGems - (risk_bidorder > risk_askorder ? risk_bidorder : risk_askorder);
+                        // ignoring "unsettled profits"
+                        if (mi->second.ex_trade_profitloss < 0) not_at_risk += mi->second.ex_trade_profitloss;
+                        // if collateral is about to be sold for coins
+                        if (mi->second.auction_ask_size > 0) not_at_risk -= mi->second.auction_ask_size;
+
+                        printf("parsing message: ask: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
+
+                        // - auctioncache_pricetick_... does this already
+                        // - if not enforced, numbers higher than MAX_MONEY will freeze the node
+                        if (tmp_price > 1000000 * COIN) tmp_price = 1000000 * COIN;
+                        else if (tmp_price < COIN) tmp_price = COIN;
+
+                        // this is not ripple
+                        if (tmp_amount > mi->second.nGems)
+                            tmp_amount = mi->second.nGems;
+                        if (not_at_risk < 0)
+                            not_at_risk = 0;
+                        if (tmp_amount > not_at_risk)
+                            tmp_amount = not_at_risk;
+
+                        tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
+                        if (tmp_amount < 0) tmp_amount = 0;
+
+                        // auction sell order
+                        if (what_do == 1)
+                        {
+                            if (tmp_amount == 0)
+                                tmp_price = 0; // size 0 == cancel
+                            else
+                                tmp_price = auctioncache_pricetick_down(auctioncache_pricetick_up(tmp_price)); // snap to grid
+
+                            // - can modify an existing sell order if current best bid is lower, or send a new one
+                            // - make sure the new ask price doesn't interfere with the auctioncache_bid_... order (because it's already executing)
+                            // - could also rely on time priority:
+                            //   (auctioncache_bestask_chronon < mi->second.auction_ask_chronon) // our order is not first in queue
+                            //   (auctioncache_bid_price <= tmp_price)                           // there's another ask at same price level and it's at least 1 block old
+                            if (((auctioncache_bid_price < mi->second.auction_ask_price) || (mi->second.auction_ask_price == 0)) &&
+                                ((auctioncache_bid_price < tmp_price) || (tmp_price == 0)))
+                            {
+                                mi->second.auction_ask_size = tmp_amount;
+                                mi->second.auction_ask_price = tmp_price;
+                                mi->second.auction_ask_chronon = outState.nHeight;
+                            }
+                            else
+                            {
+                                printf("parsing message: order already executing\n");
+                            }
+                        }
+                        // hunter 2 hunter payment
+                        else if ((what_do == 2) || (what_do == 3))
+                        {
+                            if (what_do == 3)
+                            {
+                                tmp_amount = 0;
+                                if ((tmp_bid_size == 0) && (tmp_ask_size) && (tmp_position_size) && (mi->second.ex_trade_profitloss == 0))
+                                    if (mi->second.auction_ask_size == 0)
+                                        if (not_at_risk == mi->second.nGems)
+                                            if (p.second.playernameaddress != p.second.address)
+                                        {
+                                            tmp_amount = not_at_risk + CENT;
+
+                                            tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
+                                            if (tmp_amount < 0) tmp_amount = 0;
+                                        }
+                            }
+                            if (tmp_amount > 0)
+                            {
+                                if (IsValidBitcoinAddress(p.second.address))
+                                {
+                                    std::map<std::string, StorageVault>::iterator mi2 = outState.vault.find(p.second.address);
+                                    if (mi2 != outState.vault.end())
+                                    {
+                                        mi->second.nGems -= tmp_amount;
+                                        mi2->second.nGems += tmp_amount;
+                                        printf("parsing message: gem transfer, amount %s, hunter %s, sending addr %s, recipient %s\n", FormatMoney(tmp_amount).c_str(), p.first.c_str(), p.second.playernameaddress.c_str(), p.second.address.c_str());
+                                    }
+                                    else
+                                    {
+                                        printf("parsing message: gem transfer, hunter %s, sending addr %s, failed (no vault for recipient %s)\n", p.first.c_str(), p.second.playernameaddress.c_str(), p.second.address.c_str());
+                                    }
                                 }
                                 else
                                 {
-                                    printf("parsing message: order already executing\n");
+                                    printf("parsing message: gem transfer, hunter %s, sending addr %s, failed (no recipient addr)\n", p.first.c_str(), p.second.playernameaddress.c_str());
                                 }
+                            }
+                            else
+                            {
+                                printf("parsing message: gem transfer, hunter %s, sending addr %s, failed (gems not at risk: %s)\n", p.first.c_str(), p.second.playernameaddress.c_str(), FormatMoney(not_at_risk).c_str());
+                            }
+
+                            if ((what_do == 3) && (tmp_amount > 0))
+                            {
+                                outState.vault.erase(mi);
+                                printf("parsing message: gem transfer, deleting vault %s\n", p.second.playernameaddress.c_str());
                             }
                         }
                     }
 
-                    if ((lfeed1 == 0) && (l >= 20) && (l <= 100))
+                    else if ((lfeed1 == 0) && (l >= 20) && (l <= 100))
                     {
-                        printf("parsing message: possible price feed\n");
-
-                        s_feed = p.second.message.substr(19);
+                        int64 tmp_feed = 0;
+                        std::string s_feed = p.second.message.substr(19);
                         if (ParseMoney(s_feed, tmp_feed))
                         {
                             printf("parsing message: feed=%15"PRI64d" \n", tmp_feed);
@@ -3333,6 +3415,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             tmp_feed = feedcache_pricetick_down(feedcache_pricetick_up(tmp_feed)); // snap to grid
                             mi->second.feed_price = tmp_feed;
                             mi->second.feed_chronon = outState.nHeight;
+                        }
+                        else
+                        {
+                            printf("parsing message: couldn't parse price feed\n");
                         }
                     }
 #ifdef AUX_STORAGE_VERSION2
