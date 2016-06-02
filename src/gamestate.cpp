@@ -2773,7 +2773,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             }
             else
             {
-                tmp_order_flags |= ORDERFLAG_BID_ACTIVE;
+                if (tmp_bid_size > 0) tmp_order_flags |= ORDERFLAG_BID_ACTIVE;
                 if (tmp_order_flags & ORDERFLAG_BID_INVALID) tmp_order_flags -= ORDERFLAG_BID_INVALID;
             }
 
@@ -2787,7 +2787,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             }
             else
             {
-                tmp_order_flags |= ORDERFLAG_ASK_ACTIVE;
+                if (tmp_ask_size > 0) tmp_order_flags |= ORDERFLAG_ASK_ACTIVE;
                 if (tmp_order_flags & ORDERFLAG_ASK_INVALID) tmp_order_flags -= ORDERFLAG_ASK_INVALID;
             }
 
@@ -2933,19 +2933,21 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             }
 
             // size 0 cancels
-            if ((tmp_bid_size == 0) && (tmp_order_flags & ORDERFLAG_BID_ACTIVE))
+            if (tmp_bid_size == 0)
             {
-              tmp_order_flags -= ORDERFLAG_BID_ACTIVE;
+                if ((tmp_order_flags & ORDERFLAG_BID_ACTIVE))
+                    tmp_order_flags -= ORDERFLAG_BID_ACTIVE;
 
-              if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
-                  st.second.ex_order_price_bid = 0;
+                if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
+                    st.second.ex_order_price_bid = 0;
             }
-            if ((tmp_ask_size == 0) && (tmp_order_flags & ORDERFLAG_ASK_ACTIVE))
+            if (tmp_ask_size == 0)
             {
-              tmp_order_flags -= ORDERFLAG_ASK_ACTIVE;
+                if (tmp_order_flags & ORDERFLAG_ASK_ACTIVE)
+                    tmp_order_flags -= ORDERFLAG_ASK_ACTIVE;
 
-              if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
-                  st.second.ex_order_price_ask = 0;
+                if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
+                    st.second.ex_order_price_ask = 0;
             }
 
             st.second.ex_order_flags = tmp_order_flags;
@@ -4052,7 +4054,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
         // update character state if storage inventory changed, or hunter opend/closed the storage vault
 //        if ((tmp_disconnect_storage) || (tmp_gems))
-        if ((tmp_disconnect_storage) || (tmp_gems > 0) || (tmp_tmp_outfit > 0))
+        if ((tmp_disconnect_storage) || (tmp_gems > 0) || (tmp_outfit > 0))
         {
             BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
             {
