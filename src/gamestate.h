@@ -1377,6 +1377,9 @@ extern int64 feedcache_volume_reward;
 extern int feedcache_status;
 
 // hunter 2 hunter payment
+#define BITASSET_SELL_AUCTION 1
+#define BITASSET_SEND_GEMS 2
+#define BITASSET_RAZE_VAULT 3
 #define HUNTERMSGCACHE_MAX 1000
 extern int huntermsgcache_idx;
 extern int64 huntermsgcache_amount[HUNTERMSGCACHE_MAX];
@@ -1398,7 +1401,7 @@ extern int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 positi
 #define AUX_MINHEIGHT_MM_AI_UPGRADE(T) (T?323000:1240000)
 #define AUX_MINHEIGHT_SETTLE(T) (T?325000:1260000)
 #define AUX_MINHEIGHT_EXACT_RISK(T) (T?325000:1260000)
-#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1280000)
+#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1300000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
 #define MM_ORDERLIMIT_UNPACK(I64,B,A) {B=(I64%1000000000)*1000;A=(I64/1000000000)*1000;}

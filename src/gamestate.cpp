@@ -3254,7 +3254,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             if ((ParseMoney(s_amount, tmp_amount)) &&
                                 (ParseMoney(s_price, tmp_price)))
                             {
-                                what_do = 1;
+                                what_do = BITASSET_SELL_AUCTION;
                             }
                         }
                     }
@@ -3267,14 +3267,14 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             {
                                 if (ParseMoney(s_amount, tmp_amount))
                                 {
-                                    what_do = 2;
+                                    what_do = BITASSET_SEND_GEMS;
                                 }
                             }
                         }
                         else if ((lraze1 == 0) && (l <= 100))
                         {
                             tmp_amount = 0;
-                            what_do = 3;
+                            what_do = BITASSET_RAZE_VAULT;
                         }
                     }
 
@@ -3306,8 +3306,6 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         // if collateral is about to be sold for coins
                         if (mi->second.auction_ask_size > 0) not_at_risk -= mi->second.auction_ask_size;
 
-                        printf("parsing message: ask: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
-
                         // - auctioncache_pricetick_... does this already
                         // - if not enforced, numbers higher than MAX_MONEY will freeze the node
                         if (tmp_price > 1000000 * COIN) tmp_price = 1000000 * COIN;
@@ -3325,12 +3323,15 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         if (tmp_amount < 0) tmp_amount = 0;
 
                         // auction sell order
-                        if (what_do == 1)
+                        if (what_do == BITASSET_SELL_AUCTION)
                         {
                             if (tmp_amount == 0)
                                 tmp_price = 0; // size 0 == cancel
                             else
                                 tmp_price = auctioncache_pricetick_down(auctioncache_pricetick_up(tmp_price)); // snap to grid
+
+//                            printf("parsing message: auction sell order: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
+                            printf("parsing message: auction sell order: amount %s price %s\n", FormatMoney(tmp_amount).c_str(), FormatMoney(tmp_price).c_str());
 
                             // - can modify an existing sell order if current best bid is lower, or send a new one
                             // - make sure the new ask price doesn't interfere with the auctioncache_bid_... order (because it's already executing)
@@ -3350,21 +3351,23 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             }
                         }
                         // hunter 2 hunter payment
-                        else if ((what_do == 2) || (what_do == 3))
+                        else if ((what_do == BITASSET_SEND_GEMS) || (what_do == BITASSET_RAZE_VAULT))
                         {
-                            if (what_do == 3)
+                            if (what_do == BITASSET_RAZE_VAULT)
                             {
                                 tmp_amount = 0;
-                                if ((tmp_bid_size == 0) && (tmp_ask_size) && (tmp_position_size) && (mi->second.ex_trade_profitloss == 0))
+                                if ((tmp_bid_size == 0) && (tmp_ask_size == 0) && (tmp_position_size == 0) && (mi->second.ex_trade_profitloss == 0))
                                     if (mi->second.auction_ask_size == 0)
                                         if (not_at_risk == mi->second.nGems)
-                                            if (p.second.playernameaddress != p.second.address)
-                                        {
-                                            tmp_amount = not_at_risk + CENT;
+                                            if (IsValidBitcoinAddress(p.second.address))
+                                                if (p.second.playernameaddress != p.second.address)
+                                                {
+                                                    // release 1/2 of the fee that was paid when creating the vault
+                                                    tmp_amount = not_at_risk + (GEM_ONETIME_STORAGE_FEE / 2);
 
-                                            tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
-                                            if (tmp_amount < 0) tmp_amount = 0;
-                                        }
+                                                    tmp_amount -= (tmp_amount % CENT);
+                                                    if (tmp_amount < 0) tmp_amount = 0;
+                                                }
                             }
                             if (tmp_amount > 0)
                             {
@@ -3375,27 +3378,31 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                     {
                                         mi->second.nGems -= tmp_amount;
                                         mi2->second.nGems += tmp_amount;
-                                        printf("parsing message: gem transfer, amount %s, hunter %s, sending addr %s, recipient %s\n", FormatMoney(tmp_amount).c_str(), p.first.c_str(), p.second.playernameaddress.c_str(), p.second.address.c_str());
+                                        printf("parsing message: gem transfer ok, amount %s, hunter %s, sending addr %s, recipient %s\n", FormatMoney(tmp_amount).c_str(), p.first.c_str(), p.second.playernameaddress.c_str(), p.second.address.c_str());
+
+                                        // try to salvage all other items
+                                        if (what_do == BITASSET_RAZE_VAULT)
+                                        {
+                                            if (mi2->second.item_outfit == 0)
+                                                mi2->second.item_outfit = mi->second.item_outfit;
+
+                                            outState.vault.erase(mi);
+                                            printf("parsing message: gem transfer, deleting vault %s\n", p.second.playernameaddress.c_str());
+                                        }
                                     }
                                     else
                                     {
-                                        printf("parsing message: gem transfer, hunter %s, sending addr %s, failed (no vault for recipient %s)\n", p.first.c_str(), p.second.playernameaddress.c_str(), p.second.address.c_str());
+                                        printf("parsing message: gem transfer failed, hunter %s, sending addr %s (no vault for recipient %s)\n", p.first.c_str(), p.second.playernameaddress.c_str(), p.second.address.c_str());
                                     }
                                 }
                                 else
                                 {
-                                    printf("parsing message: gem transfer, hunter %s, sending addr %s, failed (no recipient addr)\n", p.first.c_str(), p.second.playernameaddress.c_str());
+                                    printf("parsing message: gem transfer failed, hunter %s, sending addr %s (no recipient addr)\n", p.first.c_str(), p.second.playernameaddress.c_str());
                                 }
                             }
                             else
                             {
-                                printf("parsing message: gem transfer, hunter %s, sending addr %s, failed (gems not at risk: %s)\n", p.first.c_str(), p.second.playernameaddress.c_str(), FormatMoney(not_at_risk).c_str());
-                            }
-
-                            if ((what_do == 3) && (tmp_amount > 0))
-                            {
-                                outState.vault.erase(mi);
-                                printf("parsing message: gem transfer, deleting vault %s\n", p.second.playernameaddress.c_str());
+                                printf("parsing message: gem transfer failed, hunter %s, sending addr %s (amount was set to 0, gems not at risk: %s)\n", p.first.c_str(), p.second.playernameaddress.c_str(), FormatMoney(not_at_risk).c_str());
                             }
                         }
                     }
@@ -3881,20 +3888,25 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         bool tmp_disconnect_storage = false;
         bool tmp_reward_addr_set = (p.second.address.length() > 1); // (IsValidBitcoinAddress(p.second.address)) fast enough?
 
+        unsigned char tmp_outfit = 0;
 #ifdef RPG_OUTFIT_ITEMS
         int64 tmp_new_outfit = 0;
-        unsigned char tmp_outfit = 0;
         for (int i = 0; i < RPG_NUM_OUTFITS; i++)
         {
             if ((outfit_cache[i]) && (outfit_cache_name[i] == p.first))
             {
-//                tmp_new_outfit = 1<<i;
-                if (i == 0) tmp_new_outfit = 1;
-                else if (i == 1) tmp_new_outfit = 2;
-                else if (i == 2) tmp_new_outfit = 4;
-                p.second.playerflags |= PLAYER_FOUND_ITEM;
+                // can only find items (that are not gems) for yourself, because they may auto-equip and/or cause
+                // other items to be discarded
+                if (!p.second.playernameaddress.empty())
+                if ((!tmp_reward_addr_set) || (p.second.address == p.second.playernameaddress))
+                {
+//                  tmp_new_outfit = 1<<i;
+                    if (i == 0) tmp_new_outfit = 1;
+                    else if (i == 1) tmp_new_outfit = 2;
+                    else if (i == 2) tmp_new_outfit = 4;
+                    p.second.playerflags |= PLAYER_FOUND_ITEM;
+                }
             }
-
         }
 #endif
 
@@ -4038,7 +4050,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
           p.second.playerflags = f_pf;
         }
 
-        if ((tmp_disconnect_storage) || (tmp_gems))
+        // update character state if storage inventory changed, or hunter opend/closed the storage vault
+//        if ((tmp_disconnect_storage) || (tmp_gems))
+        if ((tmp_disconnect_storage) || (tmp_gems > 0) || (tmp_tmp_outfit > 0))
         {
             BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
             {
