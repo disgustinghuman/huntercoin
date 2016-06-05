@@ -7,16 +7,16 @@ https://github.com/wiggi/huntercoin
 Binaries
 ========
 
-huntercoin-betterQt-exp-binaries-20160523.zip, 35.3 MB
-https://mega.nz/#!qUNUyIQb!JzEzBFNTSvO4WGjvJ3RlfjqiN3zlNUUEJ_BvW6Q5LLQ
+huntercoin-betterQt-exp-binaries-20160605.zip, 26.1 MB
+https://mega.nz/#!iM9mGJSK!eBvhU27JK19LlzGUE9PLCec1c4WsZMBq7BC2Sbdsndk
 
   for Windows:
   - Safemode
 
   for Windows, Linux Mint13/Ubuntu12.04 32bit, Linux Mint17.3/ubuntu14.04 32+64bit
   - "Self defense for hunters" experimental build
-  - uses alternative gamestate game_sv3.dat (included, client can make its own but first start
-    would take ~5 hours on mainnet if game_sv3.dat is not in the same folder as game.dat)
+  - uses alternative gamestate game_sv4.dat (included, client can make its own but first start
+    would take ~5 hours on mainnet if game_sv4.dat is not in the same folder as game.dat)
 
 
 New: Auction Bot (20160503)
@@ -109,9 +109,9 @@ Safemode, advanced mode, gems and in-game auction
 
 Safemode:       uses regular game.dat
 
-Advanced mode:  compiled with "#define PERMANENT_LUGGAGE" for additional variables in the gamestate (game_sv3.dat)
-                -> copy game_sv3.dat to the same folder as game.dat,
-                   if no game_sv3.dat is present, a new one is generated
+Advanced mode:  compiled with "#define PERMANENT_LUGGAGE" for additional variables in the gamestate (game_sv4.dat)
+                -> copy game_sv4.dat to the same folder as game.dat,
+                   if no game_sv4.dat is present, a new one is generated
                    (takes ~15 minutes on testnet, ~5 hours on mainnet)
 
 Gems:           a NPC by the name of "Tia'tha" will spawn every 1242 chronons near the middle of the right or left map border

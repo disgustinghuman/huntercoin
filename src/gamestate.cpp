@@ -2611,8 +2611,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         int64 tmp_settlement = (((COIN * COIN) / outState.auction_settle_conservative) * COIN) / outState.feed_nextexp_price;
                         tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
 
-                        int maxed_out_50th = int(((tmp_position_size / COIN) * tmp_settlement * 50) / st.second.nGems); // -50 ... +50
-//                        double adjustment = 1.0 + (double(maxed_out_50th) / 100.0) // 0.5 ... 1.5
+                        int mult = 50;
+                        if (out_height >= AUX_MINHEIGHT_SETTLE(fTestNet)) mult = 100; // now doubled to 1 tick per percent
+                        int maxed_out_50th = int(((tmp_position_size / COIN) * tmp_settlement * mult) / st.second.nGems); // 0...100, was 0...50
+
                         if (maxed_out_50th > 0)
                             for (int n = 0; n < maxed_out_50th; n++)
                                 tmp_settlement = tradecache_pricetick_down(tmp_settlement);
@@ -2938,7 +2940,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 if ((tmp_order_flags & ORDERFLAG_BID_ACTIVE))
                     tmp_order_flags -= ORDERFLAG_BID_ACTIVE;
 
-                if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
+                if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet))
                     st.second.ex_order_price_bid = 0;
             }
             if (tmp_ask_size == 0)
@@ -2946,7 +2948,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 if (tmp_order_flags & ORDERFLAG_ASK_ACTIVE)
                     tmp_order_flags -= ORDERFLAG_ASK_ACTIVE;
 
-                if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
+                if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet))
                     st.second.ex_order_price_ask = 0;
             }
 
@@ -3261,7 +3263,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         }
                     }
                     // hunter 2 hunter payment
-                    if (outState.nHeight >= AUX_MINHEIGHT_EXACT_RISK(fTestNet))
+                    if (outState.nHeight >= AUX_MINHEIGHT_SETTLE(fTestNet))
                     {
                         if ((lsend1 == 0) && (lgems1 >= 17) && (l <= 100))
                         {

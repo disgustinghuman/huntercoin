@@ -22,6 +22,7 @@
 #define AUX_STORAGE_VOTING
 #define AUX_STORAGE_VERSION2
 #define AUX_STORAGE_VERSION3
+#define AUX_STORAGE_VERSION4
 #define AUX_AUCTION_BOT
 // CRD test
 #define AUX_TICKFIX_DELETEME
@@ -304,6 +305,12 @@ struct StorageVault
     int64_t vote_raw_amount;
     int64_t vote_txid60bit;
     int64_t ex_vote_mm_limits;
+#ifdef AUX_STORAGE_VERSION4
+    int64_t storage_i64reserve41;
+    int64_t storage_i64reserve42;
+    int storage_ireserve43;
+    int storage_ireserve44;
+#endif
     int feed_chronon;
     int auction_ask_chronon;
     unsigned char item_outfit;
@@ -372,6 +379,12 @@ struct StorageVault
           vote_raw_amount(0),
           vote_txid60bit(0),
           ex_vote_mm_limits(0),
+#ifdef AUX_STORAGE_VERSION4
+          storage_i64reserve41(0),
+          storage_i64reserve42(0),
+          storage_ireserve43(0),
+          storage_ireserve44(0),
+#endif
           feed_chronon(0),
           auction_ask_chronon(0),
           item_outfit(0),
@@ -431,6 +444,12 @@ struct StorageVault
           vote_raw_amount(0),
           vote_txid60bit(0),
           ex_vote_mm_limits(0),
+#ifdef AUX_STORAGE_VERSION4
+          storage_i64reserve41(0),
+          storage_i64reserve42(0),
+          storage_ireserve43(0),
+          storage_ireserve44(0),
+#endif
           feed_chronon(0),
           auction_ask_chronon(0),
           item_outfit(0),
@@ -495,6 +514,12 @@ struct StorageVault
         READWRITE(vote_raw_amount);
         READWRITE(vote_txid60bit);
         READWRITE(ex_vote_mm_limits);
+#ifdef AUX_STORAGE_VERSION4
+        READWRITE(storage_i64reserve41);
+        READWRITE(storage_i64reserve42);
+        READWRITE(storage_ireserve43);
+        READWRITE(storage_ireserve44);
+#endif
         READWRITE(feed_chronon);
         READWRITE(auction_ask_chronon);
         READWRITE(item_outfit);
@@ -1400,7 +1425,6 @@ extern int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 positi
 #define AUX_MINHEIGHT_TRADE(T) (T?322700:1220000)
 #define AUX_MINHEIGHT_MM_AI_UPGRADE(T) (T?323000:1240000)
 #define AUX_MINHEIGHT_SETTLE(T) (T?325000:1260000)
-#define AUX_MINHEIGHT_EXACT_RISK(T) (T?325000:1260000)
 #define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1300000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
