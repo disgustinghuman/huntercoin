@@ -19,6 +19,40 @@ https://mega.nz/#!iM9mGJSK!eBvhU27JK19LlzGUE9PLCec1c4WsZMBq7BC2Sbdsndk
     would take ~5 hours on mainnet if game_sv4.dat is not in the same folder as game.dat)
 
 
+New: Bitasset transfer (20160605)
+=================================
+
+
+VAULT: raze                   Chat message command: Transfer all items to the storage vault at the hunter's reward address,
+                              and delete the old storage vault at the hunter's name address
+                              (but a new vault can be created later with the same address as key)
+
+                              The command will silently fail if the reward address is not already a storage vault key.
+                              (reward address can be set using the same transaction)
+
+                              Razing will release 1/2 of the vault creation cost.
+
+                              console versions:
+                              name_update Alice {\"msg\":\"VAULT: raze\"}
+                              name_update Alice {\"msg\":\"VAULT: raze\",\"address\":\"H................................\"}
+
+VAULT: transfer 1.0 gems      Chat message command: Transfer the specified amount of gems (must be multiple of 0.01) to the hunter's reward address.
+                              The command will silently fail if the reward address is not already a storage vault key.
+                              (reward address can be set using the same transaction)
+
+                              console versions:
+                              name_update Alice {\"msg\":\"VAULT: transfer 1.0 gems\"}
+                              name_update Alice {\"msg\":\"VAULT: transfer 1.0 gems\",\"address\":\"H................................\"}
+
+notes:
+
+Only the blockchain is parsed to determine whether a transfer is executed, not client input.
+All inputs are standard Huntercoin transactions
+
+The transfers are irrevocable, done 1 block after the tx is in the blockchain,
+and in case of a chain reorg they will be handled correctly like any other gamestate data
+
+
 New: Auction Bot (20160503)
 ===========================
 
