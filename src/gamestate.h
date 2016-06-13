@@ -1303,6 +1303,11 @@ extern std::string pmon_config_auction_auto_name;
 #define WHYVALIDATE_CONNECTBLOCK 1
 extern int pmon_why_validate;
 
+#define BANKSTATE_NORMAL 0
+#define BANKSTATE_FULL 1
+#define BANKSTATE_NOTIFY 2
+#define BANKSTATE_ONMYWAY 3
+#define BANKSTATE_NOLIMIT 4
 extern int pmon_need_bank_idx;
 extern int pmon_my_bankstate[PMON_MY_MAX];
 extern int pmon_my_bankdist[PMON_MY_MAX];

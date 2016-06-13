@@ -1959,20 +1959,28 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
 
                         // notice heavy loot and nearby bank
+                        //
+                        // currently banking
                         if (gameState.IsBank(coord))
-                            pmon_my_bankstate[m] = 3;
-                        // reset to 0 if just stepped off a bank tile
-                        else if ((pmon_my_bankstate[m] != 0) && (characterState.loot.nAmount == 0))
-                            pmon_my_bankstate[m] = 0;
+                            pmon_my_bankstate[m] = BANKSTATE_ONMYWAY;
+                        // already over carrying limit (crown holder)
+                        else if ((pmon_my_bankstate[m] != BANKSTATE_ONMYWAY) && (characterState.loot.nAmount > 10000000000))
+                            pmon_my_bankstate[m] = BANKSTATE_NOLIMIT;
+                        // notice if full even if no bank is around
+                        else if ((pmon_my_bankstate[m] != BANKSTATE_ONMYWAY) && (characterState.loot.nAmount == 10000000000))
+                            pmon_my_bankstate[m] = BANKSTATE_FULL;
+                        // reset if no loot (just stepped off a bank tile)
+                        else if ((pmon_my_bankstate[m] != BANKSTATE_NORMAL) && (characterState.loot.nAmount == 0))
+                            pmon_my_bankstate[m] = BANKSTATE_NORMAL;
                         // player did something after notification
-                        else if ((pmon_my_bankstate[m] >= 1) && (pmon_my_bankstate[m] <= 2) && (pending_tx_idx >= 0))
-                            pmon_my_bankstate[m] = 3;
+                        else if (((pmon_my_bankstate[m] == BANKSTATE_FULL) || (pmon_my_bankstate[m] == BANKSTATE_NOTIFY)) && (pending_tx_idx >= 0))
+                            pmon_my_bankstate[m] = BANKSTATE_ONMYWAY;
 
-                        if ( (pmon_my_bankstate[m] != 3) && (pending_tx_idx == -1) && (pmon_my_bankdist[m] <= pmon_config_bank_notice) &&
+                        if ( (pmon_my_bankstate[m] != BANKSTATE_ONMYWAY) && (pending_tx_idx == -1) && (pmon_my_bankdist[m] <= pmon_config_bank_notice) &&
                              ((pmon_config_afk_leave) || (characterState.loot.nAmount / 100000000 >= pmon_config_loot_notice)) )
                         {
-                            if (pmon_my_bankstate[m] < 2)
-                                pmon_my_bankstate[m] = ((characterState.loot.nAmount < 10000000000) ? 2 : 1);
+                            if ((pmon_my_bankstate[m] == BANKSTATE_NORMAL) || (pmon_my_bankstate[m] == BANKSTATE_FULL))
+                                pmon_my_bankstate[m] = ((characterState.loot.nAmount < 10000000000) ? BANKSTATE_NOTIFY : BANKSTATE_FULL);
 
                             bool tmp_on_my_way = false;
                             if ( (!characterState.waypoints.empty()) &&
@@ -1981,7 +1989,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                             if (tmp_on_my_way)
                             {
-                                pmon_my_bankstate[m] = 3;
+                                pmon_my_bankstate[m] = BANKSTATE_ONMYWAY;
                             }
                             else
                             {
@@ -1991,16 +1999,16 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                     pmon_need_bank_idx = m;
                             }
 
-                            if ((pmon_need_bank_idx == m) && (pmon_my_bankstate[m] != 3) && (pmon_my_bankdist[m] <= pmon_config_bank_notice) &&
+                            if ((pmon_need_bank_idx == m) && (pmon_my_bankstate[m] != BANKSTATE_ONMYWAY) && (pmon_my_bankdist[m] <= pmon_config_bank_notice) &&
                                 (pmon_my_bank_x[m] >= 0) && (pmon_my_bank_y[m] >= 0))
                             if (pmon_config_afk_leave)
                             {
                                 pmon_name_update(m, pmon_my_bank_x[m], pmon_my_bank_y[m]);
-                                pmon_my_bankstate[m] = 3;
+                                pmon_my_bankstate[m] = BANKSTATE_ONMYWAY;
                             }
                         }
 
-                        if ((pmon_my_bankstate[m] == 0) || (pmon_my_bankstate[m] == 3))
+                        if ((pmon_my_bankstate[m] == BANKSTATE_NORMAL) || (pmon_my_bankstate[m] == BANKSTATE_ONMYWAY))
                         {
                             if (pmon_need_bank_idx == m)
                                 pmon_need_bank_idx = -1;
@@ -2048,9 +2056,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         }
                         else if ((pmon_need_bank_idx >= 0) && (pmon_need_bank_idx < PMON_MY_MAX))
                         {
-                            if (pmon_my_bankstate[pmon_need_bank_idx] == 2)
+                            if (pmon_my_bankstate[pmon_need_bank_idx] == BANKSTATE_NOTIFY)
                                 entry.name += QString::fromStdString(" Bank:");
-                            else if (pmon_my_bankstate[pmon_need_bank_idx] == 1)
+                            else if (pmon_my_bankstate[pmon_need_bank_idx] == BANKSTATE_FULL)
                                 entry.name += QString::fromStdString(" Full:");
 
                             entry.name += QString::fromStdString(pmon_my_names[pmon_need_bank_idx]);
@@ -2069,7 +2077,17 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         if (!pmon_noisy)
                             entry.name += QString::fromStdString(" (silent)");
 
-                        if ((pmon_config_afk_leave) && (pmon_my_bankstate[m] != 3))
+                        // indicate if a hunter is currently ignored by the banking logic
+                        if (pmon_my_bankstate[m] == BANKSTATE_ONMYWAY)
+                        {
+                            entry.name += QString::fromStdString(" [On my way]");
+                        }
+                        else if (pmon_my_bankstate[m] == BANKSTATE_FULL)
+                        {
+                            entry.name += QString::fromStdString(" [Full]");
+                        }
+//                        else if (pmon_config_afk_leave)
+                        if ((pmon_config_afk_leave) && (pmon_my_bankstate[m] != BANKSTATE_ONMYWAY))
                         {
                             entry.name += QString::fromStdString(" Leaving:");
                             entry.name += QString::number(pmon_config_bank_notice);
@@ -2116,9 +2134,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
             pmon_my_foecontact_age[m] = 0;
             pmon_my_alarm_state[m] = 0;
             pmon_my_idlecount[m] = 0;
-
             pmon_my_bankdist[m] = 0;
             pmon_my_bankstate[m] = 0;
+
+            if (m == 0)
+            {
+                pmon_out_of_wp_idx = -1;
+                pmon_need_bank_idx = -1;
+            }
 
             continue;
         }
@@ -2132,9 +2155,11 @@ void GameMapView::updateGameMap(const GameState &gameState)
         int my_idx = pmon_my_idx[m];
         if (my_idx < 0)  // not alive
         {
+            pmon_my_foecontact_age[m] = 0;
             pmon_my_alarm_state[m] = 0;
             pmon_my_idlecount[m] = 0;
             pmon_my_bankdist[m] = 0;
+            pmon_my_bankstate[m] = 0;
 
             if (pmon_out_of_wp_idx == m) pmon_out_of_wp_idx = -1;
             if (pmon_need_bank_idx == m) pmon_need_bank_idx = -1;
