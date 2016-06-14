@@ -1573,7 +1573,7 @@ struct CharacterEntry
 
 
 // pending tx monitor -- helper
-static int wmon_CoordStep(int x, int target)
+static int pmon_CoordStep(int x, int target)
 {
     if (x < target)
         return x + 1;
@@ -1584,7 +1584,7 @@ static int wmon_CoordStep(int x, int target)
 }
 // Compute new 'v' coordinate using line slope information applied to the 'u' coordinate
 // 'u' is reference coordinate (largest among dx, dy), 'v' is the coordinate to be updated
-static int wmon_CoordUpd(int u, int v, int du, int dv, int from_u, int from_v)
+static int pmon_CoordUpd(int u, int v, int du, int dv, int from_u, int from_v)
 {
     if (dv != 0)
     {
@@ -1760,7 +1760,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 #endif
 
             // pending tx monitor -- info text
-            const Coord &wmon_from = characterState.from;
+            const Coord &pmon_from = characterState.from;
             if (((pmon_state == PMONSTATE_CONSOLE) || (pmon_state == PMONSTATE_RUN)) &&
                 (pmon_all_count < PMON_ALL_MAX))
             {
@@ -1809,18 +1809,18 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     target = characterState.waypoints.back();
 
 
-                    int dx = target.x - wmon_from.x;
-                    int dy = target.y - wmon_from.y;
+                    int dx = target.x - pmon_from.x;
+                    int dy = target.y - pmon_from.y;
 
                     if (abs(dx) > abs(dy))
                     {
-                        new_c.x = wmon_CoordStep(coord.x, target.x);
-                        new_c.y = wmon_CoordUpd(new_c.x, coord.y, dx, dy, wmon_from.x, wmon_from.y);
+                        new_c.x = pmon_CoordStep(coord.x, target.x);
+                        new_c.y = pmon_CoordUpd(new_c.x, coord.y, dx, dy, pmon_from.x, pmon_from.y);
                     }
                     else
                     {
-                        new_c.y = wmon_CoordStep(coord.y, target.y);
-                        new_c.x = wmon_CoordUpd(new_c.y, coord.x, dy, dx, wmon_from.y, wmon_from.x);
+                        new_c.y = pmon_CoordStep(coord.y, target.y);
+                        new_c.x = pmon_CoordUpd(new_c.y, coord.x, dy, dx, pmon_from.y, pmon_from.x);
                     }
                     pmon_all_next_x[pmon_all_count] = new_c.x;
                     pmon_all_next_y[pmon_all_count] = new_c.y;
@@ -2178,8 +2178,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
         for (int k_all = 0; k_all < pmon_all_count; k_all++)
         {
             if (k_all == my_idx) continue; // that's me
-            if (pmon_all_color[my_idx] == pmon_all_color[k_all]) continue; // same team
             if (pmon_all_cache_isinmylist[k_all]) continue; // one of my players
+            if (pmon_all_color[my_idx] == pmon_all_color[k_all]) continue; // same team
 
             if ((abs(my_next_x - pmon_all_next_x[k_all]) <= 1) && (abs(my_next_y - pmon_all_next_y[k_all]) <= 1))
             {
