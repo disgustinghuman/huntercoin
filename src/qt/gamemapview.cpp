@@ -2688,10 +2688,25 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (feedcache_status == FEEDCACHE_EXPIRY)
                 tmp_oldexp_chronon = gameState.nHeight - AUX_EXPIRY_INTERVAL(fTestNet);
             int tmp_newexp_chronon = tmp_oldexp_chronon + AUX_EXPIRY_INTERVAL(fTestNet);
+#ifdef TRADE_OUTPUT_HTML
+            fp = fopen("adv_chrono.html", "w");
+            if (fp != NULL)
+            {
+                fprintf(fp, "<!doctype html>\n");
+                fprintf(fp, "<html>\n");
+                fprintf(fp, "<head>\n");
+                fprintf(fp, "<meta charset=\"utf-8\">\n");
+                fprintf(fp, "<meta http-equiv=\"refresh\" content=\"6\" > <!-- refresh every 6 seconds -->\n");
+                fprintf(fp, "<title>chronoDollar order book & stats</title>\n");
+                fprintf(fp, "</head>\n");
 
+                fprintf(fp, "<body>\n");
+                fprintf(fp, "<pre>\n");
+#else
             fp = fopen("adv_chrono.txt", "w");
             if (fp != NULL)
             {
+#endif
                 if (gameState.nHeight < AUX_MINHEIGHT_TRADE(fTestNet))
                 {
                   fprintf(fp, "Closed until block %d\n", AUX_MINHEIGHT_TRADE(fTestNet));
@@ -2983,7 +2998,11 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     fprintf(fp, "cached volume (min ask): total %s, participation %s, higher than median %s, at median %s, lower than median %s\n", FormatMoney(mmlimitcache_volume_total).c_str(), FormatMoney(mmlimitcache_volume_participation).c_str(), FormatMoney(mmminaskcache_volume_bull).c_str(), FormatMoney(mmminaskcache_volume_neutral).c_str(), FormatMoney(mmminaskcache_volume_bear).c_str());
                     fprintf(fp, "\n");
                 }
-
+#ifdef TRADE_OUTPUT_HTML
+                fprintf(fp, "</pre>\n");
+                fprintf(fp, "</body>\n");
+                fprintf(fp, "</html>\n");
+#endif
                 fclose(fp);
             }
             MilliSleep(20);

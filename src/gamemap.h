@@ -2,6 +2,7 @@
 #define GAMEMAP_H
 
 #ifdef GUI
+//#define TRADE_OUTPUT_HTML
 #define RPG_OUTFIT_NPCS
 #ifdef RPG_OUTFIT_NPCS
 #define RPG_OUTFIT_ITEMS

@@ -2654,6 +2654,17 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         spread_ask = 0.94;
                     }
 
+                    // need price feed to improve orders
+                    if (n == 1)
+                    if (out_height >= AUX_MINHEIGHT_MM_AI_UPGRADE2(fTestNet))
+                    {
+                        int h = out_height % AUX_EXPIRY_INTERVAL(fTestNet);
+                        if ((h > 5) && (h < MM_AI_IMPROVEMENT_START(fTestNet)))
+                        {
+                            n = 0;
+                        }
+                    }
+
                     // improve bid
                     if ((n == 1) && (tmp_bid_price > 0))
                     {
