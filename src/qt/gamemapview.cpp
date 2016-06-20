@@ -278,11 +278,13 @@ class GameMapCache
             color_a1 = color_a1_;
             color_d1 = color_d1_;
             color_d2 = color_d2_;
-            shadow_sprite1 = scene->addPixmap(grobjs->tiles[260]);
+//            shadow_sprite1 = scene->addPixmap(grobjs->tiles[260]);
+            shadow_sprite1 = scene->addPixmap(grobjs->tiles[color!=32?463:465]);
             shadow_sprite1->setOffset(x, y);
             shadow_sprite1->setZValue(z_order);
             shadow_sprite1->setOpacity(0.4);
-            shadow_sprite2 = scene->addPixmap(grobjs->tiles[261]);
+//            shadow_sprite2 = scene->addPixmap(grobjs->tiles[261]);
+            shadow_sprite2 = scene->addPixmap(grobjs->tiles[color!=32?464:466]);
             shadow_sprite2->setOffset(x, y + TILE_SIZE);
             shadow_sprite2->setZValue(z_order);
             shadow_sprite2->setOpacity(0.4);
@@ -2054,7 +2056,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 entry.name += QString::fromStdString(pmon_my_names[pmon_out_of_wp_idx]);
                             }
                         }
-                        else if ((pmon_need_bank_idx >= 0) && (pmon_need_bank_idx < PMON_MY_MAX))
+                        if ((pmon_need_bank_idx >= 0) && (pmon_need_bank_idx < PMON_MY_MAX))
                         {
                             if (pmon_my_bankstate[pmon_need_bank_idx] == BANKSTATE_NOTIFY)
                                 entry.name += QString::fromStdString(" Bank:");
@@ -2069,7 +2071,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                  entry.name += QString::number(pmon_my_bankdist[pmon_need_bank_idx]);
                             }
                         }
-                        else if (!tmp_alarm)
+                        else if ((!tmp_alarm) && (pmon_out_of_wp_idx < 0))
                         {
                             entry.name += QString::fromStdString(" (OK)");
                         }
@@ -2086,7 +2088,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         {
                             entry.name += QString::fromStdString(" [Full]");
                         }
-//                        else if (pmon_config_afk_leave)
+                        else if (pmon_my_idle_chronon[m] > gameState.nHeight)
+                        {
+                            entry.name += QString::fromStdString(" [Idle ");
+                            entry.name += QString::number(pmon_my_idle_chronon[m] - gameState.nHeight);
+                            entry.name += QString::fromStdString("]");
+                        }
+
                         if ((pmon_config_afk_leave) && (pmon_my_bankstate[m] != BANKSTATE_ONMYWAY))
                         {
                             entry.name += QString::fromStdString(" Leaving:");
@@ -2871,7 +2879,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                 fprintf(fp, "\n\n");
 
-                fprintf(fp, "\n CRD:GEM trader positions (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
+                fprintf(fp, "\n CRD:GEM trader positions (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
                 fprintf(fp, " ---------------------------------------------------\n\n");
 //                fprintf(fp, "                                                                                               \n");
                 fprintf(fp, "                                     hunter             chronoDollar   trade     trade  gems, not       long    bid    bid      ask     ask     short\n");

@@ -463,6 +463,10 @@
         <file alias="460">res/gamemap/460.png</file>
         <file alias="461">res/gamemap/461.png</file>
         <file alias="462">res/gamemap/462.png</file>
+        <file alias="463">res/gamemap/463.png</file>
+        <file alias="464">res/gamemap/464.png</file>
+        <file alias="465">res/gamemap/465.png</file>
+        <file alias="466">res/gamemap/466.png</file>
     </qresource>
     <qresource prefix="/gamemap/sprites">
         <file alias="0_1">res/gamemap/sprites/0_1.png</file>

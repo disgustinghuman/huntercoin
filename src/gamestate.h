@@ -1313,6 +1313,7 @@ extern int pmon_my_bankstate[PMON_MY_MAX];
 extern int pmon_my_bankdist[PMON_MY_MAX];
 extern int pmon_my_bank_x[PMON_MY_MAX];
 extern int pmon_my_bank_y[PMON_MY_MAX];
+extern int pmon_my_idle_chronon[PMON_MY_MAX];
 
 #define PMON_CONFIG_MAX 15
 extern int pmon_config_loot_notice;

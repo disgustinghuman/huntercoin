@@ -29,7 +29,7 @@ static const int CROWN_START_Y = 248;
 static const int MAP_LAYERS = 3;          // Map is layered for visual purposes
 
 // better GUI -- more map tiles
-static const int NUM_TILE_IDS = 463; // 235;      // Total number of different tile textures
+static const int NUM_TILE_IDS = 467; // 235;      // Total number of different tile textures
 
 // extern const short GameMap[MAP_LAYERS][MAP_HEIGHT][MAP_WIDTH];
 #endif

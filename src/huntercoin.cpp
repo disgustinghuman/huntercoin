@@ -1203,6 +1203,7 @@ int pmon_my_bankstate[PMON_MY_MAX]; // 0..no loot  1..heavy loot  2..bank nearby
 int pmon_my_bankdist[PMON_MY_MAX];
 int pmon_my_bank_x[PMON_MY_MAX];
 int pmon_my_bank_y[PMON_MY_MAX];
+int pmon_my_idle_chronon[PMON_MY_MAX];
 
 int pmon_config_loot_notice = 50;
 int pmon_config_bank_notice = 0;
