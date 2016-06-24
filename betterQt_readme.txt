@@ -270,6 +270,7 @@ Grass
 "   high green grass (semi-random offset)
 '   same as above, but green-to-yellow
 v   same as above, but red (2 versions chosen at random)
+y   same as above, but yellow (2 versions chosen at random)
 
     these grass tiles have their own small shadow baked in and (unlike boulders) don't use up shadow layers
 
@@ -277,10 +278,10 @@ v   same as above, but red (2 versions chosen at random)
 Trees
 -----
 
-B   broadleaf, dark
-b   broadleaf, bright
-C   conifer, dark
-c   conifer, bright
+B   broadleaf, dark (T for smaller version, to be used as "no clip" object)
+b   broadleaf, bright (t for smaller version)
+C   conifer, dark (F for smaller version)
+c   conifer, bright (f for smaller version)
 
 00000
 00000

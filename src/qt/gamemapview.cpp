@@ -497,9 +497,18 @@ uint64_t Display_xorshift128plus(void)
 }
 
 // to parse the asciiart map
-#define SHADOWMAP_AAOBJECT_MAX 129
-#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 127
-#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 126
+//#define SHADOWMAP_AAOBJECT_MAX 129
+//#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 127
+//#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 126
+//#define SHADOWMAP_AAOBJECT_MAX 143
+//#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 141
+//#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 140
+//#define SHADOWMAP_AAOBJECT_MAX 155
+//#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 153
+//#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 152
+#define SHADOWMAP_AAOBJECT_MAX 156
+#define SHADOWMAP_AAOBJECT_MAX_ONLY_YELLOW_GRASS 154
+#define SHADOWMAP_AAOBJECT_MAX_NO_GRASS 153
 int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 0, 0, 'h', 252},
                                                   { 0, 1, 'H', 250},
@@ -528,6 +537,22 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 1, 0, 'B', 152},
                                                   { 0, 0, 'B', 153},
 
+                                                  { 1, 2, 't', 467},  // broadleaf, bright, small
+                                                  { 2, 1, 't', 468},
+                                                  { 1, 1, 't', 469},
+                                                  { 0, 1, 't', 470},
+                                                  { 2, 0, 't', 471},
+                                                  { 1, 0, 't', 472},
+                                                  { 0, 0, 't', 473},
+
+                                                  { 1, 2, 'T', 479},  // broadleaf, dark, small
+                                                  { 2, 1, 'T', 480},
+                                                  { 1, 1, 'T', 481},
+                                                  { 0, 1, 'T', 482},
+                                                  { 2, 0, 'T', 483},
+                                                  { 1, 0, 'T', 484},
+                                                  { 0, 0, 'T', 485},
+
                                                   { 1, 2, 'c', 140},  // conifer, bright
                                                   { 0, 2, 'c', 141},
                                                   { 1, 1, 'c', 158},
@@ -541,6 +566,20 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 0, 1, 'C', 137},
                                                   { 1, 0, 'C', 154},
                                                   { 0, 0, 'C', 155},
+
+                                                  { 1, 2, 'f', 486},  // conifer, bright, small
+                                                  { 0, 2, 'f', 487},
+                                                  { 1, 1, 'f', 488},
+                                                  { 0, 1, 'f', 489},
+                                                  { 1, 0, 'f', 490},
+                                                  { 0, 0, 'f', 491},
+
+                                                  { 1, 2, 'F', 492},  // conifer, dark, small
+                                                  { 0, 2, 'F', 493},
+                                                  { 1, 1, 'F', 494},
+                                                  { 0, 1, 'F', 495},
+                                                  { 1, 0, 'F', 496},
+                                                  { 0, 0, 'F', 497},
 
                                                   { 0, 2, 'p', 111},  // big palisade, left
                                                   { 0, 1, 'p', 113},
@@ -690,21 +729,34 @@ int ShadowAAObjects[SHADOWMAP_AAOBJECT_MAX][4] = {{ 0, 0, 'H', 251},  // menhir
                                                   { 0, 0, '"', 263},  // grass, green (manually placed)
                                                   { 0, 0, '\'', 266},  // grass, green to yellow (manually placed)
                                                   { 0, 0, 'v', 259},  // red grass (manually placed)
+                                                  { 0, 0, 'y', 267},  // yellow grass (manually placed)
 
                                                   { 0, 0, '1', 268}, // yellow grass -- "conditional" objects are last in this list
                                                   { 0, 0, '0', 263}, // grass -- "conditional" objects are last in this list
                                                   { 0, 0, '.', 266}, // grass -- "conditional" objects are last in this list
                                                  };
 // to parse the asciiart map (shadows)
-#define SHADOWMAP_AASHAPE_MAX 72
-#define SHADOWMAP_AASHAPE_MAX_CLIFFCORNER 28
+//#define SHADOWMAP_AASHAPE_MAX 72
+//#define SHADOWMAP_AASHAPE_MAX_CLIFFCORNER 28
+//#define SHADOWMAP_AASHAPE_MAX 77
+//#define SHADOWMAP_AASHAPE_MAX_CLIFFCORNER 33
+#define SHADOWMAP_AASHAPE_MAX 82
+#define SHADOWMAP_AASHAPE_MAX_CLIFFCORNER 38
 int ShadowAAShapes[SHADOWMAP_AASHAPE_MAX][5] = {{ 0, 0, 'C', 'c', 244}, // conifer, important shadow tiles
                                                 { 0, -1, 'C', 'c', 247},
+
+                                                { 0, 0, 'F', 'f', 499}, // conifer, small, important shadow tiles
+                                                { 0, -1, 'F', 'f', 501},
 
                                                 { 1, 0, 'B', 'b', 237},  // broadleaf, important shadow tiles
                                                 { 0, 0, 'B', 'b', 238},
                                                 { 1, -1, 'B', 'b', 240},
                                                 { 0, -1, 'B', 'b', 241},
+
+                                                { 1, 0, 'T', 't', 475},  // broadleaf, small, important shadow tiles
+                                                { 0, 0, 'T', 't', 476},
+                                                { 1, -1, 'T', 't', 477},
+                                                { 0, -1, 'T', 't', 478},
 
                                                 { 0, 0, 'H', 'h', 254},  // menhir
                                                 { -1, 0, 'H', 'h', 255},
@@ -719,7 +771,13 @@ int ShadowAAShapes[SHADOWMAP_AASHAPE_MAX][5] = {{ 0, 0, 'C', 'c', 244}, // conif
                                                 { 1, -1, 'C', 'c', 246},
                                                 { -1, -1, 'C', 'c', 248},
 
-                                                { 2, 0, 'B', 'b', 236},  // broadleaf, small shadow tiles (skipped if layers are full)
+                                                { 1, 0, 'F', 'f', 498},  // conifer, small, small shadow tiles (skipped if layers are full)
+                                                { 1, -1, 'F', 'f', 500},
+                                                { -1, -1, 'F', 'f', 502},
+
+                                                { 2, 0, 'T', 't', 474},  // broadleaf, small shadow tiles (skipped if layers are full)
+
+                                                { 2, 0, 'B', 'b', 236},  // broadleaf, small, small shadow tiles (skipped if layers are full)
                                                 { -1, 0, 'B', 'b', 239},
                                                 { -1, -1, 'B', 'b', 242},
 
@@ -1450,11 +1508,16 @@ public:
 
                     if (TILE_IS_GRASS(tile))
                     {
+                        // 2 versions of red grass
                         if (tile == 259)
                             if (Display_xorshift128plus() & 1)
                                 tile = 262;
+                        // 2 versions of yellow grass
+                        if (tile == 267)
+                            if (Display_xorshift128plus() & 1)
+                                tile = 268;
 
-                        if ((AsciiArtMap[y][x] == '"') || (AsciiArtMap[y][x] == '\'') || (AsciiArtMap[y][x] == 'v'))
+                        if ((AsciiArtMap[y][x] == '"') || (AsciiArtMap[y][x] == '\'') || (AsciiArtMap[y][x] == 'v') || (AsciiArtMap[y][x] == 'y'))
                         {
                             Display_go_idx++;
                             if ((Display_go_idx >= 7) || (Display_go_idx < 0)) Display_go_idx = 0;
