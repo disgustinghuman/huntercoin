@@ -306,8 +306,8 @@ struct StorageVault
     int64_t vote_txid60bit;
     int64_t ex_vote_mm_limits;
 #ifdef AUX_STORAGE_VERSION4
-    int64_t storage_i64reserve41;
-    int64_t storage_i64reserve42;
+    int64_t auction_proceeds_remain;
+    int64_t auction_proceeds_total;
     int storage_ireserve43;
     int storage_ireserve44;
 #endif
@@ -380,8 +380,8 @@ struct StorageVault
           vote_txid60bit(0),
           ex_vote_mm_limits(0),
 #ifdef AUX_STORAGE_VERSION4
-          storage_i64reserve41(0),
-          storage_i64reserve42(0),
+          auction_proceeds_remain(0),
+          auction_proceeds_total(0),
           storage_ireserve43(0),
           storage_ireserve44(0),
 #endif
@@ -445,8 +445,8 @@ struct StorageVault
           vote_txid60bit(0),
           ex_vote_mm_limits(0),
 #ifdef AUX_STORAGE_VERSION4
-          storage_i64reserve41(0),
-          storage_i64reserve42(0),
+          auction_proceeds_remain(0),
+          auction_proceeds_total(0),
           storage_ireserve43(0),
           storage_ireserve44(0),
 #endif
@@ -515,8 +515,8 @@ struct StorageVault
         READWRITE(vote_txid60bit);
         READWRITE(ex_vote_mm_limits);
 #ifdef AUX_STORAGE_VERSION4
-        READWRITE(storage_i64reserve41);
-        READWRITE(storage_i64reserve42);
+        READWRITE(auction_proceeds_remain);
+        READWRITE(auction_proceeds_total);
         READWRITE(storage_ireserve43);
         READWRITE(storage_ireserve44);
 #endif
@@ -1412,6 +1412,8 @@ extern int feedcache_status;
 #define BITASSET_SELL_AUCTION 1
 #define BITASSET_SEND_GEMS 2
 #define BITASSET_RAZE_VAULT 3
+// settlement in coins
+#define BITASSET_SETTLE_AUCTION 4
 #define HUNTERMSGCACHE_MAX 1000
 extern int huntermsgcache_idx;
 extern int64 huntermsgcache_amount[HUNTERMSGCACHE_MAX];
@@ -1433,6 +1435,8 @@ extern int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 positi
 #define AUX_MINHEIGHT_MM_AI_UPGRADE(T) (T?323000:1240000)
 #define AUX_MINHEIGHT_SETTLE(T) (T?325000:1260000)
 #define AUX_MINHEIGHT_MM_AI_UPGRADE2(T) (T?326000:1300000)
+// settlement in coins
+#define AUX_MINHEIGHT_GEMHUC_SETTLEMENT(T) (T?326000:1300000)
 #define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1300000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}

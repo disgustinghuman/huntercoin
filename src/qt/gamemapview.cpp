@@ -2474,8 +2474,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
             fprintf(fp, "\n Continuous dutch auction (chronon %7d, %s, next down tick in %2d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
             fprintf(fp, " -------------------------------------------------------------------------\n\n");
-            fprintf(fp, "                                     hunter                 ask\n");
-            fprintf(fp, "storage vault key                    name        gems       price    chronon\n");
+            fprintf(fp, "                                     hunter                 ask                fixed\n");
+            fprintf(fp, "storage vault key                    name        gems       price    chronon   proceeds\n");
             fprintf(fp, "\n");
 
             // sorted order book
@@ -2487,12 +2487,18 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
-              if (st.second.auction_ask_price > 0)
+              // settlement in coins
+              // (need AUX_STORAGE_VERSION4 to compile)
+//              if (st.second.auction_ask_price > 0)
+              if ((st.second.auction_ask_price > 0) || (st.second.auction_proceeds_remain > 0))
               {
                   // sorted order book
                   if (bs_count < SORTED_ORDER_BOOK_LINES - 1)
                   {
-                      sprintf(Displaycache_book[bs_count], "%s   %-10s %5s at %9s   %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+                      if (st.second.auction_proceeds_remain <= 0)
+                          sprintf(Displaycache_book[bs_count], "%s   %-10s %5s at %9s   %d    -\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+                      else
+                          sprintf(Displaycache_book[bs_count], "%s   %-10s %5s at %9s   %d    %s/%s HUC\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon, FormatMoney(st.second.auction_proceeds_remain).c_str(), FormatMoney(st.second.auction_proceeds_total).c_str());
                       Displaycache_book_sort1[bs_count] = st.second.auction_ask_price;
                       Displaycache_book_sort2[bs_count] = st.second.auction_ask_chronon;
                       Displaycache_book_done[bs_count] = false;
@@ -2500,7 +2506,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   }
                   else
                   {
-                      fprintf(fp, "%s   %-10s %5s at %9s   %d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+                      if (st.second.auction_proceeds_remain <= 0)
+                          fprintf(fp, "%s   %-10s %5s at %9s   %d    -\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+                      else
+                          fprintf(fp, "%s   %-10s %5s at %9s   %d    %s/%s HUC\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon, FormatMoney(st.second.auction_proceeds_remain).c_str(), FormatMoney(st.second.auction_proceeds_total).c_str());
                   }
               }
             }
@@ -2677,6 +2686,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     fprintf(fp, "->chat message to buy (size and price of best ask):\n");
                     fprintf(fp, "GEM:HUC set bid %s at %s\n", FormatMoney(auctioncache_bestask_size).c_str(), FormatMoney(auctioncache_bestask_price).c_str());
                 }
+            }
+            // settlement in coins
+            if (gameState.nHeight >= AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
+            if (gameState.auction_settle_conservative > 0)
+            {
+                fprintf(fp, "\n");
+                fprintf(fp, "->example chat message to request settlement of 1 gem at a fixed rate of %s HUC per gem\n", gameState.auction_settle_conservative);
+                fprintf(fp, "GEM:HUC set ask 1.0 at settlement\n");
             }
 
 

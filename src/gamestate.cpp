@@ -3166,6 +3166,62 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                 mi->second.auction_ask_price = 0;
                                 mi->second.auction_ask_size = 0;
                             }
+#ifdef AUX_STORAGE_VERSION4
+                            // settlement in coins
+                            if (outState.nHeight >= AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
+                            if (mi->second.auction_proceeds_remain > 0)
+                            {
+                                mi->second.auction_proceeds_remain -= paymentcache_amount[i];
+
+                                // in case of insufficient proceeds
+                                if (mi->second.auction_proceeds_remain > 0)
+                                {
+                                    int64 tmp_min_size = mi->second.auction_proceeds_remain / (auctioncache_bestask_price / COIN);
+//                                    int64 d = tmp_min_size - mi->second.auction_ask_size; // adjust for partial fills too
+//                                    if (true)                                             //
+                                    int64 d = tmp_min_size;                               // adjust only if old order is finished
+                                    if (mi->second.auction_ask_size == 0)                 //
+                                    {
+                                      // increase size if needed
+                                      d -= (d % CENT);
+                                      if (d > 0)
+                                      {
+                                        if (outState.liquidity_reward_remaining < d)
+                                            d = outState.liquidity_reward_remaining;
+
+                                        int da = d - (d % AUCTION_MIN_SIZE);
+                                        if (da > 0)
+                                        {
+                                            outState.liquidity_reward_remaining -= da;
+                                            mi->second.auction_ask_size += da;
+                                            mi->second.nGems += da;
+                                            mi->second.auction_ask_price = auctioncache_bestask_price;
+                                            printf(" scanning payments: hunter %s, auction size += %s (%s/%s)\n", auctioncache_bid_name.c_str(), FormatMoney(d).c_str(), FormatMoney(mi->second.auction_proceeds_remain).c_str(), FormatMoney(mi->second.auction_proceeds_total).c_str());
+                                        }
+                                        // refund in gems if amount is less than auction minimum
+//                                      else if (mi->second.auction_ask_size == 0) // adjust for partial fills too
+                                        else                                       // adjust only if old order is finished
+                                        {
+                                            outState.liquidity_reward_remaining -= d;
+                                            mi->second.nGems += d;
+                                            printf(" scanning payments: hunter %s, refund %s gems (%s/%s)\n", auctioncache_bid_name.c_str(), FormatMoney(d).c_str(), FormatMoney(mi->second.auction_proceeds_remain).c_str(), FormatMoney(mi->second.auction_proceeds_total).c_str());
+                                            mi->second.auction_proceeds_remain = mi->second.auction_proceeds_total = 0;
+                                        }
+                                      }
+                                      else
+                                      {
+                                        printf(" scanning payments: hunter %s, ignore fraction of cent (%s/%s)\n", auctioncache_bid_name.c_str(), FormatMoney(mi->second.auction_proceeds_remain).c_str(), FormatMoney(mi->second.auction_proceeds_total).c_str());
+                                        mi->second.auction_proceeds_remain = mi->second.auction_proceeds_total = 0;
+                                      }
+                                    }
+                                }
+                                else
+                                {
+                                    printf(" scanning payments: hunter %s, GEM/HUC settlement done (%s/%s)\n", auctioncache_bid_name.c_str(), FormatMoney(mi->second.auction_proceeds_remain).c_str(), FormatMoney(mi->second.auction_proceeds_total).c_str());
+                                    mi->second.auction_proceeds_remain = mi->second.auction_proceeds_total = 0;
+                                }
+                            }
+#endif
                         }
 
                         printf("parsing message: payment received\n");
@@ -3266,10 +3322,42 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         s_amount = p.second.message.substr(16, lat3 - 16);
                         s_price = p.second.message.substr(lat3 + 4);
                         {
+#ifdef AUX_STORAGE_VERSION4
+                            // settlement in coins
+                            if (outState.nHeight >= AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
+                            {
+                                if (mi->second.auction_proceeds_remain == 0)
+                                {
+                                    if (s_price == "settlement")
+                                    {
+                                        if (ParseMoney(s_amount, tmp_amount))
+                                        {
+                                            tmp_price = outState.auction_settle_conservative;
+                                            what_do = BITASSET_SETTLE_AUCTION;
+                                            mi->second.auction_proceeds_total = mi->second.auction_proceeds_remain = (tmp_price / COIN) * tmp_amount;
+
+                                            printf("parsing message: settlement: amount %s\n", FormatMoney(tmp_amount).c_str());
+                                        }
+                                    }
+                                    else
+                                    {
+                                        printf("parsing message: not settlement\n");
+                                    }
+                                }
+                                else if (s_price == "settlement")
+                                {
+                                    printf("parsing message: can't start 2nd settlement process per hunter\n");
+                                }
+                            }
+#endif
+                            if (what_do == 0)
                             if ((ParseMoney(s_amount, tmp_amount)) &&
                                 (ParseMoney(s_price, tmp_price)))
                             {
                                 what_do = BITASSET_SELL_AUCTION;
+
+                                // settlement in coins  -- allow to cancel settlement orders normally
+                                mi->second.auction_proceeds_total = mi->second.auction_proceeds_remain = 0;
                             }
                         }
                     }
@@ -3345,9 +3433,6 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             else
                                 tmp_price = auctioncache_pricetick_down(auctioncache_pricetick_up(tmp_price)); // snap to grid
 
-//                            printf("parsing message: auction sell order: amount=%15"PRI64d" price=%15"PRI64d" \n", tmp_amount, tmp_price);
-                            printf("parsing message: auction sell order: amount %s price %s\n", FormatMoney(tmp_amount).c_str(), FormatMoney(tmp_price).c_str());
-
                             // - can modify an existing sell order if current best bid is lower, or send a new one
                             // - make sure the new ask price doesn't interfere with the auctioncache_bid_... order (because it's already executing)
                             // - could also rely on time priority:
@@ -3359,12 +3444,59 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                 mi->second.auction_ask_size = tmp_amount;
                                 mi->second.auction_ask_price = tmp_price;
                                 mi->second.auction_ask_chronon = outState.nHeight;
+
+                                printf("parsing message: auction sell order: amount %s price %s\n", FormatMoney(tmp_amount).c_str(), FormatMoney(tmp_price).c_str());
                             }
                             else
                             {
                                 printf("parsing message: order already executing\n");
                             }
                         }
+#ifdef AUX_STORAGE_VERSION4
+                        // settlement in coins
+                        else if ( (outState.nHeight >= AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet)) &&
+                            (what_do == BITASSET_SETTLE_AUCTION) )
+                        {
+                            // auction starts 10 ticks higher (give the proto-Npc acting on behalf of the network a chance to profit)
+                            int64 tmp_price_old = tmp_price;
+                            int64 tmp_amount_old = tmp_amount;
+                            for (int n = 0; n < 10; n++)
+                                tmp_price = auctioncache_pricetick_up(auctioncache_pricetick_up(tmp_price));
+
+                            // adjust size
+                            tmp_amount = ((tmp_amount / 10000) * tmp_price_old) / (tmp_price / 10000);
+                            tmp_amount -= (tmp_amount % AUCTION_MIN_SIZE);
+                            if (tmp_amount <= 0)
+                            {
+                                tmp_amount = 0;
+                                tmp_price = 0; // size 0 == cancel
+                            }
+                            // price is already snapped to grid
+
+                            // this condition is the same like in "auction sell order" above
+                            if (((auctioncache_bid_price < mi->second.auction_ask_price) || (mi->second.auction_ask_price == 0)) &&
+                                ((auctioncache_bid_price < tmp_price) || (tmp_price == 0)))
+                            {
+                                mi->second.auction_ask_size = tmp_amount;
+                                mi->second.auction_ask_price = tmp_price;
+                                mi->second.auction_ask_chronon = outState.nHeight;
+
+                                printf("parsing message: auction settle order: amount %s price %s\n", FormatMoney(tmp_amount).c_str(), FormatMoney(tmp_price).c_str());
+
+                                // make sure auction proceeds are not higher than the guaranteed amount
+                                int64 d = tmp_amount_old - tmp_amount;
+                                if ((tmp_amount > 0) && (d > 0))
+                                {
+                                    outState.liquidity_reward_remaining += d;
+                                    mi->second.nGems -= d;
+                                }
+                            }
+                            else
+                            {
+                                printf("parsing message: auction settle order: already executing\n");
+                            }
+                        }
+#endif
                         // hunter 2 hunter payment
                         else if ((what_do == BITASSET_SEND_GEMS) || (what_do == BITASSET_RAZE_VAULT))
                         {
