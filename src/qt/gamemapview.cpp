@@ -2080,18 +2080,15 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         }
 
 #ifdef AUX_AUCTION_BOT
-                        if ((tmp_auction_auto_on_duty) && ((pmon_my_foecontact_age[m] > 0) || (pmon_my_foe_dist[m] <= pmon_my_alarm_dist[m])))
+                        if ((auction_auto_actual_totalcoins + (pmon_config_auction_auto_size / 10000 * pmon_config_auction_auto_price / 10000)) > pmon_config_auction_auto_coinmax)
+                            pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_BLUE; // stopped, session limit reached
+                        else if ((tmp_auction_auto_on_duty) && ((pmon_my_foecontact_age[m] > 0) || (pmon_my_foe_dist[m] <= pmon_my_alarm_dist[m])))
                             pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_RED; // stopped, enemy nearby
                         else if (gameState.nHeight - gameState.nDisasterHeight < pmon_config_warn_disaster)
                             pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_WHITE; // stopped, blockchain problem
-                        else if ((auction_auto_actual_totalcoins + (pmon_config_auction_auto_size / 10000 * pmon_config_auction_auto_price / 10000)) > pmon_config_auction_auto_coinmax)
-                            pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_BLUE; // stopped, session limit reached
 
                         if ((pmon_config_auction_auto_coinmax > 0) && (tmp_auction_auto_on_duty) && (!pmon_config_afk_leave) && (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_GO_YELLOW)) // if go!
                         {
-//                          if ((pending_tx_idx == -1) &&
-//                              (pmon_my_foecontact_age[m] == 0) &&
-//                              (pmon_my_foe_dist[m] > pmon_my_alarm_dist[m]))
                             if (pending_tx_idx == -1)
                             {
                                 if (pmon_name_update(m, -1, -1))
@@ -2099,7 +2096,6 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 else
                                     pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_WHITE; // error
                             }
-
                         }
 #endif
 
@@ -2464,7 +2460,18 @@ void GameMapView::updateGameMap(const GameState &gameState)
           }
           else
           {
-            if (gameState.upgrade_test != gameState.nHeight * 2)
+            bool w = false;
+            if (gameState.nHeight < AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
+            {
+                if (gameState.upgrade_test != gameState.nHeight * 2)
+                    w = true;
+            }
+            else
+            {
+                if (gameState.upgrade_test != gameState.nHeight * 3)
+                    w = true;
+            }
+            if (w)
             {
               fprintf(fp, "GAMESTATE OUT OF SYNC: !!! DON'T USE THIS AUCTION PAGE !!!\n");
               fprintf(fp, "Either the gamestate was used with an old version of this client\n");
@@ -2555,8 +2562,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 if (tmp_r)
                 {
                     fprintf(fp, "\n");
-                    fprintf(fp, "best ask, good for liquidity rebate:            %5s\n", FormatMoney(tmp_r).c_str());
-                    fprintf(fp, "    total fund for liquidity rebate:            %5s\n", FormatMoney(gameState.liquidity_reward_remaining).c_str());
+                    fprintf(fp, "best ask, good for liquidity reward:            %5s\n", FormatMoney(tmp_r).c_str());
                 }
                 else
                 {
@@ -2565,24 +2571,30 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                 fprintf(fp, "%s              %5s at %9s   %d\n", auctioncache_bestask_key.c_str(), FormatMoney(auctioncache_bestask_size).c_str(), FormatMoney(auctioncache_bestask_price).c_str(), auctioncache_bestask_chronon);
             }
+
+            fprintf(fp, "\n\n");
+            fprintf(fp, "                                                 gems       price    chronon\n\n");
             if (gameState.auction_last_price > 0)
             {
-                fprintf(fp, "\n");
-                fprintf(fp, "last price                                               %9s   %d\n", FormatMoney(gameState.auction_last_price).c_str(), (int)gameState.auction_last_chronon);
+                fprintf(fp, "last trade                                               %9s   %d\n", FormatMoney(gameState.auction_last_price).c_str(), (int)gameState.auction_last_chronon);
             }
             if (gameState.auction_settle_price > 0)
             {
-                fprintf(fp, "\n");
-                fprintf(fp, "settlement price (auction start price minimum)           %9s   %d\n", FormatMoney(gameState.auction_settle_price).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
-                fprintf(fp, "\n");
+                fprintf(fp, "settlement, auction start price minimum:                 %9s   %d\n", FormatMoney(gameState.auction_settle_price).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
                 if (gameState.auction_settle_conservative > 0)
                 {
-                    fprintf(fp, "settlement price 2 (less or equal than last price)       %9s   %d\n", FormatMoney(gameState.auction_settle_conservative).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
-                    fprintf(fp, "\n");
+                    fprintf(fp, "settlement, less or equal than last price:               %9s   %d\n", FormatMoney(gameState.auction_settle_conservative).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
+                    // wouldn't be "feeless" if not the same price
+                    fprintf(fp, "settlement, for liquidity fund:                          %9s   %d\n", FormatMoney(gameState.auction_settle_conservative).c_str(), gameState.nHeight - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
+                    if (gameState.liquidity_reward_remaining > 0)
+                    {
+                        fprintf(fp, "                liquidity fund (total):          %5s\n", FormatMoney(gameState.liquidity_reward_remaining).c_str());
+                    }
                 }
 //                fprintf(fp, "->chat message to sell minimum size at auction start price minimum:\n");
 //                fprintf(fp, "GEM:HUC set ask %s at %s\n", FormatMoney(AUCTION_MIN_SIZE).c_str(), FormatMoney(gameState.auction_settle_price).c_str());
             }
+            fprintf(fp, "\n");
 
             if (auctioncache_bid_price > 0)
             {
@@ -2688,11 +2700,15 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 }
             }
             // settlement in coins
-            if (gameState.nHeight >= AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
             if (gameState.auction_settle_conservative > 0)
             {
                 fprintf(fp, "\n");
-                fprintf(fp, "->example chat message to request settlement of 1 gem at a fixed rate of %s HUC per gem\n", gameState.auction_settle_conservative);
+
+                // delete me
+                if (gameState.nHeight < AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
+                    fprintf(fp, "*** enabled after chronon %d ***\n", AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet));
+
+                fprintf(fp, "->example chat message to request settlement of 1 gem at a fixed rate of %s HUC per gem\n", FormatMoney(gameState.auction_settle_conservative).c_str());
                 fprintf(fp, "GEM:HUC set ask 1.0 at settlement\n");
             }
 

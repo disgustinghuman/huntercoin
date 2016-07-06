@@ -1215,6 +1215,7 @@ int pmon_config_defence = 1;
 int pmon_config_hold = 5;
 int pmon_config_confirm = 7;
 int pmon_config_vote_tally = 0;
+int pmon_config_show_wps = 7;
 
 #ifdef AUX_AUCTION_BOT
 int pmon_config_auction_auto_stateicon = 276; // RPG_ICON_EMPTY;
@@ -1354,6 +1355,11 @@ bool pmon_name_pending_start()
             continue;
         }
 #endif
+        else if (strcmp(my_name, "config:show_wps") == 0)
+        {
+            pmon_config_show_wps = atoi(my_param);
+            continue;
+        }
 
         pmon_my_names[i].assign(my_name);
         pmon_my_alarm_dist[i] = atoi(my_param);

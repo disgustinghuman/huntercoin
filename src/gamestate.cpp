@@ -3756,11 +3756,17 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             if (outState.nHeight % AUX_EXPIRY_INTERVAL(fTestNet) == 0) feedcache_status = FEEDCACHE_EXPIRY;
 
             if (outState.nHeight <= AUX_MINHEIGHT_WARN_UPGRADE(fTestNet))
-                outState.upgrade_test += 2;
+            {
+                outState.upgrade_test += 2; // keep at nHeight * 2
+                if (outState.nHeight == AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
+                    outState.upgrade_test += outState.nHeight;
+                else if (outState.nHeight > AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
+                    outState.upgrade_test += 1; // keep at nHeight * 3
+            }
 
             // delete me (for storage version 4)
-            if (outState.nHeight <= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet))
-                outState.upgrade_test = outState.nHeight * 2;
+//            if (outState.nHeight <= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet))
+//                outState.upgrade_test = outState.nHeight * 2;
 
 #ifdef AUX_STORAGE_VERSION2
             // market maker -- initialize

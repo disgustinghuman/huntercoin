@@ -1315,7 +1315,7 @@ extern int pmon_my_bank_x[PMON_MY_MAX];
 extern int pmon_my_bank_y[PMON_MY_MAX];
 extern int pmon_my_idle_chronon[PMON_MY_MAX];
 
-#define PMON_CONFIG_MAX 15
+#define PMON_CONFIG_MAX 16
 extern int pmon_config_loot_notice;
 extern int pmon_config_bank_notice;
 extern int pmon_config_zoom;
@@ -1326,6 +1326,7 @@ extern int pmon_config_defence;
 extern int pmon_config_hold;
 extern int pmon_config_confirm;
 extern int pmon_config_vote_tally;
+extern int pmon_config_show_wps;
 
 // windows stability bug workaround
 #ifdef PMON_DEBUG_WIN32_GUI
@@ -1437,7 +1438,7 @@ extern int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 positi
 #define AUX_MINHEIGHT_MM_AI_UPGRADE2(T) (T?326000:1300000)
 // settlement in coins
 #define AUX_MINHEIGHT_GEMHUC_SETTLEMENT(T) (T?326000:1300000)
-#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1300000)
+#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1320000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
 #define MM_ORDERLIMIT_UNPACK(I64,B,A) {B=(I64%1000000000)*1000;A=(I64/1000000000)*1000;}

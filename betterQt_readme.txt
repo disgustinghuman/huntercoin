@@ -7,13 +7,13 @@ https://github.com/wiggi/huntercoin
 Binaries
 ========
 
-huntercoin-betterQt-exp-binaries-20160620.zip, 26.3 MB
-https://mega.nz/#!GItQmbAD!nhB8P5AbJRtD-ZikZLTbtUNa5dEC2duVzZcNJGLL14o
+huntercoin-betterQt-exp-binaries-20160705.zip, 30.5 MB
+https://mega.nz/#!ecdGHDLY!OWND7VE0YGetdARNTf2_jq7mXx7TLTT86azWhZU0lz4
 
   for Windows:
   - Safemode
 
-  for Windows, Linux Mint13/Ubuntu12.04 32bit, Linux Mint17.3/ubuntu14.04 32+64bit
+  for Windows, Linux Mint13/Ubuntu12.04 32bit, Linux Mint17.3/Ubuntu14.04 32+64bit, Linux Mint18/Ubuntu16.04 64bit
   - "Self defense for hunters" experimental build
   - uses alternative gamestate game_sv4.dat (included, client can make its own but first start
     would take ~5 hours on mainnet if game_sv4.dat is not in the same folder as game.dat)
