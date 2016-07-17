@@ -1949,6 +1949,13 @@ GameState::UpdateBanks (RandomGenerator& rng)
 
 /* ************************************************************************** */
 
+// FORK_SUMMON_TEST
+#define SUMMONCACHE_MAX 1000
+std::string summoncache_msg[SUMMONCACHE_MAX];
+std::string summoncache_captain[SUMMONCACHE_MAX];
+Coord summoncache_coord[SUMMONCACHE_MAX];
+int summoncache_idx;
+
 void
 CollectedBounty::UpdateAddress (const GameState& state)
 {
@@ -2088,6 +2095,66 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
     // Apply address & message updates
     BOOST_FOREACH(const Move &m, stepData.vMoves)
         m.ApplyCommon(outState);
+
+    // Apply "summoning spell"
+    if (ForkInEffect (FORK_SUMMON_TEST, outState.nHeight))
+    {
+        summoncache_idx = 0; // clear the cache
+
+        BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
+        {
+            if (p.second.message_block == outState.nHeight - 2) // summoning is done 2 blocks after the message is in the blockchain
+            {
+                if (p.second.message.find("summon ") == 0); // e.g. "summon Alice and Bob"
+                {
+                    BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
+                    {
+                        CharacterState &ch = pc.second;
+                        if ((summoncache_idx < SUMMONCACHE_MAX) && (outState.IsBank (ch.coord))) // must be on bank tile or the spell fizzles
+                        {
+                            summoncache_msg[summoncache_idx] = p.second.message;
+                            summoncache_captain[summoncache_idx] = p.first;
+                            summoncache_coord[summoncache_idx] = ch.coord;
+                            summoncache_idx++;
+                        }
+                    }
+                }
+            }
+        }
+        if (summoncache_idx > 0)
+        {
+            BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, outState.players)
+            {
+                if (p.second.message_block >= outState.nHeight - 2) // hunters have 3 blocks to ack the summoning
+                {
+                    for (int si = 0; si < summoncache_idx; si++)
+                    {
+                        int ln = summoncache_msg[si].find(p.first); // doesn't mean much, name could be "1" or "e" etc
+                        if ((ln >= 7) &&                            // 7...the char after "summon "
+                            (summoncache_msg[si][ln - 1] == ' ') && // require a space before the name
+                            ((summoncache_msg[si].length() <= ln + p.first.length()) ||
+                             (summoncache_msg[si][ln + p.first.length()] == ' ') ||
+                             (summoncache_msg[si][ln + p.first.length()] == ','))) // require space od comma after the name
+                        {
+                            // I have been summoned
+                            if ((p.second.message.find(summoncache_captain[si]) >= 0) && // parse "For <name_of_my_captain>!" or similar
+                                (p.second.message[p.second.message.length() - 1] == '!')) // prevent summeners from hijacking unrelated messages that contain their name
+                            {
+                                BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
+                                {
+                                    CharacterState &ch = pc.second;
+
+                                    if (!ch.waypoints.empty())
+                                        ch.StopMoving();
+                                    ch.coord = summoncache_coord[si];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /* In the (rare) case that a player collected a bounty, is still alive
        and changed the reward address at the same time, make sure that the

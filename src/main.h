@@ -124,6 +124,12 @@ enum Fork
      randomises spawn and banking locations.  */
   FORK_LIFESTEAL,
 
+  /* Test of a hunter summoning system
+     ( https://bitcointalk.org/index.php?topic=435170.msg15602866#msg15602866 )
+     intended to be used with a testnet-in-a-box.
+  */
+  FORK_SUMMON_TEST,
+
 };
 bool ForkInEffect (Fork type, unsigned nHeight);
 
