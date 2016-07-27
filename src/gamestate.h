@@ -1389,7 +1389,7 @@ extern int64 auctioncache_bestask_size;
 extern int auctioncache_bestask_chronon;
 extern std::string auctioncache_bestask_key;
 
-#define PAYMENTCACHE_MAX 1000
+#define PAYMENTCACHE_MAX 10000
 extern int paymentcache_idx;
 extern uint256 paymentcache_instate_blockhash;
 extern int64 paymentcache_amount[PAYMENTCACHE_MAX];
@@ -1415,9 +1415,6 @@ extern int feedcache_status;
 #define BITASSET_RAZE_VAULT 3
 // settlement in coins
 #define BITASSET_SETTLE_AUCTION 4
-#define HUNTERMSGCACHE_MAX 1000
-extern int huntermsgcache_idx;
-extern int64 huntermsgcache_amount[HUNTERMSGCACHE_MAX];
 
 #endif
 
@@ -1481,7 +1478,7 @@ extern bool tradecache_ask_filled;
 #define AUX_VOTING_INTERVAL(T) (T?1000:10000)
 //#define AUX_VOTING_CLOSE(T) (T?975:9975)
 #define AUX_VOTING_CLEANUP_PERIOD(T) (T?144:1440)
-#define VOTINGCACHE_MAX 1000
+#define VOTINGCACHE_MAX 10000
 extern int votingcache_idx;
 extern uint256 votingcache_instate_blockhash;
 extern int64 votingcache_amount[PAYMENTCACHE_MAX];

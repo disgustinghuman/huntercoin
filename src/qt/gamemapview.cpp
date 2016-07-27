@@ -1662,6 +1662,62 @@ static int pmon_CoordUpd(int u, int v, int du, int dv, int from_u, int from_v)
     else
         return v;
 }
+int pmon_CoordHelper_x = 0;
+int pmon_CoordHelper_y = 0;
+static bool pmon_CoordHelper(int current_x, int current_y, int from_x, int from_y, int target_x, int target_y, int steps, bool noclip)
+{
+    int new_c_x;
+    int new_c_y;
+
+    int dx = target_x - from_x;
+    int dy = target_y - from_y;
+
+    for (int n; n < steps; n++)
+    {
+        if (abs(dx) > abs(dy))
+        {
+            new_c_x = pmon_CoordStep(current_x, target_x);
+            new_c_y = pmon_CoordUpd(new_c_x, current_y, dx, dy, from_x, from_y);
+        }
+        else
+        {
+            new_c_y = pmon_CoordStep(current_y, target_y);
+            new_c_x = pmon_CoordUpd(new_c_y, current_x, dy, dx, from_y, from_x);
+        }
+
+        // no LOS
+        if ((!IsWalkable(new_c_x, new_c_y)) && (!noclip))
+        {
+            pmon_CoordHelper_x = current_x;
+            pmon_CoordHelper_y = current_y;
+            return false;
+        }
+
+        current_x = new_c_x;
+        current_y = new_c_y;
+        if ((current_x == target_x) && (current_y == target_y))
+            break;
+    }
+
+    pmon_CoordHelper_x = current_x;
+    pmon_CoordHelper_y = current_y;
+    return true;
+}
+static int pmon_DistanceHelper(int x1, int y1, int x2, int y2, bool heuristic)
+{
+    int dx = abs(x1 - x2);
+    int dy = abs(y1 - y2);
+    int d = dx > dy ? dx : dy;
+    if (heuristic)
+    {
+        if (((x1 >= 245) && (x1 <= 256) && (y1 >= 244) && (y1 <= 255)) && // inside of inner palisades
+            ((x2 <= 243) || (x2 >= 258) || (y2 <= 242) || (y2 >= 257)))   // outside
+            if (d < y2 - 243 + 8)
+                d = y2 - 243 + 8;
+    }
+
+    return d;
+}
 
 
 void GameMapView::updateGameMap(const GameState &gameState)
