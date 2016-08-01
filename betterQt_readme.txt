@@ -7,8 +7,8 @@ https://github.com/wiggi/huntercoin
 Binaries
 ========
 
-huntercoin-betterQt-exp-binaries-20160705.zip, 30.5 MB
-https://mega.nz/#!ecdGHDLY!OWND7VE0YGetdARNTf2_jq7mXx7TLTT86azWhZU0lz4
+huntercoin-betterQt-exp-binaries-20160801.zip, 30.8 MB
+https://mega.nz/#!uMliTQ4R!nT2Ktz8X5BD6eAN8v3zcbGNCe5oR-d5OaNsbt8u4kRs
 
   for Windows:
   - Safemode
