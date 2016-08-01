@@ -3050,8 +3050,15 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             {
                 if (outState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL == 0)
                 {
-                    tmp_price = auctioncache_pricetick_down(tmp_price);
-                    st.second.auction_ask_price = tmp_price;
+                    if ((outState.nHeight >= AUX_MINHEIGHT_GTC_FOR_AUCTION(fTestNet)) && (st.second.auction_flags & AUCTIONFLAG_ASK_GTC))
+                    {
+                        // do nothing
+                    }
+                    else
+                    {
+                        tmp_price = auctioncache_pricetick_down(tmp_price);
+                        st.second.auction_ask_price = tmp_price;
+                    }
                 }
 
                 if ((auctioncache_bestask_price == 0) || (tmp_price < auctioncache_bestask_price) || ((tmp_price == auctioncache_bestask_price) && (tmp_chronon < auctioncache_bestask_chronon)))
@@ -3165,6 +3172,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             {
                                 mi->second.auction_ask_price = 0;
                                 mi->second.auction_ask_size = 0;
+                                if (outState.nHeight >= AUX_MINHEIGHT_GTC_FOR_AUCTION(fTestNet))
+                                {
+                                    mi->second.auction_flags = 0;
+                                }
                             }
 #ifdef AUX_STORAGE_VERSION4
                             // settlement in coins
@@ -3258,6 +3269,13 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     int lat3 = p.second.message.find(" at ");
 
                     int lask2 = p.second.message.find("GEM:HUC set ask "); // length of "key phrase" is 16
+                    bool is_gtc = false;
+                    if ((outState.nHeight >= AUX_MINHEIGHT_GTC_FOR_AUCTION(fTestNet)) &&
+                        (lask2 < 0))
+                    {
+                        lask2 = p.second.message.find("GEM:HUC GTC ask ");
+                        is_gtc = true;
+                    }
                     int lfeed1 = p.second.message.find("HUC:USD feed price "); // length of "key phrase" is 19
 
                     // hunter 2 hunter payment
@@ -3357,7 +3375,25 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                 what_do = BITASSET_SELL_AUCTION;
 
                                 // settlement in coins  -- allow to cancel settlement orders normally
-                                mi->second.auction_proceeds_total = mi->second.auction_proceeds_remain = 0;
+//                                mi->second.auction_proceeds_total = mi->second.auction_proceeds_remain = 0;
+
+                                if (outState.nHeight >= AUX_MINHEIGHT_GTC_FOR_AUCTION(fTestNet))
+                                {
+                                    // settlement in coins  -- do NOT allow to cancel settlement orders normally (possible instant loss for the user)
+                                    if ((mi->second.auction_proceeds_remain > 0) &&
+                                            (mi->second.auction_proceeds_total > 0) &&
+                                            (mi->second.auction_ask_price > 0) &&
+                                            (mi->second.auction_ask_size > 0))
+                                        what_do = 0;
+
+                                    // allow "good till cancel" sell orders (no downtick) in the auction
+                                    if ((what_do > 0) && (is_gtc)) mi->second.auction_flags = AUCTIONFLAG_ASK_GTC;
+                                }
+                                else
+                                {
+                                    // settlement in coins  -- allow to cancel settlement orders normally
+                                    mi->second.auction_proceeds_total = mi->second.auction_proceeds_remain = 0;
+                                }
                             }
                         }
                     }
@@ -3850,6 +3886,8 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
               // do automatic exercise if in the money
               if (outState.crd_prevexp_price > 0)
               {
+                double mult_cancel_all = (outState.nHeight >= AUX_MINHEIGHT_GTC_FOR_AUCTION(fTestNet)) ? 3.0 : 1.5;
+
                 BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
                 {
 
@@ -3885,7 +3923,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     }
 
                     // market maker -- don't cancel remaining orders if price is mostly unchanged
-                    if (outState.crd_prevexp_price > tmp_old_crd_prevexp_price * 1.5)
+                    if (outState.crd_prevexp_price > tmp_old_crd_prevexp_price * mult_cancel_all)
                     {
                         st.second.ex_order_price_bid = st.second.ex_order_price_ask = st.second.ex_order_size_bid = st.second.ex_order_size_ask = 0;
                         st.second.ex_order_flags = 0;

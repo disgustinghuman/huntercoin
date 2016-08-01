@@ -314,7 +314,7 @@ struct StorageVault
     int feed_chronon;
     int auction_ask_chronon;
     unsigned char item_outfit;
-    unsigned char gem_reserve10;
+    unsigned char auction_flags;
 
     // strings
     std::string huntername;
@@ -388,7 +388,7 @@ struct StorageVault
           feed_chronon(0),
           auction_ask_chronon(0),
           item_outfit(0),
-          gem_reserve10(0)
+          auction_flags(0)
 #ifdef AUX_STORAGE_VERSION2
         , ex_order_flags(0),
           ex_position_type(0),
@@ -453,7 +453,7 @@ struct StorageVault
           feed_chronon(0),
           auction_ask_chronon(0),
           item_outfit(0),
-          gem_reserve10(0)
+          auction_flags(0)
 #ifdef AUX_STORAGE_VERSION2
         , ex_order_flags(0),
           ex_position_type(0),
@@ -523,7 +523,7 @@ struct StorageVault
         READWRITE(feed_chronon);
         READWRITE(auction_ask_chronon);
         READWRITE(item_outfit);
-        READWRITE(gem_reserve10);
+        READWRITE(auction_flags);
         READWRITE(huntername);
 #ifdef AUX_STORAGE_VERSION2
         READWRITE(vote_comment);
@@ -1435,7 +1435,9 @@ extern int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 positi
 #define AUX_MINHEIGHT_MM_AI_UPGRADE2(T) (T?326000:1300000)
 // settlement in coins
 #define AUX_MINHEIGHT_GEMHUC_SETTLEMENT(T) (T?326000:1300000)
-#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1320000)
+#define AUX_MINHEIGHT_GTC_FOR_AUCTION(T) (T?326000:1320000)
+#define AUCTIONFLAG_ASK_GTC 1
+#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1360000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
 #define MM_ORDERLIMIT_UNPACK(I64,B,A) {B=(I64%1000000000)*1000;A=(I64/1000000000)*1000;}

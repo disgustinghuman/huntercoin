@@ -2537,8 +2537,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
             fprintf(fp, "\n Continuous dutch auction (chronon %7d, %s, next down tick in %2d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUCTION_DUTCHAUCTION_INTERVAL - (gameState.nHeight % AUCTION_DUTCHAUCTION_INTERVAL));
             fprintf(fp, " -------------------------------------------------------------------------\n\n");
-            fprintf(fp, "                                     hunter                 ask                fixed\n");
-            fprintf(fp, "storage vault key                    name        gems       price    chronon   proceeds\n");
+            fprintf(fp, "                                     hunter                 ask\n");
+            fprintf(fp, "storage vault key                    name        gems       price    chronon   flags\n");
             fprintf(fp, "\n");
 
             // sorted order book
@@ -2550,56 +2550,73 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
-              // settlement in coins
-              // (need AUX_STORAGE_VERSION4 to compile)
-//              if (st.second.auction_ask_price > 0)
-              if ((st.second.auction_ask_price > 0) || (st.second.auction_proceeds_remain > 0))
-              {
-                  // sorted order book
-                  if (bs_count < SORTED_ORDER_BOOK_LINES - 1)
-                  {
-                      if (st.second.auction_proceeds_remain <= 0)
-                          sprintf(Displaycache_book[bs_count], "%s   %-10s %5s at %9s   %d    -\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
-                      else
-                          sprintf(Displaycache_book[bs_count], "%s   %-10s %5s at %9s   %d    %s/%s HUC\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon, FormatMoney(st.second.auction_proceeds_remain).c_str(), FormatMoney(st.second.auction_proceeds_total).c_str());
-                      Displaycache_book_sort1[bs_count] = st.second.auction_ask_price;
-                      Displaycache_book_sort2[bs_count] = st.second.auction_ask_chronon;
-                      Displaycache_book_done[bs_count] = false;
-                      bs_count++;
-                  }
-                  else
-                  {
-                      if (st.second.auction_proceeds_remain <= 0)
-                          fprintf(fp, "%s   %-10s %5s at %9s   %d    -\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
-                      else
-                          fprintf(fp, "%s   %-10s %5s at %9s   %d    %s/%s HUC\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon, FormatMoney(st.second.auction_proceeds_remain).c_str(), FormatMoney(st.second.auction_proceeds_total).c_str());
-                  }
-              }
+                // settlement in coins
+                // (need AUX_STORAGE_VERSION4 to compile)
+                if ((st.second.auction_ask_price > 0) || (st.second.auction_proceeds_remain > 0))
+                {
+                    int64 tmp_total = st.second.auction_proceeds_total;
+                    int64 tmp_done = tmp_total - st.second.auction_proceeds_remain;
+
+                    // sorted order book                     v-- can write 2 lines at once
+                    if (bs_count < SORTED_ORDER_BOOK_LINES - 2)
+                    {
+                        if (st.second.auction_proceeds_remain <= 0)
+                        {
+                            sprintf(Displaycache_book[bs_count], "%s   %-10s %5s at %9s   %d    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon, st.second.auction_flags & AUCTIONFLAG_ASK_GTC ? "good-til-canceled" : "auction");
+                        }
+                        else
+                        {
+                            sprintf(Displaycache_book[bs_count], "%s   %-10s                      %d    processing %s/%s HUC\n", st.first.c_str(), st.second.huntername.c_str(), st.second.auction_ask_chronon, FormatMoney(tmp_done).c_str(), FormatMoney(tmp_total).c_str());
+                            Displaycache_book_sort1[bs_count] = 1; // must be >0 for sorting
+                            Displaycache_book_sort2[bs_count] = st.second.auction_ask_chronon;
+                            Displaycache_book_done[bs_count] = false;
+                            bs_count++;
+                            sprintf(Displaycache_book[bs_count], "%s   %-10s %5s at %9s   %d    auction\n", "                liquidity fund for", st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+                        }
+                        Displaycache_book_sort1[bs_count] = st.second.auction_ask_price;
+                        Displaycache_book_sort2[bs_count] = st.second.auction_ask_chronon;
+                        Displaycache_book_done[bs_count] = false;
+                        bs_count++;
+                    }
+                    else
+                    {
+                        if (st.second.auction_proceeds_remain <= 0)
+                        {
+                            fprintf(fp, "%s   %-10s %5s at %9s   %d    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon, st.second.auction_flags & AUCTIONFLAG_ASK_GTC ? "good-til-canceled" : "auction");
+                        }
+                        else
+                        {
+                            fprintf(fp, "%s   %-10s                      %d    processing %s/%s HUC\n", st.first.c_str(), st.second.huntername.c_str(), st.second.auction_ask_chronon, FormatMoney(tmp_done).c_str(), FormatMoney(tmp_total).c_str());
+                            fprintf(fp, "%s   %-10s %5s at %9s   %d    auction\n", "                liquidity fund for", st.second.huntername.c_str(), FormatMoney(st.second.auction_ask_size).c_str(), FormatMoney(st.second.auction_ask_price).c_str(), st.second.auction_ask_chronon);
+                        }
+                    }
+                }
             }
             // sorted order book
             if (bs_count > 0)
             for (int j = 0; j < bs_count; j++)
             {
-              bs1_max = 0;
-              for (int i = 0; i < bs_count; i++)
-              {
-                if (!Displaycache_book_done[i])
+                bs1_max = 0;
+                for (int i = 0; i < bs_count; i++)
                 {
-                    if (Displaycache_book_sort1[i] > bs1_max) // higher prices go first
-                    {
-                        bs_idx = i;
-                        bs1_max = Displaycache_book_sort1[i];
-                        bs2_max = 0;
-                    }
-                    else if ((Displaycache_book_sort1[i] == bs1_max) && (Displaycache_book_sort2[i] > bs2_max)) // later timestamp goes first
-                    {
-                        bs_idx = i;
-                        bs2_max = Displaycache_book_sort2[i];
-                    }
+                  if (!Displaycache_book_done[i])
+                  {
+                      if (Displaycache_book_sort1[i] > bs1_max) // higher prices go first
+                      {
+                          bs_idx = i;
+                          bs1_max = Displaycache_book_sort1[i];
+                          bs2_max = Displaycache_book_sort2[i];
+                      }
+                      //                   ...and anything else equal, later list element goes first --v
+                      else if ((Displaycache_book_sort1[i] == bs1_max) && (Displaycache_book_sort2[i] >= bs2_max)) // later timestamp goes first...
+                      {
+                          bs_idx = i;
+                          bs2_max = Displaycache_book_sort2[i];
+                      }
+                  }
                 }
-              }
-              fprintf(fp, "%s", Displaycache_book[bs_idx]);
-              Displaycache_book_done[bs_idx] = true;
+                fprintf(fp, "%s", Displaycache_book[bs_idx]);
+                Displaycache_book_done[bs_idx] = true;
             }
             bs_count = 0;
 
@@ -2934,9 +2951,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         {
                             bs_idx = i;
                             bs1_max = Displaycache_book_sort1[i];
-                            bs2_max = 0;
+//                            bs2_max = 0;
+                            bs2_max = Displaycache_book_sort2[i];
                         }
-                        else if ((Displaycache_book_sort1[i] == bs1_max) && (Displaycache_book_sort2[i] > bs2_max)) // later timestamp goes first
+                        else if ((Displaycache_book_sort1[i] == bs1_max) && (Displaycache_book_sort2[i] >= bs2_max)) // later timestamp goes first
                         {
                             bs_idx = i;
                             bs2_max = Displaycache_book_sort2[i];
@@ -3016,7 +3034,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         {
                             bs_idx = i;
                             bs1_max = Displaycache_book_sort1[i];
-                            bs2_min = AUX_COIN * AUX_COIN;
+//                            bs2_min = AUX_COIN * AUX_COIN;
+                            bs2_max = Displaycache_book_sort2[i];
                         }
                         else if ((Displaycache_book_sort1[i] == bs1_max) && (Displaycache_book_sort2[i] < bs2_min)) // earlier timestamp goes first
                         {
