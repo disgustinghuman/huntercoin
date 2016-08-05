@@ -1184,6 +1184,17 @@ int pmon_all_x[PMON_ALL_MAX];
 int pmon_all_y[PMON_ALL_MAX];
 int pmon_all_next_x[PMON_ALL_MAX];
 int pmon_all_next_y[PMON_ALL_MAX];
+
+// hit+run system
+int pmon_all_wp1_x[PMON_ALL_MAX];
+int pmon_all_wp1_y[PMON_ALL_MAX];
+int pmon_all_wpdest_x[PMON_ALL_MAX];
+int pmon_all_wpdest_y[PMON_ALL_MAX];
+int pmon_all_wp_unconfirmed_x[PMON_ALL_MAX];
+int pmon_all_wp_unconfirmed_y[PMON_ALL_MAX];
+//int pmon_mapview_ul_col;
+//int pmon_mapview_ul_row;
+
 int pmon_all_color[PMON_ALL_MAX];
 int pmon_all_tx_age[PMON_ALL_MAX];
 bool pmon_all_cache_isinmylist[PMON_ALL_MAX]; // only valid for current block
@@ -1204,6 +1215,16 @@ int pmon_my_bankdist[PMON_MY_MAX];
 int pmon_my_bank_x[PMON_MY_MAX];
 int pmon_my_bank_y[PMON_MY_MAX];
 int pmon_my_idle_chronon[PMON_MY_MAX];
+
+// hit+run system
+Game::WaypointVector pmon_my_new_wps[PMON_MY_MAX];
+int pmon_my_tactical_sitch[PMON_MY_MAX];
+int pmon_24dirs_clockwise_x[24] = {0, 1, 1, 1, 0, -1, -1, -1, 0, 1, 1, 1, 0, -1, -1, -1, 0, 1, 1, 1, 0, -1, -1, -1};
+int pmon_24dirs_clockwise_y[24] = {-1, -1, 0, 1, 1, 1, 0, -1, -1, -1, 0, 1, 1, 1, 0, -1, -1, -1, 0, 1, 1, 1, 0, -1};
+// grabbing coins
+int pmon_my_moves_x[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
+int pmon_my_moves_y[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
+int pmon_my_movecount[PMON_MY_MAX];
 
 int pmon_config_loot_notice = 50;
 int pmon_config_bank_notice = 0;
@@ -1505,6 +1526,39 @@ bool pmon_name_update(int my_idx, int x, int y)
         vchValue = vchFromString(s);
     }
 #endif
+    // grabbing coins
+    else if (pmon_my_movecount[my_idx] > 0)
+    {
+        char buf[100];
+        std::string s;
+        std::string s1;
+        sprintf(buf, "{\"0\":{\"wp\":[%d,%d", pmon_my_moves_x[my_idx][0], pmon_my_moves_y[my_idx][0]);
+        s.assign(buf);
+
+        if (pmon_my_movecount[my_idx] > 1)
+            for (int nh = 1; nh < pmon_my_movecount[my_idx]; nh++)
+            {
+                sprintf(buf, ",%d,%d", pmon_my_moves_x[my_idx][nh], pmon_my_moves_y[my_idx][nh]);
+                s1.assign(buf);
+                s += s1;
+            }
+        s += "]}}";
+        vchValue = vchFromString(s);
+
+        pmon_my_movecount[my_idx] = 0; // done
+    }
+    // hit+run system
+    else if (!(pmon_my_new_wps[my_idx].empty()))
+    {
+        Game::Coord c1;
+        c1 = pmon_my_new_wps[my_idx].back();
+
+        char buf[200];
+        std::string s;
+        sprintf(buf, "{\"0\":{\"destruct\":true,\"wp\":[%d,%d]}}", c1.x, c1.y);
+        s.assign(buf);
+        vchValue = vchFromString(s);
+    }
 
     CWalletTx wtx;
     wtx.nVersion = NAMECOIN_TX_VERSION;

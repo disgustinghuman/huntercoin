@@ -1209,6 +1209,11 @@ bool votingcache_vault_exists[PAYMENTCACHE_MAX];
 #endif
 #endif
 
+// grabbing coins
+//int AI_playermap[MAP_HEIGHT][MAP_WIDTH][NUM_TEAM_COLORS];
+long long AI_coinmap[RPG_MAP_HEIGHT][RPG_MAP_WIDTH];
+long long AI_coinmap_copy[RPG_MAP_HEIGHT][RPG_MAP_WIDTH];
+
 
 // Simple straight-line motion
 void CharacterState::MoveTowardsWaypoint()
@@ -2313,6 +2318,33 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
     outState.dead_players_chat.clear();
 
     stepResult = StepResult();
+
+
+    // grabbing coins
+    for (int y = 0; y < Game::MAP_HEIGHT; y++)
+    for (int x = 0; x < Game::MAP_WIDTH; x++)
+    {
+        Coord coord;
+        coord.x = x;
+        coord.y = y;
+
+//        for (int k = 0; k < NUM_TEAM_COLORS; k++)
+//            AI_playermap[y][x][k] = 0;
+
+        const Coord& coord2 = coord;
+        if (outState.loot.count (coord2) > 0) // count==1 if there are coins
+        {
+            LootInfo li = outState.loot[coord2];
+            AI_coinmap[y][x] = li.nAmount;
+            AI_coinmap_copy[y][x] = AI_coinmap[y][x] / CENT;
+        }
+        else
+        {
+            AI_coinmap[y][x] = 0;
+            AI_coinmap_copy[y][x] = 0;
+        }
+    }
+
 
     /* Pay out game fees (except for spawns) to the game fund.  This also
        keeps track of the total fees paid into the game world by moves.  */

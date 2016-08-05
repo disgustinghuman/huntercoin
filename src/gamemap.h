@@ -78,6 +78,12 @@ extern bool Displaycache_book_done[SORTED_ORDER_BOOK_LINES];
 // better GUI -- variables declaration
 #define RPG_MAP_HEIGHT 512
 #define RPG_MAP_WIDTH 542
+
+// grabbing coins
+//extern int AI_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH][Game::NUM_TEAM_COLORS];
+extern long long AI_coinmap[RPG_MAP_HEIGHT][RPG_MAP_WIDTH];
+extern long long AI_coinmap_copy[RPG_MAP_HEIGHT][RPG_MAP_WIDTH];
+
 extern char AsciiArtMap[RPG_MAP_HEIGHT + 4][RPG_MAP_WIDTH + 4];
 extern int AsciiArtTileCount[RPG_MAP_HEIGHT + 4][RPG_MAP_WIDTH + 4];
 

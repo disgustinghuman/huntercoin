@@ -1263,6 +1263,17 @@ extern int pmon_all_x[PMON_ALL_MAX];
 extern int pmon_all_y[PMON_ALL_MAX];
 extern int pmon_all_next_x[PMON_ALL_MAX];
 extern int pmon_all_next_y[PMON_ALL_MAX];
+
+// hit+run system
+extern int pmon_all_wp1_x[PMON_ALL_MAX];
+extern int pmon_all_wp1_y[PMON_ALL_MAX];
+extern int pmon_all_wpdest_x[PMON_ALL_MAX];
+extern int pmon_all_wpdest_y[PMON_ALL_MAX];
+extern int pmon_all_wp_unconfirmed_x[PMON_ALL_MAX];
+extern int pmon_all_wp_unconfirmed_y[PMON_ALL_MAX];
+//extern int pmon_mapview_ul_col;
+//extern int pmon_mapview_ul_row;
+
 extern int pmon_all_color[PMON_ALL_MAX];
 extern int pmon_all_color[PMON_ALL_MAX];
 extern int pmon_all_tx_age[PMON_ALL_MAX];
@@ -1314,6 +1325,17 @@ extern int pmon_my_bankdist[PMON_MY_MAX];
 extern int pmon_my_bank_x[PMON_MY_MAX];
 extern int pmon_my_bank_y[PMON_MY_MAX];
 extern int pmon_my_idle_chronon[PMON_MY_MAX];
+
+// hit+run system
+extern Game::WaypointVector pmon_my_new_wps[PMON_MY_MAX];
+extern int pmon_my_tactical_sitch[PMON_MY_MAX];
+extern int pmon_24dirs_clockwise_x[24];
+extern int pmon_24dirs_clockwise_y[24];
+// grabbing coins
+#define PMON_DESIRED_MOVES_MAX 100
+extern int pmon_my_moves_x[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
+extern int pmon_my_moves_y[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
+extern int pmon_my_movecount[PMON_MY_MAX];
 
 #define PMON_CONFIG_MAX 16
 extern int pmon_config_loot_notice;

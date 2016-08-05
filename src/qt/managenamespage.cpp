@@ -691,10 +691,21 @@ void ManageNamesPage::onTileClicked(int x, int y, bool ctrlPressed)
         bool appendWP = (ctrlPressed && !cwp.empty());
         Game::Coord start = (appendWP) ? cwp.back() : mi2->second.coord;
         Game::WaypointVector wp = FindPath(start, target);
-        
-        if (wp.empty()) 
+
+        if (wp.empty())
+        {
+            // hit+run system -- is this one of my players?
+            for (int m = 0; m < PMON_MY_MAX; m++)
+            {
+                if (chid.ToString() == pmon_my_names[m])
+                {
+                    pmon_my_new_wps[m].clear();
+                }
+            }
+
             continue;
-            
+        }
+
         if (appendWP)
         {
             assert (wp.front () == cwp.back ());
@@ -703,6 +714,15 @@ void ManageNamesPage::onTileClicked(int x, int y, bool ctrlPressed)
         }
         else 
             cwp = wp;
+
+        // hit+run system -- is this one of my players?
+        for (int m = 0; m < PMON_MY_MAX; m++)
+        {
+            if (chid.ToString() == pmon_my_names[m])
+            {
+                pmon_my_new_wps[m] = cwp;
+            }
+        }
     }
     UpdateQueuedMoves();
 }

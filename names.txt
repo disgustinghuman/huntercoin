@@ -8,6 +8,9 @@ config:auctionbot_hunter_name #Bob
 config:auctionbot_trade_price 2500
 config:auctionbot_trade_size 0.1
 config:auctionbot_limit_coins 0
+config:afk_defence 1
+config:defence_ticks_hold 5
+config:defence_ticks_confirm 9
 Alice 9
 Bob 9
 

@@ -874,6 +874,11 @@ public:
         int y1 = std::max(0, int(option->exposedRect.top()) / TILE_SIZE);
         int y2 = std::min(RPG_MAP_HEIGHT, int(option->exposedRect.bottom()) / TILE_SIZE + 1);
 
+        // a visible tile near the upper left corner of the screen
+        // (not used -- position jumping around erratically)
+//      pmon_mapview_ul_col = (x1 * 9 + x2) / 10 + 1;
+//      pmon_mapview_ul_row = (y1 * 9 + y2) / 10 + 1;
+
         // allow offset for some tiles without popping
         if (Display_dbg_allow_tile_offset)
         {
@@ -1924,11 +1929,31 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 bool will_move = false;
                 Coord target;
 
+                // hit+run system
+                bool will_confirm = false;
+                if (wp_age >= pmon_config_confirm)
+                    will_confirm = true;
+                pmon_all_wp1_x[pmon_all_count] = pmon_all_wp1_y[pmon_all_count] = -1;
+                pmon_all_wp_unconfirmed_x[pmon_all_count] = pmon_all_wp_unconfirmed_y[pmon_all_count] = -1;
+                if (!(characterState.waypoints.empty()))
+                {
+                    Coord cdest = characterState.waypoints.front();
+                    pmon_all_wpdest_x[pmon_all_count] = cdest.x;
+                    pmon_all_wpdest_y[pmon_all_count] = cdest.y;
+                }
+                else
+                {
+                    pmon_all_wpdest_x[pmon_all_count] = pmon_all_wpdest_y[pmon_all_count] = -1;
+                }
+
                 if (!(characterState.waypoints.empty()))
                 {
                     Coord new_c;
                     target = characterState.waypoints.back();
 
+                    // hit+run system
+                    pmon_all_wp1_x[pmon_all_count] = target.x;
+                    pmon_all_wp1_y[pmon_all_count] = target.y;
 
                     int dx = target.x - pmon_from.x;
                     int dy = target.y - pmon_from.y;
@@ -2218,10 +2243,23 @@ void GameMapView::updateGameMap(const GameState &gameState)
                             entry.name += QString::number(pmon_config_afk_leave);
                         }
 
+                        // hit+run system
+                        if (!(pmon_my_new_wps[m].empty()))
+                        {
+                            // will be set to 1 or 2 if cornered (relative to our hit+run point) by >=1 enemies
+                            pmon_my_tactical_sitch[m] = 0;
+                        }
+
                         if (pmon_my_foecontact_age[m])
                         {
                             entry.name += QString::fromStdString(" CONTACT*");
                             entry.name += QString::number(pmon_my_foecontact_age[m]);
+
+                            if (pmon_config_defence)
+                            {
+                                entry.name += QString::fromStdString("/");
+                                entry.name += QString::number(pmon_config_hold);
+                            }
                         }
                     }
                 }
@@ -2231,6 +2269,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 {
                     entry.name += QString::fromStdString(" tx*");
                     entry.name += QString::number(wp_age);
+
+                    if (pmon_config_defence)
+                    {
+                        entry.name += QString::fromStdString("/");
+                        entry.name += QString::number(pmon_config_confirm);
+                    }
 
                     entry.name += QString::fromStdString(" ");
                     entry.name += QString::fromStdString(pmon_tx_values[pending_tx_idx]);
@@ -2252,6 +2296,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
     {
       for (int m = 0; m < PMON_MY_MAX; m++)
       {
+        if (pmon_my_foecontact_age[m] < 0)
+        {
+            pmon_my_foecontact_age[m]++;  // cooldown
+            continue;
+        }
+
         if (pmon_state == PMONSTATE_SHUTDOWN)
         {
             pmon_my_foecontact_age[m] = 0;
@@ -2298,22 +2348,65 @@ void GameMapView::updateGameMap(const GameState &gameState)
         int my_x = pmon_all_x[my_idx];
         int my_y = pmon_all_y[my_idx];
 
+        // hit+run system
+        bool have_hit_and_run_point = false;
+        bool enemy_is_adjacent = false;
+        bool enemy_on_top_of_us = false;
+        int my_dist_to_nearest_neutral = 10000;
+        int my_hit_and_run_point_x = 0;
+        int my_hit_and_run_point_y = 0;
+        int my_enemy_in_range_x = 0;
+        int my_enemy_in_range_y = 0;
+        int my_enemy_in_range_next_x = 0;
+        int my_enemy_in_range_next_y = 0;
+        if (!(pmon_my_new_wps[m].empty()))
+        {
+            Coord c1 = pmon_my_new_wps[m].back();
+            have_hit_and_run_point = true;
+            my_hit_and_run_point_x = c1.x;
+            my_hit_and_run_point_y = c1.y;
+        }
+
         for (int k_all = 0; k_all < pmon_all_count; k_all++)
         {
             if (k_all == my_idx) continue; // that's me
             if (pmon_all_cache_isinmylist[k_all]) continue; // one of my players
+
+            // hit+run system
+            int dtn = pmon_DistanceHelper(my_x, my_y, pmon_all_x[k_all], pmon_all_y[k_all], false);
+            if (dtn < my_dist_to_nearest_neutral) my_dist_to_nearest_neutral = dtn;
+
             if (pmon_all_color[my_idx] == pmon_all_color[k_all]) continue; // same team
 
             if ((abs(my_next_x - pmon_all_next_x[k_all]) <= 1) && (abs(my_next_y - pmon_all_next_y[k_all]) <= 1))
             {
                 enemy_in_range = true;
                 my_enemy_tx_age = pmon_all_tx_age[k_all];
+
+                // hit+run system
+                my_enemy_in_range_x = pmon_all_x[k_all];
+                my_enemy_in_range_y = pmon_all_y[k_all];
+                int my_dist_to_eir = pmon_DistanceHelper(my_x, my_y, my_enemy_in_range_x, my_enemy_in_range_y, false);
+
+                if (my_dist_to_eir <= 1)
+                    enemy_is_adjacent = true;
+                if (my_dist_to_eir == 0)
+                    enemy_on_top_of_us = true;
+                my_enemy_in_range_next_x = pmon_all_next_x[k_all];
+                my_enemy_in_range_next_y = pmon_all_next_y[k_all];
+                if (have_hit_and_run_point)
+                {
+                    pmon_CoordHelper(my_x, my_y, my_x, my_y, my_hit_and_run_point_x, my_hit_and_run_point_y, 1, true);
+                    int d1 = pmon_DistanceHelper(my_x,  my_y, my_enemy_in_range_next_x, my_enemy_in_range_next_y, false);
+                    int d2 = pmon_DistanceHelper(pmon_CoordHelper_x, pmon_CoordHelper_y, my_enemy_in_range_next_x, my_enemy_in_range_next_y, false);
+                    if (d2 <= d1)
+                    {
+                        if (pmon_my_tactical_sitch[m] < 2)
+                            pmon_my_tactical_sitch[m] = 2; // cornered (by this enemy)
+                    }
+                }
             }
 
-//            if ((my_alarm_range) && (abs(my_x - pmon_all_x[k_all]) <= my_alarm_range) && (abs(my_y - pmon_all_y[k_all]) <= my_alarm_range))
-//            {
-//                tmp_trigger_alarm = true;
-//            }
             int fdx = abs(my_x - pmon_all_x[k_all]);
             int fdy = abs(my_y - pmon_all_y[k_all]);
             int tmp_foe_dist = fdx > fdy ? fdx : fdy;
@@ -2323,6 +2416,21 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 if ((my_alarm_range) && (tmp_foe_dist <= my_alarm_range))
                 {
                     tmp_trigger_alarm = true;
+
+                    // hit+run system
+                    int tmp_foe_x = pmon_all_next_x[k_all];
+                    int tmp_foe_y = pmon_all_next_y[k_all];
+                    if (have_hit_and_run_point)
+                    {
+                        pmon_CoordHelper(my_x, my_y, my_x, my_y, my_hit_and_run_point_x, my_hit_and_run_point_y, 1, true);
+                        int d1 = pmon_DistanceHelper(my_x,  my_y, tmp_foe_x, tmp_foe_y, false);
+                        int d2 = pmon_DistanceHelper(pmon_CoordHelper_x, pmon_CoordHelper_y, tmp_foe_x, tmp_foe_y, false);
+                        if (d2 <= d1)
+                        {
+                            if (pmon_my_tactical_sitch[m] < 1)
+                                pmon_my_tactical_sitch[m] = 1; // possibly cornered (by this enemy, if they come closer)
+                        }
+                    }
                 }
             }
         }
@@ -2338,6 +2446,61 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
         if (enemy_in_range) pmon_my_foecontact_age[m]++;
         else pmon_my_foecontact_age[m] = 0;
+
+
+        //
+        // hit+run system
+        //
+        if (enemy_on_top_of_us)
+        {
+            pmon_my_foecontact_age[m] = pmon_config_hold;
+        }
+        else if ((pmon_my_foecontact_age[m] >= 1))
+        {
+            if (enemy_is_adjacent)
+                pmon_my_foecontact_age[m] = pmon_config_hold;
+            else if ( (!(pmon_my_new_wps[m].empty())) && (pmon_my_tactical_sitch[m] < 2) )
+                pmon_my_foecontact_age[m] = pmon_config_hold;
+        }
+
+        if (pmon_my_foecontact_age[m] >= pmon_config_hold)
+        if ( (pmon_config_defence & 2) ||                                             // prediction test
+             ((pmon_config_defence) && (!(my_enemy_tx_age >= pmon_config_confirm))) ) // normal version (no prediction test)
+        {
+            bool tx_good = pmon_name_update(m, -1, -1);
+
+            if (tx_good)
+            {
+                if (!(pmon_my_new_wps[m].empty()))
+                {
+                    Coord c1;
+                    c1 = pmon_my_new_wps[m].back();
+
+                    int ir8 = (Display_xorshift128plus() % 8);
+                    for (int id = ir8; id < ir8 + 8; id++)
+                    {
+                        if (id < 24)
+                        if (IsWalkable(c1.x + pmon_24dirs_clockwise_x[id], c1.y + pmon_24dirs_clockwise_y[id]))
+                        {
+                            c1.x += pmon_24dirs_clockwise_x[id];
+                            c1.y += pmon_24dirs_clockwise_y[id];
+                            break;
+                        }
+                    }
+
+                    pmon_my_new_wps[m].clear();
+                    pmon_my_new_wps[m].push_back(c1);
+                }
+
+                pmon_my_foecontact_age[m] = -5; // cooldown
+                break;
+            }
+            else
+            {
+                pmon_my_foecontact_age[m] = pmon_config_hold - 1; // try again in 5 seconds
+            }
+        }
+
 
       }
     }
@@ -3255,6 +3418,131 @@ void GameMapView::updateGameMap(const GameState &gameState)
 #endif
         gameMapCache->AddPlayer(playerName, x, y, 1 + offs, tmp_color, color_attack1, color_defense1, color_defense2, characterState.dir, characterState.loot.nAmount);
 //        gameMapCache->AddPlayer(playerName, x, y, 1 + offs, data.second.color, color_attack1, color_defense1, color_defense2, characterState.dir, characterState.loot.nAmount);
+    }
+
+
+    //
+    // hit+run system
+    //
+    for (int m = 0; m < PMON_MY_MAX; m++)
+    {
+        if ((pmon_my_idx[m] < 0) || (pmon_my_idx[m] >= PMON_ALL_MAX)) continue;
+//        int my_idx = pmon_my_idx[m];
+//        int my_x = pmon_all_x[my_idx];
+//        int my_y = pmon_all_y[my_idx];
+
+        if (!(pmon_my_new_wps[m].empty()))
+        {
+            Coord c1;
+            int dn = 2;
+            c1 = pmon_my_new_wps[m].back();
+
+            QString tmp_name = QString::fromStdString("\n\n          ");
+            tmp_name += QString::fromStdString(pmon_my_names[m]);
+
+            if (pmon_my_tactical_sitch[m] == 0)
+            {
+                tmp_name += QString::fromStdString(" hit+run");
+            }
+            else if (pmon_my_tactical_sitch[m] == 1)
+            {
+                tmp_name += QString::fromStdString(" cornered?");
+                dn = 8;
+            }
+            else
+            {
+                tmp_name += QString::fromStdString(" punch through");
+                dn = 6;
+            }
+            gameMapCache->AddPlayer(tmp_name, TILE_SIZE * c1.x, TILE_SIZE * c1.y, 1 + 0, 32, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
+        }
+    }
+
+    // show first waypoint if desired
+    if (pmon_config_show_wps & 2)
+    for (int k_all = 0; k_all < pmon_all_count; k_all++)
+    {
+        if (pmon_all_cache_isinmylist[k_all]) continue; // one of my players
+
+        bool uwp = false;
+        int tmp_x = pmon_all_x[k_all];
+        int tmp_y = pmon_all_y[k_all];
+        int tmp_next_x = pmon_all_next_x[k_all];
+        int tmp_next_y = pmon_all_next_y[k_all];
+        int tmp_wp_x = pmon_all_wp1_x[k_all];
+        int tmp_wp_y = pmon_all_wp1_y[k_all];
+        if (IsInsideMap(pmon_all_wp_unconfirmed_x[k_all], pmon_all_wp_unconfirmed_y[k_all]))
+        {
+            tmp_wp_x = pmon_all_wp_unconfirmed_x[k_all];
+            tmp_wp_y = pmon_all_wp_unconfirmed_y[k_all];
+            uwp = true;
+        }
+        if ((tmp_wp_x < 0) || (tmp_wp_y < 0)) continue; // no waypoint at all
+
+        if ((tmp_next_x == tmp_x) && (tmp_next_y == tmp_y)) continue; // (if unconirmed wp has same coors as the hunter)
+
+        int dn = 0;
+        if (tmp_next_x > tmp_x)
+        {
+            if (tmp_next_y > tmp_y) dn = 3;
+            else if (tmp_next_y == tmp_y) dn = 6;
+            else dn = 9;
+        }
+        else if (tmp_next_x == tmp_x)
+        {
+            if (tmp_next_y > tmp_y) dn = 2;
+            else if (tmp_next_y < tmp_y) dn = 8;
+        }
+        else
+        {
+            if (tmp_next_y > tmp_y) dn = 1;
+            else if (tmp_next_y == tmp_y) dn = 4;
+            else dn = 7;
+        }
+        if (dn == 0) continue; // no valid dir (if unconirmed wp has same coors as the hunter)
+
+        QString tmp_name = QString::fromStdString("\n");
+        tmp_name += QString::fromStdString(pmon_all_names[k_all]);
+        if (uwp)
+            tmp_name += QString::fromStdString("'s wp (predicted):");
+        else
+            tmp_name += QString::fromStdString("'s wp:");
+        tmp_name += QString::number(tmp_wp_x);
+        tmp_name += QString::fromStdString(",");
+        tmp_name += QString::number(tmp_wp_y);
+        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * tmp_wp_x, TILE_SIZE * tmp_wp_y, 1 + 0, 32, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
+
+        // show next position if desired
+        if (pmon_config_show_wps & 1)
+        if ((tmp_next_x != tmp_wp_x) || (tmp_next_y != tmp_wp_y))
+        {
+            tmp_name = QString::fromStdString("\n");
+            tmp_name += QString::fromStdString(pmon_all_names[k_all]);
+            tmp_name += QString::fromStdString(":");
+            tmp_name += QString::number(tmp_next_x);
+            tmp_name += QString::fromStdString(",");
+            tmp_name += QString::number(tmp_next_y);
+            gameMapCache->AddPlayer(tmp_name, TILE_SIZE * tmp_next_x, TILE_SIZE * tmp_next_y, 1 + 0, 32, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
+        }
+
+        // show final waypoint if desired
+        if (pmon_config_show_wps & 4)
+        {
+            int tmp_wpdest_x = pmon_all_wpdest_x[k_all];
+            int tmp_wpdest_y = pmon_all_wpdest_y[k_all];
+            if ((tmp_wpdest_x != tmp_wp_x) || (tmp_wpdest_y != tmp_wp_y))
+            if ((tmp_wpdest_x != tmp_next_x) || (tmp_wpdest_y != tmp_next_y))
+            if (IsInsideMap(tmp_wpdest_x, tmp_wpdest_y))
+            {
+                tmp_name = QString::fromStdString("\n");
+                tmp_name += QString::fromStdString(pmon_all_names[k_all]);
+                tmp_name += QString::fromStdString("'s dest.");
+                tmp_name += QString::number(tmp_wpdest_x);
+                tmp_name += QString::fromStdString(",");
+                tmp_name += QString::number(tmp_wpdest_y);
+                gameMapCache->AddPlayer(tmp_name, TILE_SIZE * tmp_wpdest_x, TILE_SIZE * tmp_wpdest_y, 1 + 0, 32, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
+            }
+        }
     }
 
 

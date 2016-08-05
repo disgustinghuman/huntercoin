@@ -19,6 +19,20 @@ https://mega.nz/#!uMliTQ4R!nT2Ktz8X5BD6eAN8v3zcbGNCe5oR-d5OaNsbt8u4kRs
     would take ~5 hours on mainnet if game_sv4.dat is not in the same folder as game.dat)
 
 
+New: Additional config options in names.txt:
+show movement of unknown hunters as floating arrows (20160705)
+==============================================================
+
+    config:show_wps 1              show next position (adjacent tile)
+
+    config:show_wps 2              show first waypoint
+                                   (arrow direction == direction of the next step)
+
+    config:show_wps 4              show destination (final waypoint)
+
+    config:show_wps 7              default 7, do all of the above
+
+
 New: Bitasset transfer (20160605)
 =================================
 
@@ -53,6 +67,31 @@ The transfers are irrevocable, done 1 block after the tx is in the blockchain,
 and in case of a chain reorg they will be handled correctly like any other gamestate data
 
 
+New: Hit+Run AI (20160523)
+==========================
+
+  Purpose:
+  - in thick melee (like 3 vs 3 in the center) it's better to keep focus on hunter positions and movement, and to leave
+    the exact timing of "destruct" to the software.
+  - attacking players will be less able to steal time and human attention
+
+
+  Set a single waypoint (grey line) to become this hunter's "Hit+Run point".
+  The client will determine 1 out of 3 possible states:
+
+  "punch through"                            This hunter is cornered by the nearest enemy. Upon contact, the hunter
+                                             will observe config:afk_ticks_hold, send destruct, and move to the Hit+Run point.
+
+  "hit+run"                                  Enemy is attacking us from a direction that allows to send destruct immediately,
+                                             and move away from it to the Hit+Run point.
+
+  "cornered?"                                looks like a "punch through" situation, but not clear because the enemy is too far away
+
+
+  Any click on an unwalkable tile will clear the current Hit+Run point. However,
+  it's (probably) never a disadvantage to have a Hit+Run point set, no matter the coordinates.
+
+
 New: Auction Bot (20160503)
 ===========================
 
@@ -79,6 +118,31 @@ New: Auction Bot (20160503)
   Current status of the bot is in auction.txt, updated each block. Restarting the tx monitor (i.e. click middle mouse button 2 times)
   will also restart the auction bot.
 
+
+Additional config options in names.txt:
+=======================================
+
+    config:afk_defence 1           hunters have the capability to "destruct" in self defense,
+                                   other hunters listed in names.txt are seen as friendlies
+                                   but no attempt is made to avoid collateral damage, default 1
+
+    config:afk_ticks_hold 5        wait time after a block was received,
+                                   on "CONTACT" the player has by default 20 seconds to override
+                                   (by either sending a move, or middle mouse button to switch the tx monitor off)
+                                   default 5
+
+    config:afk_ticks_confirm 7     1/2 of the estimated time a transaction needs to confirm,
+                                   default 7
+
+
+Additional config options in names.txt:
+(Windows only)
+=======================================
+
+    config:dbg_win32_qt_threads 12    Windows stability bug workaround (force some threads to wait for each other)
+                                      0...off
+                                      12...default
+                                      28...same as 12, print stats in debug.log
 
 Pending Transaction Monitor
 ===========================
