@@ -2925,14 +2925,28 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 fprintf(fp, "\n\n");
                 fprintf(fp, "->chat message to sell minimum size at auction start price minimum:\n");
                 fprintf(fp, "GEM:HUC set ask %s at %s\n", FormatMoney(AUCTION_MIN_SIZE).c_str(), FormatMoney(gameState.auction_settle_price).c_str());
+                fprintf(fp, "->without automatic downtick:\n");
+                fprintf(fp, "GEM:HUC GTC ask %s at %s\n", FormatMoney(AUCTION_MIN_SIZE).c_str(), FormatMoney(gameState.auction_settle_price).c_str());
             }
             if (auctioncache_bid_price <= 0) // no active bid (i.e. best ask reserved for one hunter)
             {
                 if (auctioncache_bestask_price > 0) // but there is a best ask
                 {
                     fprintf(fp, "\n");
-                    fprintf(fp, "->chat message to buy (size and price of best ask):\n");
+                    fprintf(fp, "->chat message to buy manually (size and price of best ask):\n");
                     fprintf(fp, "GEM:HUC set bid %s at %s\n", FormatMoney(auctioncache_bestask_size).c_str(), FormatMoney(auctioncache_bestask_price).c_str());
+                    if (auctioncache_bestask_size > AUX_COIN)
+                    {
+                        fprintf(fp, "->lines in names.txt to buy automatically (1 gem per trade):\n");
+                        fprintf(fp, "config:auctionbot_trade_size %s\n", FormatMoney(AUX_COIN).c_str());
+                    }
+                    else
+                    {
+                        fprintf(fp, "->lines in names.txt to buy automatically:\n");
+                        fprintf(fp, "config:auctionbot_trade_size %s\n", FormatMoney(auctioncache_bestask_size).c_str());
+                    }
+                    fprintf(fp, "config:auctionbot_trade_price %s\n", FormatMoney(auctioncache_bestask_price).c_str());
+                    fprintf(fp, "config:auctionbot_limit_coins %s\n", FormatMoney(auctioncache_bestask_price / AUX_COIN * auctioncache_bestask_size).c_str());
                 }
             }
             // settlement in coins
@@ -3216,8 +3230,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 fprintf(fp, "\n CRD:GEM trader positions (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
                 fprintf(fp, " ---------------------------------------------------\n\n");
 //                fprintf(fp, "                                                                                               \n");
-                fprintf(fp, "                                     hunter             chronoDollar   trade     trade  gems, not       long    bid    bid      ask     ask     short\n");
-                fprintf(fp, "storage vault key                    name        gems   position       price     P/L    at risk         risk    size   price    price   size    risk    flags\n");
+                fprintf(fp, "                                     hunter               chronoDollar   trade     trade  gems, not       long    bid    bid      ask     ask     short\n");
+                fprintf(fp, "storage vault key                    name          gems   position       price     P/L    at risk         risk    size   price    price   size    risk    flags\n");
                 fprintf(fp, "\n");
                 BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
                 {
@@ -3261,7 +3275,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                       else if (tmp_order_flags & ORDERFLAG_ASK_ACTIVE) s += " ok";
 
                       // not rounded ----------------------------v-----v
-                      fprintf(fp, "%s   %-10s %6s    %9s   %6s  %8s   %8s     %6s  %6s  %6s  %6s  %6s  %6s   %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(tmp_position_size).c_str(), FormatMoney(tmp_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str(), FormatMoney(not_at_risk).c_str(),
+                      fprintf(fp, "%s   %-10s %8s    %9s   %6s  %8s   %8s     %6s  %6s  %6s  %6s  %6s  %6s   %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(st.second.nGems).c_str(), FormatMoney(tmp_position_size).c_str(), FormatMoney(tmp_position_price).c_str(), FormatMoney(st.second.ex_trade_profitloss).c_str(), FormatMoney(not_at_risk).c_str(),
                               FormatMoney(risk_bidorder).c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), FormatMoney(tmp_ask_price).c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(risk_askorder).c_str(), s.c_str());
                   }
                 }
