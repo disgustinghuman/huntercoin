@@ -2012,13 +2012,21 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 if (!tmp_alarm)
                                 {
                                     tmp_alarm = true;
-                                    entry.name += QString::fromStdString(" *ALARM*:");
+                                    entry.name += QString::fromStdString(" ALARM:");
                                 }
                                 else
                                 {
                                     entry.name += QString::fromStdString(",");
                                 }
+                                if (pmon_my_alarm_state[m2] == 2) // several hostiles
+                                    entry.name += QString::fromStdString("***");
+                                else if (pmon_my_alarm_state[m2] == 6) // acoustic alarm finished
+                                    entry.name += QString::fromStdString("*");
                                 entry.name += QString::fromStdString(pmon_my_names[m2]);
+                                if (pmon_my_alarm_state[m2] == 2)
+                                    entry.name += QString::fromStdString("***");
+                                else if (pmon_my_alarm_state[m2] == 6)
+                                    entry.name += QString::fromStdString("*");
                                 entry.name += QString::number(pmon_my_foe_dist[m2]);
                                 entry.name += QString::fromStdString("/");
                                 entry.name += QString::number(pmon_my_alarm_dist[m2]);
@@ -2320,6 +2328,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         }
 
         bool tmp_trigger_alarm = false;
+        bool tmp_trigger_multi_alarm = false;
         bool enemy_in_range = false;
         int my_alarm_range = pmon_my_alarm_dist[m];
         if (pmon_my_alarm_state[m])
@@ -2410,6 +2419,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
             int fdx = abs(my_x - pmon_all_x[k_all]);
             int fdy = abs(my_y - pmon_all_y[k_all]);
             int tmp_foe_dist = fdx > fdy ? fdx : fdy;
+
+            if ((tmp_trigger_alarm) && (my_alarm_range) && (tmp_foe_dist <= my_alarm_range))
+            {
+                tmp_trigger_multi_alarm = true;
+            }
+
             if (tmp_foe_dist < pmon_my_foe_dist[m])
             {
                 pmon_my_foe_dist[m] = tmp_foe_dist;
@@ -2435,9 +2450,21 @@ void GameMapView::updateGameMap(const GameState &gameState)
             }
         }
 
+        // 1...normal alert
+        // 2...multi alert
+        // 5...normal alert, acoustic alarm finished
+        // 6...multi alert, acoustic alarm finished
         if (tmp_trigger_alarm)
         {
-            if (!pmon_my_alarm_state[m]) pmon_my_alarm_state[m] = 1;
+            if (tmp_trigger_multi_alarm)
+            {
+                if (pmon_my_alarm_state[m] != 6) pmon_my_alarm_state[m] = 2;
+            }
+            else
+            {
+                if (pmon_my_alarm_state[m] == 6) pmon_my_alarm_state[m] = 5;
+                if (pmon_my_alarm_state[m] != 5) pmon_my_alarm_state[m] = 1;
+            }
         }
         else
         {
@@ -3783,8 +3810,12 @@ void GameMapView::mousePressEvent(QMouseEvent *event)
 
             if (pmon_noisy)
                 for (int m = 0; m < PMON_MY_MAX; m++)
+                {
                     if (pmon_my_alarm_state[m] == 1)
-                         pmon_my_alarm_state[m] = 2;
+                         pmon_my_alarm_state[m] = 5;
+                    else if (pmon_my_alarm_state[m] == 2)
+                         pmon_my_alarm_state[m] = 6;
+                }
         }
         else if ( ! (event->modifiers().testFlag( Qt::ShiftModifier )) )
         {

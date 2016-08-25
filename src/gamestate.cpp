@@ -4449,22 +4449,53 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
 #ifdef GUI
     // pending tx monitor -- acoustic alarm
-    bool do_sound_alarm = false;
+    int do_sound_alarm = 0;
     if (pmon_noisy)
     {
         for (int m = 0; m < PMON_MY_MAX; m++)
         {
             if (pmon_my_alarm_state[m] == 1)
             {
-                 pmon_my_alarm_state[m] = 2;
-                 do_sound_alarm = true;
+                 pmon_my_alarm_state[m] = 5;
+                 if (do_sound_alarm == 0) do_sound_alarm = 1;
+            }
+            else if (pmon_my_alarm_state[m] == 2)
+            {
+                 pmon_my_alarm_state[m] = 6;
+                 do_sound_alarm = 2;
             }
         }
 
-        if (do_sound_alarm)
+        if (do_sound_alarm == 1)
         {
+            boost::filesystem::path pathDebug = boost::filesystem::path(GetDataDir()) / "alert_foe1.wav";
+
+            // Open file with the associated application
+            if (boost::filesystem::exists(pathDebug))
             {
-                boost::filesystem::path pathDebug = boost::filesystem::path(GetDataDir()) / "small_wave_file.wav";
+                QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(pathDebug.string())));
+            }
+            else
+            {
+                pathDebug = boost::filesystem::path(GetDataDir()) / "small_wave_file.wav";
+
+                // Open file with the associated application
+                if (boost::filesystem::exists(pathDebug))
+                    QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(pathDebug.string())));
+            }
+        }
+        else if (do_sound_alarm == 2)
+        {
+            boost::filesystem::path pathDebug = boost::filesystem::path(GetDataDir()) / "alert_foe2.wav";
+
+            // Open file with the associated application
+            if (boost::filesystem::exists(pathDebug))
+            {
+                QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(pathDebug.string())));
+            }
+            else
+            {
+                pathDebug = boost::filesystem::path(GetDataDir()) / "small_wave_file.wav";
 
                 // Open file with the associated application
                 if (boost::filesystem::exists(pathDebug))

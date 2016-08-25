@@ -1279,7 +1279,7 @@ extern int pmon_all_color[PMON_ALL_MAX];
 extern int pmon_all_tx_age[PMON_ALL_MAX];
 extern bool pmon_all_cache_isinmylist[PMON_ALL_MAX];
 extern int pmon_all_count;
-#define PMON_MY_MAX 30
+#define PMON_MY_MAX 50
 extern std::string pmon_my_names[PMON_MY_MAX];
 extern int pmon_my_alarm_dist[PMON_MY_MAX];
 extern int pmon_my_foe_dist[PMON_MY_MAX];
