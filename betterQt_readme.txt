@@ -19,6 +19,20 @@ https://mega.nz/#!uMliTQ4R!nT2Ktz8X5BD6eAN8v3zcbGNCe5oR-d5OaNsbt8u4kRs
     would take ~5 hours on mainnet if game_sv4.dat is not in the same folder as game.dat)
 
 
+New: better AI (20160826)
+see "Additional config options in names.txt" below
+==================================================
+
+    config:afk_defence 2           use the first waypoint from an enemy hunter's pending unconfirmed move for calculations
+                                   if the pending transaction is older than "config:afk_ticks_confirm"
+                                   (highly experimental, only in binary release)
+
+    config:afk_defence 4           grab nearby coins if idle, and no enemy is in alarm range, every X chronons.
+                                   (X == min(30, distance to nearest unknown hunter))
+
+    config:afk_defence 7           do all of the above
+
+
 New: Additional config options in names.txt:
 show movement of unknown hunters as floating arrows (20160705)
 ==============================================================
@@ -100,14 +114,14 @@ New: Auction Bot (20160503)
 
   Config options (in names.txt)
 
-    config:auctionbot_hunter_name Alice      name of the hunter "on duty" (players can't trade in Huntercoin, only hunters)
+    config:auctionbot_hunter_name #Alice     name of the hunter "on duty" (players can't trade in Huntercoin, only hunters)
                                              default ""
 
+                                             IMPORTANT NOTE: comment out the name (i.e. #Alice instead of Alice) if not in use
+
     config:auctionbot_trade_price 100        bid limit price (in coins)
-                                             default 100
 
     config:auctionbot_trade_size 0.1         bid size (in gems)
-                                             default 0.1
 
     config:auctionbot_limit_coins 0          session limit (in coins)
                                              default 0
@@ -150,7 +164,7 @@ Pending Transaction Monitor
   The "pending tx monitor" can reroute output from the console command "name_pending" to GUI
 
   input:
-    middle mouse button       switch tx monitor on (default update interval: 5 seconds)
+    middle mouse button       start tx monitor (default update interval: 5 seconds)
 
     name_pending 5            "legacy" console command to start with update interval every 5 seconds
                               (min update interval is 2 seconds, console is not available while it runs)
@@ -159,7 +173,7 @@ Pending Transaction Monitor
 
     Ctrl+middle mouse button  toggle silent mode
 
-    names.txt                 up to 30 player names of "friendly" hunters + distance to trigger alarm. Changes are effective after stopping and restarting the tx monitor.
+    names.txt                 up to 48 names of "friendly" hunters + distance to trigger alarm. Changes are effective after stopping and restarting the tx monitor.
                               - if name is in names.txt, hunters ignore each other for alarm purposes
                               - it's not required that all friendlies are controlled by the same node/wallet
 

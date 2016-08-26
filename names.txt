@@ -4,13 +4,13 @@ config:loot_notice 50
 config:warn_stalled 36
 config:warn_disaster 50
 config:afk_leave_map 0
-config:auctionbot_hunter_name #Bob
-config:auctionbot_trade_price 2500
+config:auctionbot_hunter_name #Alice
+config:auctionbot_trade_price 100
 config:auctionbot_trade_size 0.1
 config:auctionbot_limit_coins 0
-config:afk_defence 1
+config:afk_defence 7
 config:defence_ticks_hold 5
-config:defence_ticks_confirm 9
+config:defence_ticks_confirm 10
 Alice 9
 Bob 9
 

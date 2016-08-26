@@ -2528,6 +2528,108 @@ void GameMapView::updateGameMap(const GameState &gameState)
             }
         }
 
+        // grabbing coins
+        pmon_my_movecount[m] = 0;
+#define AI_MAX_FARM_MOVES 75
+#define AI_MAX_FARM_DIST 12
+        if (pmon_config_defence & 4)
+        if (gameState.nHeight > pmon_my_idle_chronon[m])
+        if ((pmon_go) && (gameState.nHeight > gem_log_height)) // try once per block, if tx monitor is on
+        if (pmon_my_idlecount[m] > 3) // in pmon ticks
+        if ((pmon_my_bankstate[m] == BANKSTATE_NORMAL) || (pmon_my_bankstate[m] == BANKSTATE_NOTIFY) || (pmon_my_bankstate[m] == BANKSTATE_NOLIMIT))
+        if ((pmon_my_foe_dist[m] > pmon_my_alarm_dist[m]) && (pmon_my_foe_dist[m] >= 5))
+        {
+//            for (int vy = my_y - AI_MAX_FARM_DIST; vy <= my_y + AI_MAX_FARM_DIST; vy++)
+//            {
+//              for (int vx = my_x - AI_MAX_FARM_DIST; vx <= my_x + AI_MAX_FARM_DIST; vx++)
+//              {
+//                if (IsInsideMap(vx, vy))
+//                    printf("%d ", AI_coinmap_copy[vy][vx] > 0 ? 1 : 0);
+//              }
+//              printf("\n");
+//            }
+
+            int old_x = my_x;
+            int old_y = my_y;
+            for (int nh = 0; nh < AI_MAX_FARM_MOVES; nh++)
+            {
+              int dmin = 10000;
+              int dmin2 = 10000;
+              int best_x = 0;
+              int best_y = 0;
+              if (pmon_my_movecount[m] > AI_MAX_FARM_MOVES - 1)
+              {
+                  printf("harvest test: bad movecount %d\n", pmon_my_movecount[m]);
+                  break;
+              }
+
+              if (pmon_my_movecount[m] > 0)
+              {
+                  old_x = pmon_my_moves_x[m][pmon_my_movecount[m] - 1];
+                  old_y = pmon_my_moves_y[m][pmon_my_movecount[m] - 1];
+              }
+              if (!IsInsideMap(old_x, old_y))
+              {
+                  printf("harvest test: bad coors %d %d\n", old_x, old_y);
+                  break;
+              }
+              for (int vy = old_y - AI_MAX_FARM_DIST; vy <= old_y + AI_MAX_FARM_DIST; vy++)
+              for (int vx = old_x - AI_MAX_FARM_DIST; vx <= old_x + AI_MAX_FARM_DIST; vx++)
+              {
+                if (IsInsideMap(vx, vy))
+                {
+                  int d = pmon_DistanceHelper(old_x, old_y, vx, vy, false); // to prev. tile
+                  int d2 = pmon_DistanceHelper(my_x, my_y, vx, vy, false); // to current tile
+                  if ( (d > 0) && (AI_coinmap_copy[vy][vx] > 0) &&
+                          ((d < dmin) || ((d == dmin) && (d2 < dmin2))) )
+                  {
+                      // see CheckLinearPath
+                      Coord coord;
+                      Coord variant_coord;
+                      coord.x = old_x;
+                      coord.y = old_y;
+                      variant_coord.x = vx;
+                      variant_coord.y = vy;
+                      CharacterState tmp;
+                      tmp.from = tmp.coord = coord;
+                      tmp.waypoints.push_back(variant_coord);
+                      while (!tmp.waypoints.empty())
+                      tmp.MoveTowardsWaypoint();
+                      if(tmp.coord == variant_coord)
+                      {
+                          dmin = d;
+                          best_x = vx;
+                          best_y = vy;
+                      }
+                  }
+                }
+              }
+
+              if ((dmin < 10000) && (pmon_my_movecount[m] < AI_MAX_FARM_MOVES))
+              {
+                  pmon_my_moves_x[m][pmon_my_movecount[m]] = best_x;
+                  pmon_my_moves_y[m][pmon_my_movecount[m]] = best_y;
+                  pmon_my_movecount[m]++;
+                  AI_coinmap_copy[best_y][best_x] = 0; // dibs
+              }
+              else
+              {
+                  break;
+              }
+            }
+            if (pmon_my_movecount[m] >= my_dist_to_nearest_neutral <= 5 ? 1 : 3) // found 3 coins to pick up (or just 1 if facing annoying competition)
+            {
+              printf("harvest test: player #%d %s can harvest %d coins: \n", m, pmon_my_names[m].c_str(), pmon_my_movecount[m]);
+//              for (int nh = 0; nh < pmon_my_movecount[m]; nh++)
+//                  printf("%d,%d ", pmon_my_moves_x[m][nh], pmon_my_moves_y[m][nh]);
+//              printf("\n");
+
+              pmon_name_update(m, -1, -1);
+
+              // be lazy only in case of no competition
+              pmon_my_idle_chronon[m] = gameState.nHeight + (my_dist_to_nearest_neutral < 30 ? my_dist_to_nearest_neutral : 30);
+            }
+        }
 
       }
     }
