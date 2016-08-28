@@ -2317,6 +2317,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
             pmon_my_idlecount[m] = 0;
             pmon_my_bankdist[m] = 0;
             pmon_my_bankstate[m] = 0;
+            pmon_my_new_wps[m].clear();
+            pmon_my_tactical_sitch[m] = 0;
+            pmon_my_movecount[m] = 0;
 
             if (m == 0)
             {
@@ -2342,6 +2345,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
             pmon_my_idlecount[m] = 0;
             pmon_my_bankdist[m] = 0;
             pmon_my_bankstate[m] = 0;
+            pmon_my_new_wps[m].clear();
+            pmon_my_tactical_sitch[m] = 0;
+            pmon_my_movecount[m] = 0;
 
             if (pmon_out_of_wp_idx == m) pmon_out_of_wp_idx = -1;
             if (pmon_need_bank_idx == m) pmon_need_bank_idx = -1;
@@ -2398,9 +2404,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 int my_dist_to_eir = pmon_DistanceHelper(my_x, my_y, my_enemy_in_range_x, my_enemy_in_range_y, false);
 
                 if (my_dist_to_eir <= 1)
+                {
                     enemy_is_adjacent = true;
-                if (my_dist_to_eir == 0)
-                    enemy_on_top_of_us = true;
+                    if (my_dist_to_eir == 0)
+                        enemy_on_top_of_us = true;
+                    printf("hit+run system: player #%d %s dist to enemy in range %d\n", m, pmon_my_names[m].c_str(), my_dist_to_eir);
+                }
                 my_enemy_in_range_next_x = pmon_all_next_x[k_all];
                 my_enemy_in_range_next_y = pmon_all_next_y[k_all];
                 if (have_hit_and_run_point)
@@ -2617,7 +2626,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   break;
               }
             }
-            if (pmon_my_movecount[m] >= my_dist_to_nearest_neutral <= 5 ? 1 : 3) // found 3 coins to pick up (or just 1 if facing annoying competition)
+            if (pmon_my_movecount[m] >= (my_dist_to_nearest_neutral <= 5 ? 1 : 3)) // found 3 coins to pick up (or just 1 if facing annoying competition)
             {
               printf("harvest test: player #%d %s can harvest %d coins: \n", m, pmon_my_names[m].c_str(), pmon_my_movecount[m]);
 //              for (int nh = 0; nh < pmon_my_movecount[m]; nh++)
@@ -3001,7 +3010,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     fprintf(fp, "timeout %-7d                      %-10s %5s at %9s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
                     fprintf(fp, "\n");
                     fprintf(fp, "->console command to buy in manual mode:\n");
-                    fprintf(fp, "->gems will be transferred to the address of hunter %s if the transaction confirms until timeout)\n", auctioncache_bid_name.c_str());
+                    fprintf(fp, "->gems will be transferred to the address of hunter %s if the transaction confirms until timeout\n", auctioncache_bid_name.c_str());
                     fprintf(fp, "sendtoaddress %s %s\n", auctioncache_bestask_key.c_str(), FormatMoney(auctioncache_bid_size / 10000 * auctioncache_bid_price / 10000).c_str());
                 }
             }
