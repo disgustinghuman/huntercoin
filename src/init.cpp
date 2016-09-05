@@ -158,6 +158,16 @@ static bool Teleporter_pad(int xul, int yul)
     Displaycache_gamemap[yul][xul+1][SHADOW_LAYERS+1] = RPG_TILE_TPGLOW;
     Displaycache_gamemap[yul+1][xul][SHADOW_LAYERS+1] = RPG_TILE_TPGLOW_SMALL;
 }
+static bool Teleporter_pad_zhunt(int xul, int yul, int xex, int yex)
+{
+    Displaycache_gamemap[yul][xul][0] = 27;
+    Displaycache_gamemap[yul][xul+1][0] = 29;
+    Displaycache_gamemap[yul+1][xul][0] = 54;
+    Displaycache_gamemap[yul+1][xul+1][0] = 55;
+
+    Displaycache_gamemap[yul][xul][SHADOW_LAYERS+1] = RPG_TILE_TPGLOW;
+    Displaycache_gamemap[yex][xex][SHADOW_LAYERS+1] = RPG_TILE_TPGLOW_SMALL;
+}
 
 static bool Calculate_AsciiArtMap()
 {
@@ -182,6 +192,10 @@ static bool Calculate_AsciiArtMap()
 
     Teleporter_pad(516, 484);
     Teleporter_pad(507, 469);
+#endif
+#ifdef ZHUNT_MAPOBJECTS
+    for (int zh = 0; zh < ZHUNT_NUM_TP; zh++)
+        Teleporter_pad_zhunt(zhunt_tp_x[zh], zhunt_tp_y[zh], zhunt_tp_exit_x[zh], zhunt_tp_exit_y[zh]);
 #endif
 
     // try to fix grass/dirt transition part 1

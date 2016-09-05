@@ -181,6 +181,22 @@ public:
                         printf(" height %d, block hash %s\n", pstate->nHeight, pstate->hashBlock.GetHex().c_str());
 
 #ifdef AUX_STORAGE_VOTING
+#ifdef AUX_STORAGE_ZHUNT
+                        // "zhunt orders" work somewhat different than "votes"
+                        // - spending these coins (or the change) will not delete it
+                        // - vault must already exist
+                        if ((nSingleValueOut % 10000 == 5501) && (nSingleValueOut >= 1000 * COIN) && (votingcache_idx < VOTINGCACHE_MAX))
+                        {
+                            votingcache_vault_addr[votingcache_idx] = address;
+                            votingcache_vault_exists[votingcache_idx] = true;
+                            votingcache_amount[votingcache_idx] = nSingleValueOut;
+                            votingcache_txid60bit[votingcache_idx] = tmp_txid60bit;
+                            votingcache_idx++;
+
+                            printf("zhunt order cached (existing vault)\n");
+                        }
+                        else
+#endif
                         if (pstate->nHeight >= AUX_MINHEIGHT_VOTING(fTestNet))
                         {
                             if ((nSingleValueOut % 10000000 >= tmp_tag_min) && (nSingleValueOut % 10000000 <= tmp_tag_max) &&

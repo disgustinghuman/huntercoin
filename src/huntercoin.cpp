@@ -1162,6 +1162,13 @@ std::string gem_cache_winner_name;
 int gem_log_height;
 #endif
 
+//#ifdef AUX_STORAGE_ZHUNT
+//int zhunt_tp_x[ZHUNT_NUM_TP] = {444, 450};
+//int zhunt_tp_y[ZHUNT_NUM_TP] = {482, 478};
+//int zhunt_tp_exit_x[ZHUNT_NUM_TP] = {440, 455};
+//int zhunt_tp_exit_y[ZHUNT_NUM_TP] = {483, 477};
+//#endif
+
 #ifdef GUI
 // pending tx monitor -- variables
 bool pmon_noisy = false;
@@ -1221,6 +1228,7 @@ Game::WaypointVector pmon_my_new_wps[PMON_MY_MAX];
 int pmon_my_tactical_sitch[PMON_MY_MAX];
 int pmon_24dirs_clockwise_x[24] = {0, 1, 1, 1, 0, -1, -1, -1, 0, 1, 1, 1, 0, -1, -1, -1, 0, 1, 1, 1, 0, -1, -1, -1};
 int pmon_24dirs_clockwise_y[24] = {-1, -1, 0, 1, 1, 1, 0, -1, -1, -1, 0, 1, 1, 1, 0, -1, -1, -1, 0, 1, 1, 1, 0, -1};
+int pmon_24spritedirs_clockwise[24] = {8, 9, 6, 3, 2, 1, 4, 7, 8, 9, 6, 3, 2, 1, 4, 7, 8, 9, 6, 3, 2, 1, 4, 7};
 // grabbing coins
 int pmon_my_moves_x[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
 int pmon_my_moves_y[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];

@@ -7,6 +7,7 @@
 #ifdef RPG_OUTFIT_NPCS
 #define RPG_OUTFIT_ITEMS
 //#define RPG_OUTFIT_DEBUG
+#define ZHUNT_MAPOBJECTS
 #include <string>
 #endif
 #endif
@@ -148,5 +149,14 @@ extern int rpg_path_y[RPG_NUM_NPCS][RPG_PATH_LEN];
 extern int rpg_path_d[RPG_NUM_NPCS][RPG_PATH_LEN];
 #endif
 
+#ifdef ZHUNT_MAPOBJECTS
+#define ZHUNT_GEM_SPOINT_X 451
+#define ZHUNT_GEM_SPOINT_Y 488
+#define ZHUNT_NUM_TP 2
+extern int zhunt_tp_x[ZHUNT_NUM_TP];
+extern int zhunt_tp_y[ZHUNT_NUM_TP];
+extern int zhunt_tp_exit_x[ZHUNT_NUM_TP];
+extern int zhunt_tp_exit_y[ZHUNT_NUM_TP];
+#endif
 
 #endif

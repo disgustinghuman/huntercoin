@@ -1209,6 +1209,13 @@ bool votingcache_vault_exists[PAYMENTCACHE_MAX];
 #endif
 #endif
 
+#ifdef ZHUNT_MAPOBJECTS
+int zhunt_tp_x[ZHUNT_NUM_TP] = {448, 454};
+int zhunt_tp_y[ZHUNT_NUM_TP] = {490, 487};
+int zhunt_tp_exit_x[ZHUNT_NUM_TP] = {444, 458};
+int zhunt_tp_exit_y[ZHUNT_NUM_TP] = {489, 486};
+#endif
+
 // grabbing coins
 //int AI_playermap[MAP_HEIGHT][MAP_WIDTH][NUM_TEAM_COLORS];
 long long AI_coinmap[RPG_MAP_HEIGHT][RPG_MAP_WIDTH];
@@ -1545,8 +1552,8 @@ GameState::GameState()
     crd_prevexp_price = 0;
     crd_mm_orderlimits = 0;
     crd_last_chronon = 0;
-    gs_reserve6 = 0;
-    gs_reserve7 = 0;
+    zhunt_gemSpawnState = 0;
+    zhunt_RNG = 0;
     gs_reserve8 = 0;
     auction_settle_conservative = 0;
     gs_reserve10 = 0;
@@ -2439,6 +2446,29 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             if (mi->second.nGems <= 0) outState.vault.erase(mi);
                         }
                     }
+#ifdef AUX_STORAGE_ZHUNT
+                    else if ((votingcache_amount[i] % 10000 == 5501) && (votingcache_amount[i] >= 1000 * COIN))
+                    {
+                        int64 tmp_payload = votingcache_amount[i] % (10000 * COIN);
+                        tmp_payload /= 10000;
+                        char buf[16];
+                        sprintf ( buf, "%d", int(tmp_payload) );
+                        mi->second.zhunt_order.assign(buf); // length is always 8
+                        mi->second.zhunt_chronon = outState.nHeight;
+                        if (buf[0] == '3')
+                        {
+                            mi->second.ai_coord.x = 440;
+                            mi->second.ai_coord.y = 488;
+                            mi->second.ai_dir = 2;
+                        }
+                        else
+                        {
+                            mi->second.ai_coord.x = 463;
+                            mi->second.ai_coord.y = 488;
+                            mi->second.ai_dir = 2;
+                        }
+                    }
+#endif
                     else if (votingcache_amount[i] > 0)
                     {
                         if (mi->second.vote_raw_amount > 0)
@@ -4514,6 +4544,16 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
       buf[0] = s.at(s.length() - 1);
       int h = strtol(buf, NULL, 16);
 
+#ifdef AUX_STORAGE_ZHUNT
+      // zhunt test -- random number 0..15 from block hash
+      outState.zhunt_RNG = (unsigned char)h;
+
+      if ((GEM_RESET(fTestNet, outState.nHeight)) && fTestNet) // testnet only for now !!!
+      {
+          outState.zhunt_gemSpawnState = GEM_SPAWNED;
+      }
+#endif
+
       if ((GEM_RESET(fTestNet, outState.nHeight)) ||
           (GEM_RESET_HOTFIX(fTestNet, outState.nHeight)))
       {
@@ -4563,6 +4603,68 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         if (mi2 != outState.vault.end())
             mi2->second.huntername = "Sox'xiti";
     }
+
+#ifdef AUX_STORAGE_ZHUNT
+//    BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+    BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+    {
+        if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + 100))
+        {
+//            if (st.second.zhunt_order.length() > 0)
+            if (st.second.zhunt_order.length() >= 8)
+            {
+                int h = outState.zhunt_RNG;
+                if ((h >= 0) && (h < 16))
+                {
+//                    int tmp_kind = st.second.zhunt_order[0] - '0';
+                    int tmp_prob_left = st.second.zhunt_order[1] - '0';
+                    int tmp_prob_right = st.second.zhunt_order[2] - '0';
+                    int d = st.second.ai_dir;
+                    if (h < tmp_prob_left)
+                    {
+                        if (d > 0) d--;
+                        else d = 7;
+                    }
+                    if ((15-h) < tmp_prob_right)
+                    {
+                        if (d < 7) d++;
+                        else d = 0;
+                    }
+                    if (d < 0) d = 0;
+                    else if (d > 7) d = 7;
+                    st.second.ai_dir = d;
+
+                    st.second.ai_coord.x += pmon_24dirs_clockwise_x[d];
+                    st.second.ai_coord.y += pmon_24dirs_clockwise_y[d];
+
+                    // take the (second) gem
+                    if ((st.second.ai_coord.x == ZHUNT_GEM_SPOINT_X) && (st.second.ai_coord.y == ZHUNT_GEM_SPOINT_Y) && (outState.zhunt_gemSpawnState == GEM_SPAWNED))
+                    {
+                        outState.zhunt_gemSpawnState = 0;
+                    }
+
+                    bool b = false;
+                    if (st.second.ai_coord.x > 465) { st.second.ai_coord.x = 465;  b = true; }
+                    if (st.second.ai_coord.x < 438) { st.second.ai_coord.x = 438;  b = true; }
+
+                    if (st.second.ai_coord.y > 492) { st.second.ai_coord.y = 492;  b = true; }
+                    if (st.second.ai_coord.y < 484) { st.second.ai_coord.y = 484;  b = true; }
+                    if (b)
+                    {
+                        st.second.ai_dir = h % 8;
+//                        st.second.ai_coord.x += pmon_24dirs_clockwise_x[h];
+//                        st.second.ai_coord.y += pmon_24dirs_clockwise_y[h];
+                    }
+                }
+
+                printf("zhunt test: h = %d, xy = %d %d\n", h, st.second.ai_coord.x, st.second.ai_coord.y);
+            }
+        }
+    }
+
+//      outState.zhunt_RNG
+#endif
+
 #endif
 
     return true;

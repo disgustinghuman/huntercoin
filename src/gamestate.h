@@ -20,6 +20,7 @@
 #define PERMANENT_LUGGAGE_OR_GUI
 #define PERMANENT_LUGGAGE_AUCTION
 #define AUX_STORAGE_VOTING
+//#define AUX_STORAGE_ZHUNT
 #define AUX_STORAGE_VERSION2
 #define AUX_STORAGE_VERSION3
 #define AUX_STORAGE_VERSION4
@@ -320,7 +321,7 @@ struct StorageVault
     std::string huntername;
 #ifdef AUX_STORAGE_VERSION2
     std::string vote_comment;
-    std::string str_reserve2;
+    std::string zhunt_order;
 
     // exchange
     unsigned char ex_order_flags;
@@ -365,7 +366,7 @@ struct StorageVault
     unsigned char rpg_reserve2;
 
     // multi purpose/reserve
-    int64 aux_storage_s1;
+    int64 zhunt_chronon;
     int64 aux_storage_s2;
     uint64 aux_storage_u1;
     uint64 aux_storage_u2;
@@ -430,7 +431,7 @@ struct StorageVault
           rpg_reserve1(0),
           rpg_reserve2(0),
 
-          aux_storage_s1(0),
+          zhunt_chronon(0),
           aux_storage_s2(0),
           aux_storage_u1(0),
           aux_storage_u2(0)
@@ -495,7 +496,7 @@ struct StorageVault
           rpg_reserve1(0),
           rpg_reserve2(0),
 
-          aux_storage_s1(0),
+          zhunt_chronon(0),
           aux_storage_s2(0),
           aux_storage_u1(0),
           aux_storage_u2(0)
@@ -527,7 +528,7 @@ struct StorageVault
         READWRITE(huntername);
 #ifdef AUX_STORAGE_VERSION2
         READWRITE(vote_comment);
-        READWRITE(str_reserve2);
+        READWRITE(zhunt_order);
 
         READWRITE(ex_order_flags);
         READWRITE(ex_position_type);
@@ -569,7 +570,7 @@ struct StorageVault
         READWRITE(rpg_reserve1);
         READWRITE(rpg_reserve2);
 
-        READWRITE(aux_storage_s1);
+        READWRITE(zhunt_chronon);
         READWRITE(aux_storage_s2);
         READWRITE(aux_storage_u1);
         READWRITE(aux_storage_u2);
@@ -900,8 +901,8 @@ struct GameState
     int64_t crd_prevexp_price;
     int64_t crd_mm_orderlimits;
     int crd_last_chronon;
-    int gs_reserve6;
-    unsigned char gs_reserve7;
+    int zhunt_gemSpawnState;
+    unsigned char zhunt_RNG;
     unsigned char gs_reserve8;
     uint64_t auction_settle_conservative; // value will not be correct before storage version 3
     uint64_t gs_reserve10;
@@ -983,8 +984,8 @@ struct GameState
       READWRITE(crd_prevexp_price);
       READWRITE(crd_mm_orderlimits);
       READWRITE(crd_last_chronon);
-      READWRITE(gs_reserve6);
-      READWRITE(gs_reserve7);
+      READWRITE(zhunt_gemSpawnState);
+      READWRITE(zhunt_RNG);
       READWRITE(gs_reserve8);
       READWRITE(auction_settle_conservative);
       READWRITE(gs_reserve10);
@@ -1331,6 +1332,7 @@ extern Game::WaypointVector pmon_my_new_wps[PMON_MY_MAX];
 extern int pmon_my_tactical_sitch[PMON_MY_MAX];
 extern int pmon_24dirs_clockwise_x[24];
 extern int pmon_24dirs_clockwise_y[24];
+extern int pmon_24spritedirs_clockwise[24];
 // grabbing coins
 #define PMON_DESIRED_MOVES_MAX 100
 extern int pmon_my_moves_x[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
@@ -1380,6 +1382,16 @@ extern int gem_spawnpoint_y[GEM_NUM_SPAWNPOINTS];
 extern std::string gem_cache_winner_name; // visualonly unless state was set to GEM_HARVESTING
 extern int gem_log_height;
 #endif
+
+//#ifdef AUX_STORAGE_ZHUNT
+//#define ZHUNT_GEM_SPOINT_X 451
+//#define ZHUNT_GEM_SPOINT_Y 488
+//#define ZHUNT_NUM_TP 2
+//extern int zhunt_tp_x[ZHUNT_NUM_TP];
+//extern int zhunt_tp_y[ZHUNT_NUM_TP];
+//extern int zhunt_tp_exit_x[ZHUNT_NUM_TP];
+//extern int zhunt_tp_exit_y[ZHUNT_NUM_TP];
+//#endif
 
 #ifdef PERMANENT_LUGGAGE
 #define GEM_NORMAL_VALUE 102000000
