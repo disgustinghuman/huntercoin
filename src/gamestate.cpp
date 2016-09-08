@@ -1214,6 +1214,10 @@ int zhunt_tp_x[ZHUNT_NUM_TP] = {448, 454};
 int zhunt_tp_y[ZHUNT_NUM_TP] = {490, 487};
 int zhunt_tp_exit_x[ZHUNT_NUM_TP] = {444, 458};
 int zhunt_tp_exit_y[ZHUNT_NUM_TP] = {489, 486};
+int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
+#endif
+#ifdef AUX_STORAGE_ZHUNT
+//int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 #endif
 
 // grabbing coins
@@ -2447,25 +2451,33 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         }
                     }
 #ifdef AUX_STORAGE_ZHUNT
-                    else if ((votingcache_amount[i] % 10000 == 5501) && (votingcache_amount[i] >= 1000 * COIN))
+                    else if ((outState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet)) &&
+                             (votingcache_amount[i] % 10000 == 5501) && (votingcache_amount[i] >= 3000 * COIN))
                     {
-                        int64 tmp_payload = votingcache_amount[i] % (10000 * COIN);
-                        tmp_payload /= 10000;
-                        char buf[16];
-                        sprintf ( buf, "%d", int(tmp_payload) );
-                        mi->second.zhunt_order.assign(buf); // length is always 8
-                        mi->second.zhunt_chronon = outState.nHeight;
-                        if (buf[0] == '3')
+                        if ((mi->second.zhunt_chronon == 0) || (outState.nHeight >= mi->second.zhunt_chronon + 100) || (mi->second.ai_life == 0))
                         {
-                            mi->second.ai_coord.x = 440;
-                            mi->second.ai_coord.y = 488;
-                            mi->second.ai_dir = 2;
-                        }
-                        else
-                        {
-                            mi->second.ai_coord.x = 463;
-                            mi->second.ai_coord.y = 488;
-                            mi->second.ai_dir = 2;
+                            int64 tmp_payload = votingcache_amount[i] % (10000 * COIN);
+                            tmp_payload /= 10000;
+                            char buf[16];
+                            sprintf ( buf, "%d", int(tmp_payload) );
+                            mi->second.zhunt_order.assign(buf); // length is always 8
+                            mi->second.zhunt_chronon = outState.nHeight;
+                            if (buf[0] == '3')
+                            {
+                                mi->second.ai_coord.x = 441;
+                                mi->second.ai_coord.y = 488;
+                                mi->second.ai_dir = 8; // will change to random dir (0..7)
+                                mi->second.ai_life = 100;
+                                mi->second.ai_magicka = 100;
+                            }
+                            else
+                            {
+                                mi->second.ai_coord.x = 463;
+                                mi->second.ai_coord.y = 488;
+                                mi->second.ai_dir = 8;
+                                mi->second.ai_life = 100;
+                                mi->second.ai_magicka = 100;
+                            }
                         }
                     }
 #endif
@@ -4545,12 +4557,13 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
       int h = strtol(buf, NULL, 16);
 
 #ifdef AUX_STORAGE_ZHUNT
-      // zhunt test -- random number 0..15 from block hash
-      outState.zhunt_RNG = (unsigned char)h;
-
-      if ((GEM_RESET(fTestNet, outState.nHeight)) && fTestNet) // testnet only for now !!!
+      if (outState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet))
       {
-          outState.zhunt_gemSpawnState = GEM_SPAWNED;
+          // zhunt test -- random number 0..15 from block hash
+          outState.zhunt_RNG = (unsigned char)h;
+
+          if (GEM_RESET(fTestNet, outState.nHeight))
+              outState.zhunt_gemSpawnState = GEM_SPAWNED;
       }
 #endif
 
@@ -4605,64 +4618,126 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
     }
 
 #ifdef AUX_STORAGE_ZHUNT
-//    BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
-    BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+    if (outState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet))
     {
-        if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + 100))
+        // todo: make variable for each individual creature
+        int tmp_range = 3;
+        int tmp_cost = tmp_range * tmp_range;
+
+        for (int zy = 0; zy < Game::MAP_HEIGHT; zy++)
+            for (int zx = 0; zx < Game::MAP_WIDTH; zx++)
+                zhunt_playermap[zy][zx] = 0;
+
+        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         {
-//            if (st.second.zhunt_order.length() > 0)
-            if (st.second.zhunt_order.length() >= 8)
+            if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + 100))
             {
-                int h = outState.zhunt_RNG;
-                if ((h >= 0) && (h < 16))
+                if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0) && (st.second.ai_life != 255))
                 {
-//                    int tmp_kind = st.second.zhunt_order[0] - '0';
-                    int tmp_prob_left = st.second.zhunt_order[1] - '0';
-                    int tmp_prob_right = st.second.zhunt_order[2] - '0';
-                    int d = st.second.ai_dir;
-                    if (h < tmp_prob_left)
+                    // attacks
+                    int tmp_kind = st.second.zhunt_order[0] - '0';
+                    int f = (tmp_kind == 4 ? 2 : 1);
+
+                    // need magicka to cast attack spells
+                    if ((tmp_kind == 4) && (st.second.ai_magicka < tmp_cost))
                     {
-                        if (d > 0) d--;
-                        else d = 7;
+//                        st.second.ai_magicka = 0;
                     }
-                    if ((15-h) < tmp_prob_right)
+                    else if ((st.second.ai_magicka > 0) || (tmp_kind != 4))
                     {
-                        if (d < 7) d++;
-                        else d = 0;
-                    }
-                    if (d < 0) d = 0;
-                    else if (d > 7) d = 7;
-                    st.second.ai_dir = d;
-
-                    st.second.ai_coord.x += pmon_24dirs_clockwise_x[d];
-                    st.second.ai_coord.y += pmon_24dirs_clockwise_y[d];
-
-                    // take the (second) gem
-                    if ((st.second.ai_coord.x == ZHUNT_GEM_SPOINT_X) && (st.second.ai_coord.y == ZHUNT_GEM_SPOINT_Y) && (outState.zhunt_gemSpawnState == GEM_SPAWNED))
-                    {
-                        outState.zhunt_gemSpawnState = 0;
-                    }
-
-                    bool b = false;
-                    if (st.second.ai_coord.x > 465) { st.second.ai_coord.x = 465;  b = true; }
-                    if (st.second.ai_coord.x < 438) { st.second.ai_coord.x = 438;  b = true; }
-
-                    if (st.second.ai_coord.y > 492) { st.second.ai_coord.y = 492;  b = true; }
-                    if (st.second.ai_coord.y < 484) { st.second.ai_coord.y = 484;  b = true; }
-                    if (b)
-                    {
-                        st.second.ai_dir = h % 8;
-//                        st.second.ai_coord.x += pmon_24dirs_clockwise_x[h];
-//                        st.second.ai_coord.y += pmon_24dirs_clockwise_y[h];
+                        for (int zy = st.second.ai_coord.y - tmp_range; zy <= st.second.ai_coord.y + tmp_range; zy++)
+                            for (int zx = st.second.ai_coord.x - tmp_range; zx <= st.second.ai_coord.x + tmp_range; zx++)
+                                if (IsInsideMap(zx, zy))
+                                    zhunt_playermap[zy][zx] |= f;
                     }
                 }
+            }
+        }
 
-                printf("zhunt test: h = %d, xy = %d %d\n", h, st.second.ai_coord.x, st.second.ai_coord.y);
+        BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+        {
+            if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + 100))
+            {
+                // die (part 2/2)
+                if (st.second.ai_life == 255)
+                    st.second.ai_life = 0;
+
+                if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0))
+                {
+                    // attacks
+                    int tmp_kind = st.second.zhunt_order[0] - '0';
+                    if (tmp_kind == 4)
+                    {
+                        // upkeep
+                        if (st.second.ai_life > 0) st.second.ai_life--;
+
+                        if (zhunt_playermap[st.second.ai_coord.y][st.second.ai_coord.x] & 1)
+                        {
+                            if (st.second.ai_magicka >= tmp_cost)
+                            {
+                                st.second.ai_magicka -= tmp_cost;
+
+                                // gain life from killed foe
+                                st.second.ai_life += 100;
+                                if (st.second.ai_life > 125) st.second.ai_life == 125;
+                            }
+                        }
+                    }
+                    else // if (tmp_kind == 3)
+                    {
+                        if (zhunt_playermap[st.second.ai_coord.y][st.second.ai_coord.x] & 2)
+                        {
+                            // die (part 1/2)
+                            st.second.ai_life = 255;
+                        }
+                    }
+
+                    // movement
+                    int h = outState.zhunt_RNG;
+                    if ((h >= 0) && (h < 16) && (st.second.ai_life != 255))
+                    {
+                        int tmp_prob_left = st.second.zhunt_order[1] - '0';
+                        int tmp_prob_right = st.second.zhunt_order[2] - '0';
+                        int d = st.second.ai_dir;
+                        if (h < tmp_prob_left)
+                        {
+                            if (d > 0) d--;
+                            else d = 7;
+                        }
+                        if ((15-h) < tmp_prob_right)
+                        {
+                            if (d < 7) d++;
+                            else d = 0;
+                        }
+                        if ((d < 0) || (d > 7)) d = h % 8;
+                        st.second.ai_dir = d;
+
+                        st.second.ai_coord.x += pmon_24dirs_clockwise_x[d];
+                        st.second.ai_coord.y += pmon_24dirs_clockwise_y[d];
+
+                        // take the (second) gem
+                        if ((st.second.ai_coord.x == ZHUNT_GEM_SPOINT_X) && (st.second.ai_coord.y == ZHUNT_GEM_SPOINT_Y) && (outState.zhunt_gemSpawnState == GEM_SPAWNED))
+                        {
+                            outState.zhunt_gemSpawnState = 0;
+                        }
+
+                        bool b = false;
+                        if (st.second.ai_coord.x < 439) { st.second.ai_coord.x = 439;  b = true; }
+                        if (st.second.ai_coord.x > 465) { st.second.ai_coord.x = 465;  b = true; }
+
+                        if (st.second.ai_coord.y < 484) { st.second.ai_coord.y = 484;  b = true; }
+                        if (st.second.ai_coord.y > 492) { st.second.ai_coord.y = 492;  b = true; }
+                        if (b)
+                        {
+                            st.second.ai_dir = h % 8;
+                        }
+                    }
+
+//                    printf("zhunt test: h = %d, xy = %d %d\n", h, st.second.ai_coord.x, st.second.ai_coord.y);
+                }
             }
         }
     }
-
-//      outState.zhunt_RNG
 #endif
 
 #endif

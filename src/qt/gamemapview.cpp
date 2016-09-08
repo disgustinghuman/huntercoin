@@ -2717,7 +2717,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 #ifdef RPG_OUTFIT_ITEMS
 #ifdef AUX_STORAGE_ZHUNT
             fprintf(fp, "                                          hunter                         conjured\n");
-            fprintf(fp, "storage vault key                           name      gems    outfit     monster  order      chronon\n");
+            fprintf(fp, "storage vault key                           name      gems    outfit     creature  order     chronon   position  life  magicka\n");
 #else
             fprintf(fp, "                                          hunter\n");
             fprintf(fp, "storage vault key                           name      gems    outfit\n");
@@ -2742,7 +2742,15 @@ void GameMapView::updateGameMap(const GameState &gameState)
               std::string s_zhunt = "-";
               if (gameState.nHeight < st.second.zhunt_chronon + 100)
               {
-                  if (st.second.zhunt_order.length() > 0)
+                  if (st.second.ai_life == 255)
+                  {
+                      s_zhunt = "death flag";
+                  }
+                  else if (st.second.ai_life == 0)
+                  {
+                      s_zhunt = "dead";
+                  }
+                  else if (st.second.zhunt_order.length() > 0)
                   {
                       s_zhunt = st.second.zhunt_order;
                       if (s_zhunt[0] == '3') s_zhunt = "zombie  " + s_zhunt;
@@ -2753,7 +2761,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
               {
                   s_zhunt = "expired";
               }
-              fprintf(fp, "%s    %10s    %6s    %7s    %-18s  %7d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(),  s_zhunt.c_str(), (int)st.second.zhunt_chronon);
+              fprintf(fp, "%s    %10s    %6s    %7s    %-18s  %7d  %3d,%-3d    %3d     %3d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(),  s_zhunt.c_str(), (int)st.second.zhunt_chronon, st.second.ai_coord.x, st.second.ai_coord.y, st.second.ai_life, st.second.ai_magicka);
 #else
               fprintf(fp, "%s    %10s    %6s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str());
 #endif
@@ -3821,34 +3829,48 @@ void GameMapView::updateGameMap(const GameState &gameState)
 #endif
 
 #ifdef AUX_STORAGE_ZHUNT
-    BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
+    if (gameState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet))
     {
+      BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
+      {
         if ((st.second.zhunt_chronon > 0) && (gameState.nHeight < st.second.zhunt_chronon + 100))
         {
-            if (st.second.zhunt_order.length() > 0)
+            if ((st.second.zhunt_order.length() > 0) && (st.second.ai_life > 0))
             {
                 std::string s_zhunt = st.second.zhunt_order;
 
                 QString tmp_name = QString::fromStdString(st.second.huntername);
                 if ((st.second.ai_dir >= 0) && (st.second.ai_dir <= 7))
-                if (s_zhunt[0] == '3')
                 {
-                    int xn = st.second.ai_coord.x;
-                    int yn = st.second.ai_coord.y;
-                    int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
-                    tmp_name += "'s zombie";
-                    gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 12, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
-                }
-                else // if (s_zhunt[0] == '4')
-                {
-                    int xn = st.second.ai_coord.x;
-                    int yn = st.second.ai_coord.y;
-                    int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
-                    tmp_name += "'s lemure";
-                    gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 28, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
+                    if (s_zhunt[0] == '4')
+                    {
+                        int xn = st.second.ai_coord.x;
+                        int yn = st.second.ai_coord.y;
+                        int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
+                        tmp_name += "'s lemure ";
+                        tmp_name += QString::number(st.second.ai_life);
+                        tmp_name += "/";
+                        tmp_name += QString::number(st.second.ai_magicka);
+                        if ((zhunt_playermap[yn][xn] & 1) && (st.second.ai_magicka > 25))
+                            tmp_name += " 'Burn!'";
+                        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 29, RPG_ICON_FIRE, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
+                    }
+                    else // if (s_zhunt[0] == '3')
+                    {
+                        int xn = st.second.ai_coord.x;
+                        int yn = st.second.ai_coord.y;
+                        int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
+                        tmp_name += "'s zombie";
+                        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 12, RPG_ICON_EMPTY, RPG_ICON_WORD_RECALL, RPG_ICON_EMPTY, dn, 0);
+
+                        if (st.second.ai_life == 255)
+                            gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 1, 30, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 1, 0);
+                    }
+
                 }
             }
         }
+      }
     }
 #endif
 

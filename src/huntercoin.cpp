@@ -1162,13 +1162,6 @@ std::string gem_cache_winner_name;
 int gem_log_height;
 #endif
 
-//#ifdef AUX_STORAGE_ZHUNT
-//int zhunt_tp_x[ZHUNT_NUM_TP] = {444, 450};
-//int zhunt_tp_y[ZHUNT_NUM_TP] = {482, 478};
-//int zhunt_tp_exit_x[ZHUNT_NUM_TP] = {440, 455};
-//int zhunt_tp_exit_y[ZHUNT_NUM_TP] = {483, 477};
-//#endif
-
 #ifdef GUI
 // pending tx monitor -- variables
 bool pmon_noisy = false;

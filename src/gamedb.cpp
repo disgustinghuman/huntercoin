@@ -185,7 +185,9 @@ public:
                         // "zhunt orders" work somewhat different than "votes"
                         // - spending these coins (or the change) will not delete it
                         // - vault must already exist
-                        if ((nSingleValueOut % 10000 == 5501) && (nSingleValueOut >= 1000 * COIN) && (votingcache_idx < VOTINGCACHE_MAX))
+                        if ((pstate->nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet)) &&
+                            (nSingleValueOut % 10000 == 5501) && (nSingleValueOut >= 3000 * COIN) &&
+                            (votingcache_idx < VOTINGCACHE_MAX))
                         {
                             votingcache_vault_addr[votingcache_idx] = address;
                             votingcache_vault_exists[votingcache_idx] = true;

@@ -344,10 +344,10 @@ struct StorageVault
 
     // playground/rpg
     Coord ai_coord;
-    Coord ai_from;
-    unsigned char ai_dir;
-    unsigned char ai_npc_role;
-    unsigned char ai_poi;
+    Coord ai_from; // not used
+    unsigned char ai_dir; // 0..7 clockwise
+    unsigned char ai_life;
+    unsigned char ai_magicka;
     unsigned char ai_state;
     unsigned char ai_state2;
     unsigned char ai_chat;
@@ -412,8 +412,8 @@ struct StorageVault
           ai_coord(0, 0),
           ai_from(0, 0),
           ai_dir(0),
-          ai_npc_role(0),
-          ai_poi(0),
+          ai_life(0),
+          ai_magicka(0),
           ai_state(0),
           ai_state2(0),
           ai_chat(0),
@@ -477,8 +477,8 @@ struct StorageVault
           ai_coord(0, 0),
           ai_from(0, 0),
           ai_dir(0),
-          ai_npc_role(0),
-          ai_poi(0),
+          ai_life(0),
+          ai_magicka(0),
           ai_state(0),
           ai_state2(0),
           ai_chat(0),
@@ -551,8 +551,8 @@ struct StorageVault
         READWRITE(ai_coord);
         READWRITE(ai_from);
         READWRITE(ai_dir);
-        READWRITE(ai_npc_role);
-        READWRITE(ai_poi);
+        READWRITE(ai_life);
+        READWRITE(ai_magicka);
         READWRITE(ai_state);
         READWRITE(ai_state2);
         READWRITE(ai_chat);
@@ -1383,16 +1383,6 @@ extern std::string gem_cache_winner_name; // visualonly unless state was set to 
 extern int gem_log_height;
 #endif
 
-//#ifdef AUX_STORAGE_ZHUNT
-//#define ZHUNT_GEM_SPOINT_X 451
-//#define ZHUNT_GEM_SPOINT_Y 488
-//#define ZHUNT_NUM_TP 2
-//extern int zhunt_tp_x[ZHUNT_NUM_TP];
-//extern int zhunt_tp_y[ZHUNT_NUM_TP];
-//extern int zhunt_tp_exit_x[ZHUNT_NUM_TP];
-//extern int zhunt_tp_exit_y[ZHUNT_NUM_TP];
-//#endif
-
 #ifdef PERMANENT_LUGGAGE
 #define GEM_NORMAL_VALUE 102000000
 #define GEM_ONETIME_STORAGE_FEE 2000000
@@ -1472,6 +1462,8 @@ extern int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 positi
 #define AUX_MINHEIGHT_GTC_FOR_AUCTION(T) (T?326000:1320000)
 #define AUCTIONFLAG_ASK_GTC 1
 #define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1400000)
+#define AUX_MINHEIGHT_ZHUNT(T) (T?327500:1400000)
+//#define AUX_MINHEIGHT_ZHUNT(T) (T?345000:1400000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
 #define MM_ORDERLIMIT_UNPACK(I64,B,A) {B=(I64%1000000000)*1000;A=(I64/1000000000)*1000;}

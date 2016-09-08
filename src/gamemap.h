@@ -101,6 +101,9 @@ extern int Displaycache_gamemap[RPG_MAP_HEIGHT][RPG_MAP_WIDTH][Game::MAP_LAYERS 
 #define RPG_ICON_HUC_BANDIT 411
 #define RPG_ICON_HUC_BANDIT400 272
 
+#define RPG_ICON_FIRE 269
+#define RPG_ICON_WORD_RECALL 273
+
 //#define RPG_TILE_GRASS_GREEN_DARK 263
 //#define RPG_TILE_GRASS_GREEN_LITE 266
 //#define RPG_TILE_GRASS_RED_DARK 259
@@ -157,6 +160,7 @@ extern int zhunt_tp_x[ZHUNT_NUM_TP];
 extern int zhunt_tp_y[ZHUNT_NUM_TP];
 extern int zhunt_tp_exit_x[ZHUNT_NUM_TP];
 extern int zhunt_tp_exit_y[ZHUNT_NUM_TP];
+extern int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 #endif
 
 #endif
