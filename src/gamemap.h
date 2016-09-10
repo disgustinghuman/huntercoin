@@ -160,7 +160,17 @@ extern int zhunt_tp_x[ZHUNT_NUM_TP];
 extern int zhunt_tp_y[ZHUNT_NUM_TP];
 extern int zhunt_tp_exit_x[ZHUNT_NUM_TP];
 extern int zhunt_tp_exit_y[ZHUNT_NUM_TP];
+extern int zhunt_distancemap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 extern int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
+
+#define ZHUNT_MAX_ATTACK_RANGE 3
+#define ZHUNT_MAX_SCOUT_RANGE 7
+#define ZHUNT_TELEPORTER_RANGE 3
+#define CREATURE_PREDATOR 4
+#define CREATURE_SCOUT 3
+#define ZHUNT_STATE_FIREBALL 4
+#define ZHUNT_STATE_BLINK 2
+#define ZHUNT_STATE_WAIT 1
 #endif
 
 #endif

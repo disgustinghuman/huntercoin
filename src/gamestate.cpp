@@ -1212,12 +1212,10 @@ bool votingcache_vault_exists[PAYMENTCACHE_MAX];
 #ifdef ZHUNT_MAPOBJECTS
 int zhunt_tp_x[ZHUNT_NUM_TP] = {448, 454};
 int zhunt_tp_y[ZHUNT_NUM_TP] = {490, 487};
-int zhunt_tp_exit_x[ZHUNT_NUM_TP] = {444, 458};
+int zhunt_tp_exit_x[ZHUNT_NUM_TP] = {444, 460};
 int zhunt_tp_exit_y[ZHUNT_NUM_TP] = {489, 486};
+int zhunt_distancemap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
-#endif
-#ifdef AUX_STORAGE_ZHUNT
-//int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 #endif
 
 // grabbing coins
@@ -2462,19 +2460,19 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             sprintf ( buf, "%d", int(tmp_payload) );
                             mi->second.zhunt_order.assign(buf); // length is always 8
                             mi->second.zhunt_chronon = outState.nHeight;
-                            if (buf[0] == '3')
-                            {
-                                mi->second.ai_coord.x = 441;
-                                mi->second.ai_coord.y = 488;
-                                mi->second.ai_dir = 8; // will change to random dir (0..7)
-                                mi->second.ai_life = 100;
-                                mi->second.ai_magicka = 100;
-                            }
-                            else
+                            if (buf[0] == '4')
                             {
                                 mi->second.ai_coord.x = 463;
                                 mi->second.ai_coord.y = 488;
                                 mi->second.ai_dir = 8;
+                                mi->second.ai_life = 100;
+                                mi->second.ai_magicka = 100;
+                            }
+                            else // if (buf[0] == '3')
+                            {
+                                mi->second.ai_coord.x = 441;
+                                mi->second.ai_coord.y = 488;
+                                mi->second.ai_dir = 8; // will change to random dir (0..7)
                                 mi->second.ai_life = 100;
                                 mi->second.ai_magicka = 100;
                             }
@@ -4620,35 +4618,73 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 #ifdef AUX_STORAGE_ZHUNT
     if (outState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet))
     {
-        // todo: make variable for each individual creature
-        int tmp_range = 3;
-        int tmp_cost = tmp_range * tmp_range;
-
+        // optimize me
         for (int zy = 0; zy < Game::MAP_HEIGHT; zy++)
             for (int zx = 0; zx < Game::MAP_WIDTH; zx++)
+            {
+                zhunt_distancemap[zy][zx] = 0;
                 zhunt_playermap[zy][zx] = 0;
+            }
 
+        // mark position of scouts (aka zombies)
         BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         {
             if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + 100))
             {
                 if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0) && (st.second.ai_life != 255))
                 {
-                    // attacks
                     int tmp_kind = st.second.zhunt_order[0] - '0';
-                    int f = (tmp_kind == 4 ? 2 : 1);
-
-                    // need magicka to cast attack spells
-                    if ((tmp_kind == 4) && (st.second.ai_magicka < tmp_cost))
+                    if (tmp_kind != CREATURE_PREDATOR)
                     {
-//                        st.second.ai_magicka = 0;
+                        zhunt_playermap[st.second.ai_coord.y][st.second.ai_coord.x] |= 1;
                     }
-                    else if ((st.second.ai_magicka > 0) || (tmp_kind != 4))
+                }
+            }
+        }
+
+//        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+        BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
+        {
+            if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + 100))
+            {
+                if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0) && (st.second.ai_life != 255))
+                {
+                    int tmp_kind = st.second.zhunt_order[0] - '0';
+                    st.second.ai_state = 0;
+
+                    if (tmp_kind == 4)
                     {
-                        for (int zy = st.second.ai_coord.y - tmp_range; zy <= st.second.ai_coord.y + tmp_range; zy++)
-                            for (int zx = st.second.ai_coord.x - tmp_range; zx <= st.second.ai_coord.x + tmp_range; zx++)
-                                if (IsInsideMap(zx, zy))
-                                    zhunt_playermap[zy][zx] |= f;
+                        // individual attack range
+                        int tmp_myrange = st.second.zhunt_order[3] - '0';
+                        if (tmp_myrange > ZHUNT_MAX_ATTACK_RANGE) tmp_myrange = ZHUNT_MAX_ATTACK_RANGE;
+                        int tmp_mycost = tmp_myrange * tmp_myrange;
+
+                        // need magicka to cast attack spells
+                        if (st.second.ai_magicka >= tmp_mycost)
+                        {
+                            int xn = st.second.ai_coord.x;
+                            int yn = st.second.ai_coord.y;
+
+                            for (int zy = yn - ZHUNT_MAX_SCOUT_RANGE; zy <= yn + ZHUNT_MAX_SCOUT_RANGE; zy++)
+                                for (int zx = xn - ZHUNT_MAX_SCOUT_RANGE; zx <= xn + ZHUNT_MAX_SCOUT_RANGE; zx++)
+                                    if (IsInsideMap(zx, zy))
+                                    {
+                                        int dist = yn > zy ? yn - zy : zy -yn;
+                                        int dist2 = xn > zx ? xn - zx : zx -xn;
+                                        if (dist2 > dist) dist = dist2;
+                                        if ((!zhunt_distancemap[zy][zx]) || (zhunt_distancemap[zy][zx] > dist)) zhunt_distancemap[zy][zx] = dist;
+
+                                        if (dist <= tmp_myrange)
+                                        {
+                                            zhunt_playermap[zy][zx] |= 4;
+                                            if (zhunt_playermap[zy][zx] & 1) st.second.ai_state |= ZHUNT_STATE_FIREBALL;
+                                        }
+                                    }
+                        }
+                        else
+                        {
+//                          st.second.ai_magicka = 0;
+                        }
                     }
                 }
             }
@@ -4664,32 +4700,78 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                 if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0))
                 {
+                    bool do_movement = true;
+
                     // attacks
                     int tmp_kind = st.second.zhunt_order[0] - '0';
                     if (tmp_kind == 4)
                     {
+                        // individual attack range
+                        int tmp_myrange = st.second.zhunt_order[3] - '0';
+                        if (tmp_myrange > ZHUNT_MAX_ATTACK_RANGE ) tmp_myrange = ZHUNT_MAX_ATTACK_RANGE;
+                        int tmp_mycost = tmp_myrange * tmp_myrange;
+
                         // upkeep
                         if (st.second.ai_life > 0) st.second.ai_life--;
 
-                        if (zhunt_playermap[st.second.ai_coord.y][st.second.ai_coord.x] & 1)
+                        if (st.second.ai_state & ZHUNT_STATE_FIREBALL)
                         {
-                            if (st.second.ai_magicka >= tmp_cost)
+                            if (st.second.ai_magicka >= tmp_mycost)
                             {
-                                st.second.ai_magicka -= tmp_cost;
+                                st.second.ai_magicka -= tmp_mycost;
 
-                                // gain life from killed foe
-                                st.second.ai_life += 100;
-                                if (st.second.ai_life > 125) st.second.ai_life == 125;
+                                // gain life from killed foe (capped at 125)
+                                if (st.second.ai_life < 25) st.second.ai_life += 100;
+                                else st.second.ai_life = 125;
                             }
                         }
                     }
                     else // if (tmp_kind == 3)
                     {
-                        if (zhunt_playermap[st.second.ai_coord.y][st.second.ai_coord.x] & 2)
+                        int xn = st.second.ai_coord.x;
+                        int yn = st.second.ai_coord.y;
+
+                        if (zhunt_playermap[yn][xn] & 4)
                         {
                             // die (part 1/2)
                             st.second.ai_life = 255;
                         }
+                        else
+                        {
+                            int tmp_myblinkrange = st.second.zhunt_order[3] - '0';
+                            int tmp_myfreezerange = st.second.zhunt_order[4] - '0';
+
+                            // teleport out or wait in vicinity of teleporter if desired
+                            if (true)
+                            {
+                                do_movement = false;
+                                for (int itp = 0; itp < ZHUNT_NUM_TP; itp++)
+                                {
+                                    int zx = zhunt_tp_x[itp];
+                                    int zy = zhunt_tp_y[itp];
+                                    int dist = yn > zy ? yn - zy : zy -yn;
+                                    int dist2 = xn > zx ? xn - zx : zx -xn;
+                                    if (dist2 > dist) dist = dist2;
+                                    if (dist <= ZHUNT_TELEPORTER_RANGE)
+                                    {
+                                        if (zhunt_distancemap[yn][xn] <= tmp_myfreezerange)
+                                        {
+                                            do_movement = false;
+                                            st.second.ai_state |= ZHUNT_STATE_WAIT;
+
+                                            if (zhunt_distancemap[yn][xn] <= tmp_myblinkrange)
+                                            {
+                                                st.second.ai_coord.x = zhunt_tp_exit_x[itp];
+                                                st.second.ai_coord.y = zhunt_tp_exit_y[itp];
+                                                st.second.ai_state |= ZHUNT_STATE_BLINK;
+                                            }
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
                     }
 
                     // movement
@@ -4719,6 +4801,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         if ((st.second.ai_coord.x == ZHUNT_GEM_SPOINT_X) && (st.second.ai_coord.y == ZHUNT_GEM_SPOINT_Y) && (outState.zhunt_gemSpawnState == GEM_SPAWNED))
                         {
                             outState.zhunt_gemSpawnState = 0;
+                            st.second.nGems += GEM_NORMAL_VALUE;
                         }
 
                         bool b = false;

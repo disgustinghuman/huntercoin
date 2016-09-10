@@ -2744,7 +2744,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
               {
                   if (st.second.ai_life == 255)
                   {
-                      s_zhunt = "death flag";
+                      s_zhunt = "death";
                   }
                   else if (st.second.ai_life == 0)
                   {
@@ -3847,11 +3847,19 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         int xn = st.second.ai_coord.x;
                         int yn = st.second.ai_coord.y;
                         int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
-                        tmp_name += "'s lemure ";
+
+                        // individual attack range
+                        int tmp_myrange = st.second.zhunt_order[3] - '0';
+                        if (tmp_myrange > ZHUNT_MAX_ATTACK_RANGE ) tmp_myrange = ZHUNT_MAX_ATTACK_RANGE;
+
+                        tmp_name += "'s lemure [";
+                        tmp_name += QString::number(tmp_myrange);
+                        tmp_name += "] ";
                         tmp_name += QString::number(st.second.ai_life);
                         tmp_name += "/";
                         tmp_name += QString::number(st.second.ai_magicka);
-                        if ((zhunt_playermap[yn][xn] & 1) && (st.second.ai_magicka > 25))
+
+                        if (st.second.ai_state & ZHUNT_STATE_FIREBALL)
                             tmp_name += " 'Burn!'";
                         gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 29, RPG_ICON_FIRE, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
                     }
@@ -3860,7 +3868,22 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         int xn = st.second.ai_coord.x;
                         int yn = st.second.ai_coord.y;
                         int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
-                        tmp_name += "'s zombie";
+
+                        int tmp_myblinkrange = st.second.zhunt_order[3] - '0';
+                        int tmp_myfreezerange = st.second.zhunt_order[4] - '0';
+
+                        tmp_name += "'s zombie [";
+                        tmp_name += QString::number(tmp_myblinkrange);
+                        tmp_name += "][";
+                        tmp_name += QString::number(tmp_myfreezerange);
+                        tmp_name += "]";
+                        tmp_name += QString::number(zhunt_distancemap[yn][xn]);
+
+                        if (st.second.ai_state & ZHUNT_STATE_WAIT)
+                            tmp_name += " waiting..";
+                        if (st.second.ai_state & ZHUNT_STATE_BLINK)
+                            tmp_name += " 'Blink!'";
+
                         gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 12, RPG_ICON_EMPTY, RPG_ICON_WORD_RECALL, RPG_ICON_EMPTY, dn, 0);
 
                         if (st.second.ai_life == 255)
