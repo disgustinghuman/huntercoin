@@ -153,9 +153,12 @@ extern int rpg_path_d[RPG_NUM_NPCS][RPG_PATH_LEN];
 #endif
 
 #ifdef ZHUNT_MAPOBJECTS
-#define ZHUNT_GEM_SPOINT_X 451
-#define ZHUNT_GEM_SPOINT_Y 488
-#define ZHUNT_NUM_TP 2
+#define ZHUNT_GEM_SPOINT_X 434
+#define ZHUNT_GEM_SPOINT_Y 228
+#define ZHUNT_NUM_SPAWN 3
+#define ZHUNT_NUM_TP 6
+extern int zhunt_spawn_x[ZHUNT_NUM_SPAWN];
+extern int zhunt_spawn_y[ZHUNT_NUM_SPAWN];
 extern int zhunt_tp_x[ZHUNT_NUM_TP];
 extern int zhunt_tp_y[ZHUNT_NUM_TP];
 extern int zhunt_tp_exit_x[ZHUNT_NUM_TP];
@@ -163,14 +166,21 @@ extern int zhunt_tp_exit_y[ZHUNT_NUM_TP];
 extern int zhunt_distancemap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 extern int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 
-#define ZHUNT_MAX_ATTACK_RANGE 3
-#define ZHUNT_MAX_SCOUT_RANGE 7
-#define ZHUNT_TELEPORTER_RANGE 3
+#define ZHUNT_MAX_ATTACK_RANGE 4
+#define ZHUNT_MAX_SCOUT_RANGE 8
+#define ZHUNT_TELEPORTER_RANGE 10
 #define CREATURE_PREDATOR 4
 #define CREATURE_SCOUT 3
+#define ZHUNT_STATE_DIBS 8
 #define ZHUNT_STATE_FIREBALL 4
 #define ZHUNT_STATE_BLINK 2
 #define ZHUNT_STATE_WAIT 1
+#define ZHUNT_MAX_LIFETIME 10000
+// right border is at (Game::MAP_WIDTH - 1)
+#define ZHUNT_MAPBORDER_EAST 405
+#define ZHUNT_MAPBORDER_NORTH 150
+#define ZHUNT_MAPBORDER_SOUTH 350
+#define ZHUNT_BASE_FEE 4000000
 #endif
 
 #endif

@@ -2740,7 +2740,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
 #ifdef AUX_STORAGE_ZHUNT
               std::string s_zhunt = "-";
-              if (gameState.nHeight < st.second.zhunt_chronon + 100)
+              if (gameState.nHeight < st.second.zhunt_chronon + ZHUNT_MAX_LIFETIME)
               {
                   if (st.second.ai_life == 255)
                   {
@@ -3757,7 +3757,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 #ifdef AUX_STORAGE_ZHUNT
     if (gameState.zhunt_gemSpawnState == GEM_SPAWNED)
     {
-        gameMapCache->AddPlayer("Tia's double '1 soul gem here, for free'", TILE_SIZE * ZHUNT_GEM_SPOINT_X, TILE_SIZE * ZHUNT_GEM_SPOINT_Y, 1 + 0, 20, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
+        gameMapCache->AddPlayer("Tia's double '1 soul gem here, for free'", TILE_SIZE * ZHUNT_GEM_SPOINT_X, TILE_SIZE * ZHUNT_GEM_SPOINT_Y, 1 + 0, 20, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 6, 0);
     }
 #endif
 
@@ -3833,7 +3833,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
     {
       BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
       {
-        if ((st.second.zhunt_chronon > 0) && (gameState.nHeight < st.second.zhunt_chronon + 100))
+        if ((st.second.zhunt_chronon > 0) && (gameState.nHeight < st.second.zhunt_chronon + ZHUNT_MAX_LIFETIME))
         {
             if ((st.second.zhunt_order.length() > 0) && (st.second.ai_life > 0))
             {
@@ -3861,6 +3861,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                         if (st.second.ai_state & ZHUNT_STATE_FIREBALL)
                             tmp_name += " 'Burn!'";
+                        if (st.second.ai_state & ZHUNT_STATE_DIBS)
+                            tmp_name += " 'Dibs on the gem!'";
                         gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 29, RPG_ICON_FIRE, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
                     }
                     else // if (s_zhunt[0] == '3')
@@ -3883,6 +3885,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                             tmp_name += " waiting..";
                         if (st.second.ai_state & ZHUNT_STATE_BLINK)
                             tmp_name += " 'Blink!'";
+                        if (st.second.ai_state & ZHUNT_STATE_DIBS)
+                            tmp_name += " 'Dibs on the gem!'";
 
                         gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 12, RPG_ICON_EMPTY, RPG_ICON_WORD_RECALL, RPG_ICON_EMPTY, dn, 0);
 

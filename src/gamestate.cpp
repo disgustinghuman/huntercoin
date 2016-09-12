@@ -1210,10 +1210,13 @@ bool votingcache_vault_exists[PAYMENTCACHE_MAX];
 #endif
 
 #ifdef ZHUNT_MAPOBJECTS
-int zhunt_tp_x[ZHUNT_NUM_TP] = {448, 454};
-int zhunt_tp_y[ZHUNT_NUM_TP] = {490, 487};
-int zhunt_tp_exit_x[ZHUNT_NUM_TP] = {444, 460};
-int zhunt_tp_exit_y[ZHUNT_NUM_TP] = {489, 486};
+int zhunt_spawn_x[ZHUNT_NUM_SPAWN] = {434, 407, 433};
+int zhunt_spawn_y[ZHUNT_NUM_SPAWN] = {183, 250, 302};
+
+int zhunt_tp_x[ZHUNT_NUM_TP] =      {485, 454, 460, 449, 461, 455};
+int zhunt_tp_y[ZHUNT_NUM_TP] =      {188, 199, 235, 270, 307, 332};
+int zhunt_tp_exit_x[ZHUNT_NUM_TP] = {488, 439, 487, 491, 497, 469};
+int zhunt_tp_exit_y[ZHUNT_NUM_TP] = {159, 166, 215, 283, 340, 347};
 int zhunt_distancemap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 #endif
@@ -2452,7 +2455,16 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     else if ((outState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet)) &&
                              (votingcache_amount[i] % 10000 == 5501) && (votingcache_amount[i] >= 3000 * COIN))
                     {
-                        if ((mi->second.zhunt_chronon == 0) || (outState.nHeight >= mi->second.zhunt_chronon + 100) || (mi->second.ai_life == 0))
+                        if ((mi->second.auction_ask_size > 0) ||
+                            (mi->second.ex_order_size_bid) || (mi->second.ex_order_size_ask))
+                        {
+                            printf("summon creature: rejected (trading positions), addr %s, amount %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str());
+                        }
+                        else if ((mi->second.nGems < ZHUNT_BASE_FEE) || (mi->second.nGems + mi->second.ex_trade_profitloss < ZHUNT_BASE_FEE))
+                        {
+                            printf("summon creature: rejected (no funds), addr %s, amount %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str());
+                        }
+                        else if ((mi->second.zhunt_chronon == 0) || (outState.nHeight >= mi->second.zhunt_chronon + ZHUNT_MAX_LIFETIME) || (mi->second.ai_life == 0))
                         {
                             int64 tmp_payload = votingcache_amount[i] % (10000 * COIN);
                             tmp_payload /= 10000;
@@ -2460,21 +2472,27 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             sprintf ( buf, "%d", int(tmp_payload) );
                             mi->second.zhunt_order.assign(buf); // length is always 8
                             mi->second.zhunt_chronon = outState.nHeight;
+                            mi->second.nGems -= ZHUNT_BASE_FEE;
+                            int tmp_myspawnpoint = mi->second.zhunt_order[1] - '0';
                             if (buf[0] == '4')
                             {
-                                mi->second.ai_coord.x = 463;
-                                mi->second.ai_coord.y = 488;
+                                if (tmp_myspawnpoint >= ZHUNT_NUM_SPAWN) tmp_myspawnpoint = ZHUNT_NUM_SPAWN - 1;
+                                mi->second.ai_coord.x = zhunt_spawn_x[tmp_myspawnpoint];
+                                mi->second.ai_coord.y = zhunt_spawn_y[tmp_myspawnpoint];
                                 mi->second.ai_dir = 8;
                                 mi->second.ai_life = 100;
                                 mi->second.ai_magicka = 100;
+                                printf("summon creature: lemure, addr %s, amount %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str());
                             }
                             else // if (buf[0] == '3')
                             {
-                                mi->second.ai_coord.x = 441;
-                                mi->second.ai_coord.y = 488;
+                                if (tmp_myspawnpoint >= ZHUNT_NUM_TP) tmp_myspawnpoint = ZHUNT_NUM_TP - 1;
+                                mi->second.ai_coord.x = zhunt_tp_exit_x[tmp_myspawnpoint];
+                                mi->second.ai_coord.y = zhunt_tp_exit_y[tmp_myspawnpoint];
                                 mi->second.ai_dir = 8; // will change to random dir (0..7)
                                 mi->second.ai_life = 100;
                                 mi->second.ai_magicka = 100;
+                                printf("summon creature: zombie, addr %s, amount %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str());
                             }
                         }
                     }
@@ -4618,9 +4636,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 #ifdef AUX_STORAGE_ZHUNT
     if (outState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet))
     {
-        // optimize me
-        for (int zy = 0; zy < Game::MAP_HEIGHT; zy++)
-            for (int zx = 0; zx < Game::MAP_WIDTH; zx++)
+//      for (int zy = 0; zy < Game::MAP_HEIGHT; zy++)
+//          for (int zx = 0; zx < Game::MAP_WIDTH; zx++)
+        for (int zy = ZHUNT_MAPBORDER_NORTH; zy <= ZHUNT_MAPBORDER_SOUTH; zy++) // <= because ZHUNT_MAPBORDER_SOUTH is still walkable
+            for (int zx = ZHUNT_MAPBORDER_EAST; zx < Game::MAP_WIDTH; zx++) // <
             {
                 zhunt_distancemap[zy][zx] = 0;
                 zhunt_playermap[zy][zx] = 0;
@@ -4629,14 +4648,15 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
         // mark position of scouts (aka zombies)
         BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         {
-            if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + 100))
+            if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + ZHUNT_MAX_LIFETIME))
             {
                 if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0) && (st.second.ai_life != 255))
                 {
                     int tmp_kind = st.second.zhunt_order[0] - '0';
                     if (tmp_kind != CREATURE_PREDATOR)
                     {
-                        zhunt_playermap[st.second.ai_coord.y][st.second.ai_coord.x] |= 1;
+                        if (IsInsideMap(st.second.ai_coord.x, st.second.ai_coord.y))
+                            zhunt_playermap[st.second.ai_coord.y][st.second.ai_coord.x] |= 1;
                     }
                 }
             }
@@ -4645,7 +4665,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 //        BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         {
-            if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + 100))
+            if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + ZHUNT_MAX_LIFETIME))
             {
                 if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0) && (st.second.ai_life != 255))
                 {
@@ -4692,7 +4712,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
         BOOST_FOREACH(PAIRTYPE(const std::string, StorageVault) &st, outState.vault)
         {
-            if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + 100))
+            if ((st.second.zhunt_chronon > 0) && (outState.nHeight < st.second.zhunt_chronon + ZHUNT_MAX_LIFETIME))
             {
                 // die (part 2/2)
                 if (st.second.ai_life == 255)
@@ -4753,6 +4773,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                     int dist2 = xn > zx ? xn - zx : zx -xn;
                                     if (dist2 > dist) dist = dist2;
                                     if (dist <= ZHUNT_TELEPORTER_RANGE)
+                                    if (IsInsideMap(xn, yn))
                                     {
                                         if (zhunt_distancemap[yn][xn] <= tmp_myfreezerange)
                                         {
@@ -4775,10 +4796,12 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     }
 
                     // movement
+                    Coord old_coord = st.second.ai_coord;
+
                     int h = outState.zhunt_RNG;
                     if ((h >= 0) && (h < 16) && (st.second.ai_life != 255))
                     {
-                        int tmp_prob_left = st.second.zhunt_order[1] - '0';
+                        int tmp_prob_left = st.second.zhunt_order[2] - '0';
                         int tmp_prob_right = st.second.zhunt_order[2] - '0';
                         int d = st.second.ai_dir;
                         if (h < tmp_prob_left)
@@ -4796,20 +4819,46 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                         st.second.ai_coord.x += pmon_24dirs_clockwise_x[d];
                         st.second.ai_coord.y += pmon_24dirs_clockwise_y[d];
+                        int tmp_new_x = st.second.ai_coord.x;
+                        int tmp_new_y = st.second.ai_coord.y;
 
                         // take the (second) gem
-                        if ((st.second.ai_coord.x == ZHUNT_GEM_SPOINT_X) && (st.second.ai_coord.y == ZHUNT_GEM_SPOINT_Y) && (outState.zhunt_gemSpawnState == GEM_SPAWNED))
+                        if ((tmp_new_x >= ZHUNT_GEM_SPOINT_X - 3) && (tmp_new_x <= ZHUNT_GEM_SPOINT_X + 3) &&
+                            (tmp_new_y >= ZHUNT_GEM_SPOINT_Y - 3) && (tmp_new_y <= ZHUNT_GEM_SPOINT_Y + 3) &&
+                            (outState.zhunt_gemSpawnState == GEM_SPAWNED))
                         {
                             outState.zhunt_gemSpawnState = 0;
                             st.second.nGems += GEM_NORMAL_VALUE;
+                            st.second.ai_state |= ZHUNT_STATE_DIBS;
+                        }
+                        // take the (original) gem
+                        if ((tmp_new_x >= gem_spawnpoint_x[1] - 3) && (tmp_new_x <= gem_spawnpoint_x[1] + 3) &&
+                            (tmp_new_y >= gem_spawnpoint_y[1] - 3) && (tmp_new_y <= gem_spawnpoint_y[1] + 3) &&
+                            (outState.gemSpawnState == GEM_SPAWNED))
+                        {
+                            outState.gemSpawnState = 0;
+                            st.second.nGems += GEM_NORMAL_VALUE;
+                            st.second.ai_state |= ZHUNT_STATE_DIBS;
+
+                            gem_visualonly_state = 0;
                         }
 
                         bool b = false;
-                        if (st.second.ai_coord.x < 439) { st.second.ai_coord.x = 439;  b = true; }
-                        if (st.second.ai_coord.x > 465) { st.second.ai_coord.x = 465;  b = true; }
-
-                        if (st.second.ai_coord.y < 484) { st.second.ai_coord.y = 484;  b = true; }
-                        if (st.second.ai_coord.y > 492) { st.second.ai_coord.y = 492;  b = true; }
+                        if ((!IsWalkable(st.second.ai_coord)) ||
+                            (tmp_new_x < ZHUNT_MAPBORDER_EAST) ||
+                            (tmp_new_y < ZHUNT_MAPBORDER_NORTH) || (tmp_new_y > ZHUNT_MAPBORDER_SOUTH))
+                        {
+                            // this tile is visually walkable (and more useful if walkable)
+                            if ((tmp_new_x == 475) && (tmp_new_y == 251))
+                            {
+                                b = false;
+                            }
+                            else
+                            {
+                                st.second.ai_coord = old_coord;
+                                b = true;
+                            }
+                        }
                         if (b)
                         {
                             st.second.ai_dir = h % 8;
