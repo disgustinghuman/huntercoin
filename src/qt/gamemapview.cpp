@@ -2716,8 +2716,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
             fprintf(fp, " ------------------------------------\n\n");
 #ifdef RPG_OUTFIT_ITEMS
 #ifdef AUX_STORAGE_ZHUNT
-            fprintf(fp, "                                          hunter                         conjured\n");
-            fprintf(fp, "storage vault key                           name      gems    outfit     creature  order     chronon   position  life  magicka\n");
+            fprintf(fp, "                                                                                   (raw coin amount)\n");
+            fprintf(fp, "                                          hunter                         conjured           magic\n");
+            fprintf(fp, "storage vault key                           name      gems    outfit     creature  order    number   chronon   position  life  magicka\n");
 #else
             fprintf(fp, "                                          hunter\n");
             fprintf(fp, "storage vault key                           name      gems    outfit\n");
@@ -2752,7 +2753,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   }
                   else if (st.second.zhunt_order.length() > 0)
                   {
-                      s_zhunt = st.second.zhunt_order;
+//                      s_zhunt = st.second.zhunt_order;
+                      s_zhunt = st.second.zhunt_order.substr(0,4) + "." + st.second.zhunt_order.substr(4);
                       if (s_zhunt[0] == '3') s_zhunt = "zombie  " + s_zhunt;
                       else s_zhunt = "lemure  " + s_zhunt;
                   }
@@ -2761,7 +2763,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
               {
                   s_zhunt = "expired";
               }
-              fprintf(fp, "%s    %10s    %6s    %7s    %-18s  %7d  %3d,%-3d    %3d     %3d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(),  s_zhunt.c_str(), (int)st.second.zhunt_chronon, st.second.ai_coord.x, st.second.ai_coord.y, st.second.ai_life, st.second.ai_magicka);
+              if (s_zhunt.length() > 1)
+              fprintf(fp, "%s    %10s    %6s    %7s      %-17s 5501   %7d    %3d,%-3d    %3d     %3d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(),  s_zhunt.c_str(), (int)st.second.zhunt_chronon, st.second.ai_coord.x, st.second.ai_coord.y, st.second.ai_life, st.second.ai_magicka);
+              else
+              fprintf(fp, "%s    %10s    %6s    %7s      %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(),  s_zhunt.c_str());
 #else
               fprintf(fp, "%s    %10s    %6s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str());
 #endif

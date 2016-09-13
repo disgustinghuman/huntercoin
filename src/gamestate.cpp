@@ -2480,7 +2480,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                 mi->second.ai_coord.x = zhunt_spawn_x[tmp_myspawnpoint];
                                 mi->second.ai_coord.y = zhunt_spawn_y[tmp_myspawnpoint];
                                 mi->second.ai_dir = 8;
-                                mi->second.ai_life = 100;
+                                mi->second.ai_life = 250; // unsigned char
                                 mi->second.ai_magicka = 100;
                                 printf("summon creature: lemure, addr %s, amount %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str());
                             }
@@ -4740,9 +4740,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                             {
                                 st.second.ai_magicka -= tmp_mycost;
 
-                                // gain life from killed foe (capped at 125)
-                                if (st.second.ai_life < 25) st.second.ai_life += 100;
-                                else st.second.ai_life = 125;
+                                // gain life from killed foe (capped at 250)
+                                if (st.second.ai_life < 50) st.second.ai_life += 200;
+                                else st.second.ai_life = 250;
                             }
                         }
                     }
@@ -4775,6 +4775,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                     if (dist <= ZHUNT_TELEPORTER_RANGE)
                                     if (IsInsideMap(xn, yn))
                                     {
+                                        if (zhunt_distancemap[yn][xn] > 0)
                                         if (zhunt_distancemap[yn][xn] <= tmp_myfreezerange)
                                         {
                                             do_movement = false;
