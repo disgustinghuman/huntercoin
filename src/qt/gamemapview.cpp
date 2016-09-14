@@ -278,13 +278,12 @@ class GameMapCache
             color_a1 = color_a1_;
             color_d1 = color_d1_;
             color_d2 = color_d2_;
-//            shadow_sprite1 = scene->addPixmap(grobjs->tiles[260]);
-            shadow_sprite1 = scene->addPixmap(grobjs->tiles[color!=32?463:465]);
+            // blood stains have no shadows, flosting arrows have small shadows
+            shadow_sprite1 = scene->addPixmap(grobjs->tiles[ color == 31 ? 276 : (color==32?465:463) ]);
             shadow_sprite1->setOffset(x, y);
             shadow_sprite1->setZValue(z_order);
             shadow_sprite1->setOpacity(0.4);
-//            shadow_sprite2 = scene->addPixmap(grobjs->tiles[261]);
-            shadow_sprite2 = scene->addPixmap(grobjs->tiles[color!=32?464:466]);
+            shadow_sprite2 = scene->addPixmap(grobjs->tiles[ color == 31 ? 276 : (color==32?466:464) ]);
             shadow_sprite2->setOffset(x, y + TILE_SIZE);
             shadow_sprite2->setZValue(z_order);
             shadow_sprite2->setOpacity(0.4);
@@ -2751,12 +2750,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   {
                       s_zhunt = "dead";
                   }
-                  else if (st.second.zhunt_order.length() > 0)
+                  else if (st.second.zhunt_order.length() >= 8)
                   {
 //                      s_zhunt = st.second.zhunt_order;
                       s_zhunt = st.second.zhunt_order.substr(0,4) + "." + st.second.zhunt_order.substr(4);
-                      if (s_zhunt[0] == '3') s_zhunt = "zombie  " + s_zhunt;
-                      else s_zhunt = "lemure  " + s_zhunt;
+                      if (s_zhunt[0] == '4') s_zhunt = "lemure  " + s_zhunt;
+                      else s_zhunt = "zombie  " + s_zhunt;
                   }
               }
               else if (st.second.zhunt_chronon > 0)
@@ -3510,7 +3509,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         if ((tmp_max_bid > 0) && (tmp_min_ask > 0))
                         {
                             int64 tmp_volume = st.second.nGems;
-                            int tmp_chronon = st.second.ex_reserve1;
+                            int tmp_chronon = st.second.ex_vote_mm_chronon;
                             fprintf(fp, "%s   %-10s   %-7s   %-7s   %7d     %6s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_max_bid).c_str(), FormatMoney(tmp_min_ask).c_str(), tmp_chronon, FormatMoney(tmp_volume).c_str());
                         }
                     }
@@ -3840,17 +3839,39 @@ void GameMapView::updateGameMap(const GameState &gameState)
       {
         if ((st.second.zhunt_chronon > 0) && (gameState.nHeight < st.second.zhunt_chronon + ZHUNT_MAX_LIFETIME))
         {
-            if ((st.second.zhunt_order.length() > 0) && (st.second.ai_life > 0))
+            int xn = st.second.ai_coord.x;
+            int yn = st.second.ai_coord.y;
+            if (IsInsideMap(xn, yn))
+            if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life == 0))
             {
                 std::string s_zhunt = st.second.zhunt_order;
-
                 QString tmp_name = QString::fromStdString(st.second.huntername);
+
+                if (st.second.ai_state & ZHUNT_STATE_WRONGPLACE)
+                {
+                    tmp_name += "'s spawn was in the wrong place";
+                }
+                else if (s_zhunt[0] == '4')
+                {
+                    tmp_name += "'s lemure starved to death";
+                }
+                else // if (s_zhunt[0] == '3')
+                {
+                    tmp_name += "'s zombie was incinerated";
+                }
+                gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 31, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 1, 0);
+            }
+            else if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0))
+            {
+                std::string s_zhunt = st.second.zhunt_order;
+                QString tmp_name = QString::fromStdString(st.second.huntername);
+
                 if ((st.second.ai_dir >= 0) && (st.second.ai_dir <= 7))
                 {
                     if (s_zhunt[0] == '4')
                     {
-                        int xn = st.second.ai_coord.x;
-                        int yn = st.second.ai_coord.y;
+//                        int xn = st.second.ai_coord.x;
+//                        int yn = st.second.ai_coord.y;
                         int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
 
                         // individual attack range
@@ -3872,8 +3893,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     }
                     else // if (s_zhunt[0] == '3')
                     {
-                        int xn = st.second.ai_coord.x;
-                        int yn = st.second.ai_coord.y;
+//                        int xn = st.second.ai_coord.x;
+//                        int yn = st.second.ai_coord.y;
                         int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
 
                         int tmp_myblinkrange = st.second.zhunt_order[3] - '0';

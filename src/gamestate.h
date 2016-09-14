@@ -339,7 +339,7 @@ struct StorageVault
     int64 ex_trade_aux;
     int ex_order_chronon_bid;
     int ex_order_chronon_ask;
-    int ex_reserve1;
+    int ex_vote_mm_chronon;
     int ex_reserve2;
 
     // playground/rpg
@@ -406,7 +406,7 @@ struct StorageVault
           ex_trade_aux(0),
           ex_order_chronon_bid(0),
           ex_order_chronon_ask(0),
-          ex_reserve1(0),
+          ex_vote_mm_chronon(0),
           ex_reserve2(0),
 
           ai_coord(0, 0),
@@ -471,7 +471,7 @@ struct StorageVault
           ex_trade_aux(0),
           ex_order_chronon_bid(0),
           ex_order_chronon_ask(0),
-          ex_reserve1(0),
+          ex_vote_mm_chronon(0),
           ex_reserve2(0),
 
           ai_coord(0, 0),
@@ -545,7 +545,7 @@ struct StorageVault
         READWRITE(ex_trade_aux);
         READWRITE(ex_order_chronon_bid);
         READWRITE(ex_order_chronon_ask);
-        READWRITE(ex_reserve1);
+        READWRITE(ex_vote_mm_chronon);
         READWRITE(ex_reserve2);
 
         READWRITE(ai_coord);
