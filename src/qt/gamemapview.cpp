@@ -272,7 +272,10 @@ class GameMapCache
             sprite = scene->addPixmap(grobjs->player_sprite[color][dir]);
             sprite->setOffset(x, y);
             sprite->setZValue(z_order);
-
+#ifdef AUX_STORAGE_ZHUNT_INFIGHT
+//            if ((color == 30) && (dir == 3))
+//                sprite->setOpacity(0.8);
+#endif
 
             // better GUI -- better player sprites
             color_a1 = color_a1_;
@@ -2716,8 +2719,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
 #ifdef RPG_OUTFIT_ITEMS
 #ifdef AUX_STORAGE_ZHUNT
             fprintf(fp, "                                                                                   (raw coin amount)\n");
-            fprintf(fp, "                                          hunter                         conjured           magic\n");
-            fprintf(fp, "storage vault key                           name      gems    outfit     creature  order    number   chronon   position  life  magicka\n");
+            fprintf(fp, "                                          hunter                         conjured           magic                                       found\n");
+            fprintf(fp, "storage vault key                           name      gems    outfit     creature  order    number     age    position   life  magicka  gems  state state2\n");
 #else
             fprintf(fp, "                                          hunter\n");
             fprintf(fp, "storage vault key                           name      gems    outfit\n");
@@ -2742,19 +2745,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
               std::string s_zhunt = "-";
               if (gameState.nHeight < st.second.zhunt_chronon + ZHUNT_MAX_LIFETIME)
               {
-                  if (st.second.ai_life == 255)
+                  if (st.second.zhunt_order.length() >= 8)
                   {
-                      s_zhunt = "death";
-                  }
-                  else if (st.second.ai_life == 0)
-                  {
-                      s_zhunt = "dead";
-                  }
-                  else if (st.second.zhunt_order.length() >= 8)
-                  {
-//                      s_zhunt = st.second.zhunt_order;
                       s_zhunt = st.second.zhunt_order.substr(0,4) + "." + st.second.zhunt_order.substr(4);
-                      if (s_zhunt[0] == '4') s_zhunt = "lemure  " + s_zhunt;
+                      if (st.second.ai_state2 & ZHUNT_STATE2_TOOHOT) s_zhunt = "burning " + s_zhunt;
+                      if (st.second.ai_life == 0) s_zhunt = "dead    " + s_zhunt;
+                      else if (s_zhunt[0] == '4') s_zhunt = "lemure  " + s_zhunt;
                       else s_zhunt = "zombie  " + s_zhunt;
                   }
               }
@@ -2763,9 +2759,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   s_zhunt = "expired";
               }
               if (s_zhunt.length() > 1)
-              fprintf(fp, "%s    %10s    %6s    %7s      %-17s 5501   %7d    %3d,%-3d    %3d     %3d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(),  s_zhunt.c_str(), (int)st.second.zhunt_chronon, st.second.ai_coord.x, st.second.ai_coord.y, st.second.ai_life, st.second.ai_magicka);
+              {
+                  int tmp_age = st.second.zhunt_death_chronon ? (int)st.second.zhunt_death_chronon - (int)st.second.zhunt_chronon : gameState.nHeight - (int)st.second.zhunt_chronon;
+                  fprintf(fp, "%s    %10s    %6s    %7s      %-17s 5501   %7d    %3d,%-3d    %3d    %3d    %5s  %3d  %3d\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(),  s_zhunt.c_str(), tmp_age, st.second.ai_coord.x, st.second.ai_coord.y, st.second.ai_life, st.second.ai_magicka, FormatMoney(st.second.zhunt_found_gems).c_str(), st.second.ai_state, st.second.ai_state2);
+              }
               else
-              fprintf(fp, "%s    %10s    %6s    %7s      %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(),  s_zhunt.c_str());
+              {
+                  fprintf(fp, "%s    %10s    %6s    %7s      %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str(),  s_zhunt.c_str());
+              }
 #else
               fprintf(fp, "%s    %10s    %6s    %s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_volume).c_str(), s.c_str());
 #endif
@@ -2859,9 +2860,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 if (gameState.upgrade_test != gameState.nHeight * 2)
                     w = true;
             }
-            else
+            else if (gameState.nHeight < AUX_MINHEIGHT_ZHUNT(fTestNet))
             {
                 if (gameState.upgrade_test != gameState.nHeight * 3)
+                    w = true;
+            }
+            else
+            {
+                if (gameState.upgrade_test != gameState.nHeight * 4)
                     w = true;
             }
             if (w)
@@ -3759,9 +3765,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
         gameMapCache->AddPlayer("Tia'tha '1 soul gem here, for free'", TILE_SIZE * gem_visualonly_x, TILE_SIZE * gem_visualonly_y, 1 + 0, 20, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
     }
 #ifdef AUX_STORAGE_ZHUNT
+    if (gem_visualonly_state == GEM_SPAWNED)
+    {
+        gameMapCache->AddPlayer("Tia's ghost '1 soul gem here, for free'", TILE_SIZE * ZHUNT_GEM_SPOINT_X, TILE_SIZE * ZHUNT_GEM_SPOINT_Y, 1 + 0, 20, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 6, 0);
+    }
     if (gameState.zhunt_gemSpawnState == GEM_SPAWNED)
     {
-        gameMapCache->AddPlayer("Tia's double '1 soul gem here, for free'", TILE_SIZE * ZHUNT_GEM_SPOINT_X, TILE_SIZE * ZHUNT_GEM_SPOINT_Y, 1 + 0, 20, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 6, 0);
+        gameMapCache->AddPlayer("Arvi'ius '4 soul gems here, for free'", TILE_SIZE * ZHUNT_GEM_SPOINT2_X, TILE_SIZE * ZHUNT_GEM_SPOINT2_Y, 1 + 0, 25, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 6, 0);
     }
 #endif
 
@@ -3842,84 +3852,107 @@ void GameMapView::updateGameMap(const GameState &gameState)
             int xn = st.second.ai_coord.x;
             int yn = st.second.ai_coord.y;
             if (IsInsideMap(xn, yn))
-            if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life == 0))
             {
-                std::string s_zhunt = st.second.zhunt_order;
-                QString tmp_name = QString::fromStdString(st.second.huntername);
+                if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life == 0))
+                {
+                    std::string s_zhunt = st.second.zhunt_order;
+                    QString tmp_name = QString::fromStdString(st.second.huntername);
 
-                if (st.second.ai_state & ZHUNT_STATE_WRONGPLACE)
-                {
-                    tmp_name += "'s spawn was in the wrong place";
-                }
-                else if (s_zhunt[0] == '4')
-                {
-                    tmp_name += "'s lemure starved to death";
-                }
-                else // if (s_zhunt[0] == '3')
-                {
-                    tmp_name += "'s zombie was incinerated";
-                }
-                gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 31, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 1, 0);
-            }
-            else if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0))
-            {
-                std::string s_zhunt = st.second.zhunt_order;
-                QString tmp_name = QString::fromStdString(st.second.huntername);
+                    if (s_zhunt[0] == '4') tmp_name += "'s lemure";
+                    else tmp_name += "'s zombie";
 
-                if ((st.second.ai_dir >= 0) && (st.second.ai_dir <= 7))
-                {
-                    if (s_zhunt[0] == '4')
+                    if (st.second.ai_state & ZHUNT_STATE_WRONGPLACE)
                     {
-//                        int xn = st.second.ai_coord.x;
-//                        int yn = st.second.ai_coord.y;
-                        int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
-
-                        // individual attack range
-                        int tmp_myrange = st.second.zhunt_order[3] - '0';
-                        if (tmp_myrange > ZHUNT_MAX_ATTACK_RANGE ) tmp_myrange = ZHUNT_MAX_ATTACK_RANGE;
-
-                        tmp_name += "'s lemure [";
-                        tmp_name += QString::number(tmp_myrange);
-                        tmp_name += "] ";
-                        tmp_name += QString::number(st.second.ai_life);
-                        tmp_name += "/";
-                        tmp_name += QString::number(st.second.ai_magicka);
-
-                        if (st.second.ai_state & ZHUNT_STATE_FIREBALL)
-                            tmp_name += " 'Burn!'";
-                        if (st.second.ai_state & ZHUNT_STATE_DIBS)
-                            tmp_name += " 'Dibs on the gem!'";
-                        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 29, RPG_ICON_FIRE, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
+                        tmp_name += " was in the wrong place";
                     }
-                    else // if (s_zhunt[0] == '3')
+                    else if (st.second.ai_state2 & ZHUNT_STATE2_OUTOFTIME)
                     {
-//                        int xn = st.second.ai_coord.x;
-//                        int yn = st.second.ai_coord.y;
-                        int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
-
-                        int tmp_myblinkrange = st.second.zhunt_order[3] - '0';
-                        int tmp_myfreezerange = st.second.zhunt_order[4] - '0';
-
-                        tmp_name += "'s zombie [";
-                        tmp_name += QString::number(tmp_myblinkrange);
-                        tmp_name += "][";
-                        tmp_name += QString::number(tmp_myfreezerange);
-                        tmp_name += "]";
-                        tmp_name += QString::number(zhunt_distancemap[yn][xn]);
-
-                        if (st.second.ai_state & ZHUNT_STATE_WAIT)
-                            tmp_name += " waiting..";
-                        if (st.second.ai_state & ZHUNT_STATE_BLINK)
-                            tmp_name += " 'Blink!'";
-                        if (st.second.ai_state & ZHUNT_STATE_DIBS)
-                            tmp_name += " 'Dibs on the gem!'";
-
-                        gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 12, RPG_ICON_EMPTY, RPG_ICON_WORD_RECALL, RPG_ICON_EMPTY, dn, 0);
-
-                        if (st.second.ai_life == 255)
-                            gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 1, 30, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 1, 0);
+                        tmp_name += " starved to death";
+                    }
+                    else if (st.second.ai_state2 & ZHUNT_STATE2_NOWCOLD)
+                    {
+                        tmp_name += " was incinerated";
+                    }
+                    else
+                    {
+                        tmp_name += " died";
                     }
 
+                    gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 31, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 1, 0);
+                }
+                else if ((st.second.zhunt_order.length() >= 8) && (st.second.ai_life > 0))
+                {
+                    std::string s_zhunt = st.second.zhunt_order;
+                    QString tmp_name = QString::fromStdString(st.second.huntername);
+
+                    if ((st.second.ai_dir >= 0) && (st.second.ai_dir <= 7))
+                    {
+                        if (s_zhunt[0] == '4')
+                        {
+                            int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
+
+                            // individual attack range
+                            int tmp_myrange = st.second.zhunt_order[3] - '0';
+                            if (tmp_myrange > ZHUNT_MAX_ATTACK_RANGE ) tmp_myrange = ZHUNT_MAX_ATTACK_RANGE;
+
+                            tmp_name += "'s lemure [";
+                            tmp_name += QString::number(tmp_myrange);
+                            tmp_name += "] l:";
+                            tmp_name += QString::number(st.second.ai_life);
+                            tmp_name += " m:";
+                            tmp_name += QString::number(st.second.ai_magicka);
+
+                            if (st.second.ai_state & ZHUNT_STATE_FIREBALL)
+                                tmp_name += " 'Burn!'";
+                            if (st.second.ai_state & ZHUNT_STATE_DIBS)
+                                tmp_name += " 'Dibs on the gem!'";
+#ifdef AUX_STORAGE_ZHUNT_INFIGHT
+                            if (st.second.ai_state & ZHUNT_STATE_ZAP)
+                                tmp_name += " 'Take that!'";
+                            if (st.second.ai_state & ZHUNT_STATE_HOT)
+                            {
+                                QString tmp_name2 = QString::fromStdString("\n          ");
+                                tmp_name2 += QString::fromStdString(st.second.huntername);
+                                tmp_name2 += QString::fromStdString(" takes ");
+                                tmp_name2 += QString::number(gameState.zhunt_RNG / 2);
+                                tmp_name2 += QString::fromStdString(" damage");
+                                gameMapCache->AddPlayer(tmp_name2, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 1, 30, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 3, 0);
+                            }
+#endif
+                            gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 29, RPG_ICON_FIRE, RPG_ICON_EMPTY, RPG_ICON_EMPTY, dn, 0);
+                        }
+                        else // if (s_zhunt[0] == '3')
+                        {
+                            int dn = pmon_24spritedirs_clockwise[st.second.ai_dir];
+
+                            int tmp_myblinkrange = st.second.zhunt_order[3] - '0';
+                            int tmp_myfreezerange = st.second.zhunt_order[4] - '0';
+
+                            tmp_name += "'s zombie [";
+                            tmp_name += QString::number(tmp_myblinkrange);
+                            tmp_name += "/";
+                            tmp_name += QString::number(tmp_myfreezerange);
+                            tmp_name += "]";
+                            int dist = zhunt_distancemap[yn][xn];
+                            if (dist > 0)
+                            {
+                                tmp_name += " d:";
+                                tmp_name += QString::number(zhunt_distancemap[yn][xn]);
+                            }
+
+                            if (st.second.ai_state & ZHUNT_STATE_WAIT)
+                                tmp_name += " waiting..";
+                            if (st.second.ai_state & ZHUNT_STATE_BLINK)
+                                tmp_name += " 'Blink!'";
+                            if (st.second.ai_state & ZHUNT_STATE_DIBS)
+                                tmp_name += " 'Dibs on the gem!'";
+
+                            if (st.second.ai_state2 & ZHUNT_STATE2_TOOHOT)
+                                gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 1, 30, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 1, 0);
+                            else
+                                gameMapCache->AddPlayer(tmp_name, TILE_SIZE * xn, TILE_SIZE * yn, 1 + 0, 12, RPG_ICON_EMPTY, RPG_ICON_WORD_RECALL, RPG_ICON_EMPTY, dn, 0);
+                        }
+                    }
                 }
             }
         }

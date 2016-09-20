@@ -165,6 +165,13 @@ public:
                 int64 nSingleValueOut = txout.nValue;
                 std::string address;
                 CScript script(txout.scriptPubKey);
+#ifdef AUX_STORAGE_TAGTEST
+                std::string tag;
+                if (txout.scriptPubKey.GetTag (tag))
+                {
+                    printf("luggage test: tag %s\n", tag.c_str());
+                }
+#endif
                 if (ExtractDestination(script, address))
                 {
                     bool fv = false;
@@ -178,6 +185,13 @@ public:
                             paymentcache_idx++;
                         }
                         printf("luggage test: storage address %s received payment: %15"PRI64d" ", address.c_str(), nSingleValueOut);
+#ifdef AUX_STORAGE_TAGTEST
+                        std::string tag;
+                        if (txout.scriptPubKey.GetTag (tag))
+                        {
+                            printf(" tag %s", tag.c_str());
+                        }
+#endif
                         printf(" height %d, block hash %s\n", pstate->nHeight, pstate->hashBlock.GetHex().c_str());
 
 #ifdef AUX_STORAGE_VOTING

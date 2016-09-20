@@ -155,6 +155,8 @@ extern int rpg_path_d[RPG_NUM_NPCS][RPG_PATH_LEN];
 #ifdef ZHUNT_MAPOBJECTS
 #define ZHUNT_GEM_SPOINT_X 433
 #define ZHUNT_GEM_SPOINT_Y 228
+#define ZHUNT_GEM_SPOINT2_X 436
+#define ZHUNT_GEM_SPOINT2_Y 262
 #define ZHUNT_NUM_SPAWN 3
 #define ZHUNT_NUM_TP 6
 extern int zhunt_spawn_x[ZHUNT_NUM_SPAWN];
@@ -168,10 +170,15 @@ extern int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 
 #define ZHUNT_MAX_ATTACK_RANGE 9
 #define ZHUNT_MAX_SCOUT_RANGE 9
-#define ZHUNT_TELEPORTER_RANGE 10
+#define ZHUNT_TELEPORTER_RANGE 12
 #define ZHUNT_DIBS_RANGE 5
 #define CREATURE_PREDATOR 4
 #define CREATURE_SCOUT 3
+#define ZHUNT_STATE2_OUTOFTIME 128
+#define ZHUNT_STATE2_NOWCOLD 64
+#define ZHUNT_STATE2_TOOHOT 32
+#define ZHUNT_STATE_ZAP 64
+#define ZHUNT_STATE_HOT 32
 #define ZHUNT_STATE_WRONGPLACE 16
 #define ZHUNT_STATE_DIBS 8
 #define ZHUNT_STATE_FIREBALL 4
@@ -179,11 +186,12 @@ extern int zhunt_playermap[Game::MAP_HEIGHT][Game::MAP_WIDTH];
 #define ZHUNT_STATE_WAIT 1
 #define ZHUNT_MAX_LIFETIME 10000
 // right border is at (Game::MAP_WIDTH - 1)
-#define ZHUNT_MAPBORDER_EAST 415
+#define ZHUNT_MAPBORDER_EAST 405
 #define ZHUNT_MAPBORDER_NORTH 150
 #define ZHUNT_MAPBORDER_SOUTH 350
 #define ZHUNT_BASE_FEE 4000000
-#define ZHUNT_GEM_RESET(T,H) (((T)&&(H%100==0)) || ((!T)&&(H%300==0)))
+//#define ZHUNT_GEM_RESET(T,H) (((T)&&(H%100==0)) || ((!T)&&(H%300==0)))
+#define ZHUNT_GEM_RESET(T,H) (((T)&&(H%100==0)) || ((!T)&&(H%1242==0)))
 #endif
 
 #endif

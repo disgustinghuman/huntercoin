@@ -21,6 +21,8 @@
 #define PERMANENT_LUGGAGE_AUCTION
 #define AUX_STORAGE_VOTING
 #define AUX_STORAGE_ZHUNT
+#define AUX_STORAGE_ZHUNT_INFIGHT
+//#define AUX_STORAGE_TAGTEST
 #define AUX_STORAGE_VERSION2
 #define AUX_STORAGE_VERSION3
 #define AUX_STORAGE_VERSION4
@@ -367,8 +369,8 @@ struct StorageVault
 
     // multi purpose/reserve
     int64 zhunt_chronon;
-    int64 aux_storage_s2;
-    uint64 aux_storage_u1;
+    int64 zhunt_found_gems;
+    uint64 zhunt_death_chronon;
     uint64 aux_storage_u2;
 #endif
 
@@ -432,8 +434,8 @@ struct StorageVault
           rpg_reserve2(0),
 
           zhunt_chronon(0),
-          aux_storage_s2(0),
-          aux_storage_u1(0),
+          zhunt_found_gems(0),
+          zhunt_death_chronon(0),
           aux_storage_u2(0)
 #endif
     { }
@@ -497,8 +499,8 @@ struct StorageVault
           rpg_reserve2(0),
 
           zhunt_chronon(0),
-          aux_storage_s2(0),
-          aux_storage_u1(0),
+          zhunt_found_gems(0),
+          zhunt_death_chronon(0),
           aux_storage_u2(0)
 #endif
     { }
@@ -571,8 +573,8 @@ struct StorageVault
         READWRITE(rpg_reserve2);
 
         READWRITE(zhunt_chronon);
-        READWRITE(aux_storage_s2);
-        READWRITE(aux_storage_u1);
+        READWRITE(zhunt_found_gems);
+        READWRITE(zhunt_death_chronon);
         READWRITE(aux_storage_u2);
 #endif
     )
@@ -1461,8 +1463,8 @@ extern int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 positi
 #define AUX_MINHEIGHT_GEMHUC_SETTLEMENT(T) (T?326000:1300000)
 #define AUX_MINHEIGHT_GTC_FOR_AUCTION(T) (T?326000:1320000)
 #define AUCTIONFLAG_ASK_GTC 1
-#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1400000)
 #define AUX_MINHEIGHT_ZHUNT(T) (T?328000:1400000)
+#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?345000:1440000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
 #define MM_ORDERLIMIT_UNPACK(I64,B,A) {B=(I64%1000000000)*1000;A=(I64/1000000000)*1000;}

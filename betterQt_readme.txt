@@ -19,6 +19,64 @@ https://mega.nz/#!CY0i1B6b!HlY7Lbr0V5y7TESmHesX5Kg3BQVYyG6gN6-0QJ6nCmE
     would take ~5 hours on mainnet if game_sv4.dat is not in the same folder as game.dat)
 
 
+New: Huntercoin creatures (201609)
+enabled on mainnet after block 1400000
+======================================
+
+Map layout:
+https://bitcointalk.org/index.php?topic=435170.msg16257618#msg16257618
+
+General creature role:
+lemure     take gems, kill zombies
+zoombie    take gems, teleport
+
+The crunch:
+
+to spawn a creature:
+- send coins to your own Huntercoin address
+  amount >3000 coins, must end with the magic number "5501",
+  the 4 digits left and the 4 digits right of the decimal point will become the "order"
+- the order is the *only* way to control a creature
+- address must be a storage vault key (see adventurers.txt) with no open order or voting
+- address must own at least 0.04 gems (non-refundable fee per creature)
+
+order:
+1st digit: 3..spawn zombie
+           4..spawn lemure
+           5-9 also zombie
+2nd digit  spawnpoint (0-2 for lemures, 0-5 for zombies)
+3rd digit  chance to change direction while shuffling along (in 1/16)
+4th digit  fireball range, and zombie detection range (lemures)
+           distance of nearest lemure that make them use one of the six teleporters (zombies, if in range of said teleporter)
+5th digit  distance of nearest lemure that make them wait (zombies, if in range of a teleporter)
+6-8th digit not used
+
+mana:
+all creatures start with 100 mana
+lemure     fireball cost (range*range) per use
+zombie     teleportation cost 5 per use
+
+life:
+lemure     start with 100, ticks down 1 per chronon
+           killing a zombie will replenish 100 life for a lemure up to a maximum of 200
+zombie     start with 100, ticks down 1 per chronon if waiting in range of a teleporter (minimum of 1, they can't die this way)
+
+death condition:
+lemure     life=0
+zombie     if fireballed
+all        expire 10000 blocks after spawn
+
+all creatures can "call dibs" on a gem if nearer than 5 tiles
+this instantly gives the gem and replenishes mana to 100
+"Tia's ghost" gem is the same as the one from Tia'tha (taking one let the other disappear)
+
+teleporters can only be used by zombies, and only if nearer than 12 tiles to the entrance (the tile with the bright teleporter glow)
+all teleporters have a fixed exit (faint glow), exit tiles are the same as the zombie spawnpoints
+
+Monster infighting:
+2 lemures, if in spell range, will pelt each other with a weak lightning attack for (1d8 - 1) damage per chronon.
+
+
 New: better AI (20160826)
 see "Additional config options in names.txt" below
 ==================================================
