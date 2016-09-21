@@ -158,6 +158,11 @@ public:
             }
 #endif
 #ifdef PERMANENT_LUGGAGE_AUCTION
+#ifdef AUX_STORAGE_ZHUNT_TAGTEST
+            std::string tag_msg;
+            int64 tag_amount = 0;
+            bool tag_exists = false;
+#endif
             // gems and storage
             for (unsigned int i = 0; i < tx.vout.size(); i++)
             {
@@ -165,11 +170,12 @@ public:
                 int64 nSingleValueOut = txout.nValue;
                 std::string address;
                 CScript script(txout.scriptPubKey);
-#ifdef AUX_STORAGE_TAGTEST
-                std::string tag;
-                if (txout.scriptPubKey.GetTag (tag))
+#ifdef AUX_STORAGE_ZHUNT_TAGTEST
+                bool tag_in_this_output = false;
+                if (txout.scriptPubKey.GetTag (tag_msg))
                 {
-                    printf("luggage test: tag %s\n", tag.c_str());
+                    tag_exists = tag_in_this_output = true;
+                    printf("luggage test: tag %s\n", tag_msg.c_str());
                 }
 #endif
                 if (ExtractDestination(script, address))
@@ -185,14 +191,16 @@ public:
                             paymentcache_idx++;
                         }
                         printf("luggage test: storage address %s received payment: %15"PRI64d" ", address.c_str(), nSingleValueOut);
-#ifdef AUX_STORAGE_TAGTEST
-                        std::string tag;
-                        if (txout.scriptPubKey.GetTag (tag))
+                        printf(" height %d, block hash %s\n", pstate->nHeight, pstate->hashBlock.GetHex().c_str());
+
+#ifdef AUX_STORAGE_ZHUNT_TAGTEST
+                        if (tag_in_this_output) printf("luggage test: tag %s, amount %15"PRI64d"\n", tag_msg.c_str(), nSingleValueOut);
+
+                        if (address == AUX_ZHUNT_TESTADDRESS(fTestNet))
                         {
-                            printf(" tag %s", tag.c_str());
+                            if (nSingleValueOut > tag_amount) tag_amount = nSingleValueOut;
                         }
 #endif
-                        printf(" height %d, block hash %s\n", pstate->nHeight, pstate->hashBlock.GetHex().c_str());
 
 #ifdef AUX_STORAGE_VOTING
 #ifdef AUX_STORAGE_ZHUNT
@@ -205,6 +213,7 @@ public:
                         {
                             votingcache_vault_addr[votingcache_idx] = address;
                             votingcache_vault_exists[votingcache_idx] = true;
+                            votingcache_zhunt_test[votingcache_idx] = false;
                             votingcache_amount[votingcache_idx] = nSingleValueOut;
                             votingcache_txid60bit[votingcache_idx] = tmp_txid60bit;
                             votingcache_idx++;
@@ -225,6 +234,7 @@ public:
                             {
                                 votingcache_vault_addr[votingcache_idx] = address;
                                 votingcache_vault_exists[votingcache_idx] = true;
+                                votingcache_zhunt_test[votingcache_idx] = false;
                                 votingcache_amount[votingcache_idx] = nSingleValueOut;
                                 votingcache_txid60bit[votingcache_idx] = tmp_txid60bit;
                                 votingcache_idx++;
@@ -245,6 +255,7 @@ public:
                         {
                             votingcache_vault_addr[votingcache_idx] = address;
                             votingcache_vault_exists[votingcache_idx] = false;
+                            votingcache_zhunt_test[votingcache_idx] = false;
                             votingcache_amount[votingcache_idx] = nSingleValueOut;
                             votingcache_txid60bit[votingcache_idx] = tmp_txid60bit;
                             votingcache_idx++;
@@ -264,8 +275,25 @@ public:
 #endif
                 }
             }
+#ifdef AUX_STORAGE_ZHUNT_TAGTEST
+            // do this only once per transaction
+            if (((pstate->nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet))) &&
+                (tag_exists) && (tag_amount > 0) && (tag_msg.substr(0, 4) == "GEM ") && (tag_msg.length() > 4) &&
+                (votingcache_idx < VOTINGCACHE_MAX))
+            {
+                if (IsValidBitcoinAddress(tag_msg.substr(4)))
+                {
+                    votingcache_vault_addr[votingcache_idx] = tag_msg.substr(4);
+                    votingcache_vault_exists[votingcache_idx] = true; // technically true but useless
+                    votingcache_zhunt_test[votingcache_idx] = true;
+                    votingcache_amount[votingcache_idx] = tag_amount;
+                    votingcache_txid60bit[votingcache_idx] = tmp_txid60bit; // not used
+                    votingcache_idx++;
+                    printf("convert to gems: add to cache: tag %s, amount %15"PRI64d"\n", tag_msg.c_str(), tag_amount);
+                }
+            }
 #endif
-
+#endif
             return true;
         }
 
@@ -497,6 +525,7 @@ PerformStep (CNameDB& nameDb, const GameState& inState, const CBlock* block,
             {
                 votingcache_vault_addr[votingcache_idx] = st.first;
                 votingcache_vault_exists[votingcache_idx] = true;
+                votingcache_zhunt_test[votingcache_idx] = false;
                 votingcache_amount[votingcache_idx] = 0;
 
                 // cleanup

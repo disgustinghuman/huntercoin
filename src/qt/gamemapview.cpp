@@ -2710,6 +2710,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
         int count = 0;
         int64 count_volume = 0;
 
+        int64 zhunt_info_available = 0;
+
         FILE *fp;
         fp = fopen("adventurers.txt", "w");
         if (fp != NULL)
@@ -2734,6 +2736,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
             BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
             {
               int64 tmp_volume = st.second.nGems;
+
+#ifdef AUX_STORAGE_ZHUNT_TAGTEST
+              if (st.first == AUX_ZHUNT_TESTADDRESS(fTestNet))
+              {
+                  zhunt_info_available = tmp_volume + st.second.ex_trade_profitloss + (100 * AUX_COIN);
+              }
+#endif
+
 #ifdef RPG_OUTFIT_ITEMS
               unsigned char tmp_outfit = st.second.item_outfit;
               std::string s = "-";
@@ -2781,7 +2791,16 @@ void GameMapView::updateGameMap(const GameState &gameState)
             fprintf(fp, "                                           total\n");
             fprintf(fp, "\n");
             fprintf(fp, "                                           %4d     %6s\n", count, FormatMoney(count_volume).c_str());
-
+#ifdef AUX_STORAGE_ZHUNT_TAGTEST
+            if (gameState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet))
+            {
+                fprintf(fp, "\n");
+                fprintf(fp, "->***EXPERIMENTAL*** console command to instantly create a vault:\n");
+                fprintf(fp, "sendtoaddress %s <coin amount> comment1 comment2 \"GEM <huntercoinaddress>\"\n", AUX_ZHUNT_TESTADDRESS(fTestNet));
+//                fprintf(fp, "%s gems available, GEM:HUC rate %s, fee for new vault %s coins\n", FormatMoney(zhunt_info_available).c_str(), FormatMoney(gameState.auction_settle_price).c_str(), FormatMoney(gameState.auction_settle_price / AUX_COIN * GEM_ONETIME_STORAGE_FEE).c_str());
+                fprintf(fp, "%s gems available, GEM:HUC rate %s, fee for new vault 0.02 gems\n", FormatMoney(zhunt_info_available).c_str(), FormatMoney(gameState.auction_settle_price).c_str());
+            }
+#endif
             fclose(fp);
         }
         MilliSleep(20);
@@ -3416,7 +3435,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
                 {
                   if ((st.second.ex_order_size_bid != 0) || (st.second.ex_order_size_ask != 0) ||
-                      (st.second.ex_position_size != 0) || (st.second.ex_trade_profitloss != 0))
+                      (st.second.ex_position_size != 0) || (st.second.ex_trade_profitloss != 0) ||
+                      (st.second.nGems < 0))
                   {
                       int64 tmp_bid_price = st.second.ex_order_price_bid;
                       int64 tmp_bid_size = st.second.ex_order_size_bid;

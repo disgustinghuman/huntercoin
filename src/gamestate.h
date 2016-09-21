@@ -22,7 +22,7 @@
 #define AUX_STORAGE_VOTING
 #define AUX_STORAGE_ZHUNT
 #define AUX_STORAGE_ZHUNT_INFIGHT
-//#define AUX_STORAGE_TAGTEST
+#define AUX_STORAGE_ZHUNT_TAGTEST
 #define AUX_STORAGE_VERSION2
 #define AUX_STORAGE_VERSION3
 #define AUX_STORAGE_VERSION4
@@ -1514,6 +1514,8 @@ extern int64 votingcache_amount[PAYMENTCACHE_MAX];
 extern int64 votingcache_txid60bit[PAYMENTCACHE_MAX];
 extern std::string votingcache_vault_addr[PAYMENTCACHE_MAX];
 extern bool votingcache_vault_exists[PAYMENTCACHE_MAX];
+extern bool votingcache_zhunt_test[PAYMENTCACHE_MAX];
+#define AUX_ZHUNT_TESTADDRESS(T) (T?"hackpwDhpPNuNx3bWGowurXpLMiBWFEWNS":"HMFESBYnkoTHYVtyMyFVDFXQG5R1nkAzZX")
 #endif
 #endif
 

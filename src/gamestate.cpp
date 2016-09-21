@@ -1206,6 +1206,7 @@ int64 votingcache_amount[PAYMENTCACHE_MAX];
 int64 votingcache_txid60bit[PAYMENTCACHE_MAX];
 std::string votingcache_vault_addr[PAYMENTCACHE_MAX];
 bool votingcache_vault_exists[PAYMENTCACHE_MAX];
+bool votingcache_zhunt_test[PAYMENTCACHE_MAX];
 #endif
 #endif
 
@@ -2452,6 +2453,29 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         }
                     }
 #ifdef AUX_STORAGE_ZHUNT
+#ifdef AUX_STORAGE_ZHUNT_TAGTEST
+                    else if ((outState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet)) &&
+                             (votingcache_zhunt_test[i]))
+                    {
+                        std::map<std::string, StorageVault>::iterator mi3 = outState.vault.find(AUX_ZHUNT_TESTADDRESS(fTestNet));
+                        if (mi3 != outState.vault.end())
+                        {
+                            int64 tmp_gem_amount = votingcache_amount[i] / (outState.auction_settle_price / COIN); // rounding errors?
+                            tmp_gem_amount -= (tmp_gem_amount % CENT);
+
+                            if ((tmp_gem_amount >= 0) && (mi3->second.nGems + mi3->second.ex_trade_profitloss - tmp_gem_amount > -100 * COIN))
+                            {
+                                mi->second.nGems += tmp_gem_amount;
+                                mi3->second.ex_trade_profitloss -= tmp_gem_amount;
+                                printf("convert to gems: ok: existing addr %s, amount coins %s, gems %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str(), FormatMoney(tmp_gem_amount).c_str());
+                            }
+                            else
+                            {
+                                printf("convert to gems: error: existing addr %s, amount coins %s, gems %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str(), FormatMoney(tmp_gem_amount).c_str());
+                            }
+                        }
+                    }
+#endif
                     else if ((outState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet)) &&
                              (votingcache_amount[i] % 10000 == 5501) && (votingcache_amount[i] >= 3000 * COIN))
                     {
@@ -2513,6 +2537,46 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                         }
                     }
                 }
+#ifdef AUX_STORAGE_ZHUNT
+#ifdef AUX_STORAGE_ZHUNT_TAGTEST
+                else if ((outState.nHeight >= AUX_MINHEIGHT_ZHUNT(fTestNet)) &&
+                         (votingcache_zhunt_test[i]))
+                {
+                    int64 tmp_gem_amount = votingcache_amount[i] / (outState.auction_settle_price / COIN); // rounding errors?
+//                    tmp_gem_amount -= GEM_ONETIME_STORAGE_FEE;
+                    tmp_gem_amount -= (tmp_gem_amount % CENT);
+                    if (tmp_gem_amount >= GEM_ONETIME_STORAGE_FEE)
+                    {
+                        // don't give gems before we found AUX_ZHUNT_TESTADDRESS
+                        outState.vault.insert(std::make_pair(votingcache_vault_addr[i], StorageVault(0)));
+
+                        std::map<std::string, StorageVault>::iterator mi2 = outState.vault.find(votingcache_vault_addr[i]);
+                        if (mi2 != outState.vault.end())
+                        {
+                            std::map<std::string, StorageVault>::iterator mi3 = outState.vault.find(AUX_ZHUNT_TESTADDRESS(fTestNet));
+                            if (mi3 != outState.vault.end())
+                            {
+                                if (mi3->second.nGems + mi3->second.ex_trade_profitloss - tmp_gem_amount > -100 * COIN)
+                                {
+                                    mi2->second.nGems += (tmp_gem_amount - GEM_ONETIME_STORAGE_FEE);
+                                    {
+                                        char buf[16];
+                                        sprintf ( buf, "anon%d", int(outState.nHeight % 10000) );
+                                        mi2->second.huntername.assign(buf);
+                                    }
+                                    mi3->second.ex_trade_profitloss -= tmp_gem_amount;
+                                    printf("convert to gems: error: new addr %s, amount coins %s, gems %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str(), FormatMoney(tmp_gem_amount).c_str());
+                                }
+                                else
+                                {
+                                    printf("convert to gems: error: new addr %s, amount coins %s, gems %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str(), FormatMoney(tmp_gem_amount).c_str());
+                                }
+                            }
+                        }
+                    }
+                }
+#endif
+#endif
                 else if (!votingcache_vault_exists[i])
                 {
                     int64 tmp_new_gems = 0;
