@@ -3968,7 +3968,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
                 if (outState.nHeight == AUX_MINHEIGHT_ZHUNT(fTestNet))
                     outState.upgrade_test += outState.nHeight;
-                else if (outState.nHeight > AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
+                else if (outState.nHeight > AUX_MINHEIGHT_ZHUNT(fTestNet))
                     outState.upgrade_test += 1; // keep at nHeight * 4
             }
 
