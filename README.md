@@ -7,9 +7,9 @@ www.huntercoin.org
 
 latest binaries for Windows + Linux
 
-huntercoin-betterQt-exp-binaries-20160828.zip, 30.3 MB
+huntercoin-betterQt-exp-binaries-20160922.zip, 31.7 MB
 
-https://mega.nz/#!CY0i1B6b!HlY7Lbr0V5y7TESmHesX5Kg3BQVYyG6gN6-0QJ6nCmE
+https://mega.nz/#!WVdixSzL!Jxkf-ijnnvBtSifVR0CQNoTutgyRzc6GyndJlPBqc_E
 
 ![hunters](images/hunters1.jpg)
 

@@ -19,7 +19,44 @@ https://mega.nz/#!WVdixSzL!Jxkf-ijnnvBtSifVR0CQNoTutgyRzc6GyndJlPBqc_E
     would take ~5 hours on mainnet if game_sv4.dat is not in the same folder as game.dat)
 
 
-New: Huntercoin creatures (201609)
+New: instant creation of storage vaults (20160923)
+enabled on mainnet after block 1400000
+======================================
+
+(Cortez's test continues, first part was conversion of gems to coins at a fixed rate, see
+https://bitcointalk.org/index.php?topic=435170.msg16312993#msg16312993)
+
+After block 1400000, it will be possible to convert coins to gems at a fixed rate,
+instantly, trustless, and with a single (atomic) transaction.
+
+While Cortez's Huntercoin address (HMFESBYnkoTHYVtyMyFVDFXQG5R1nkAzZX) still belongs to the
+same user (wiggi), it's also a game entity now, and can act independently
+with no need of a specific node being online.
+
+
+Example use (see also "help sendtoaddress" in the client's console window):
+
+to send gems to the storage vault of "some_huntercoinaddress" (will be created it not already existing):
+sendtoaddress HMFESBYnkoTHYVtyMyFVDFXQG5R1nkAzZX coin_amount comment1 comment2 "GEM some_huntercoinaddress"
+
+to donate 1k coins worth of gems:
+sendtoaddress HMFESBYnkoTHYVtyMyFVDFXQG5R1nkAzZX 1000.0 comment1 comment2 "GEM HMFESBYnkoTHYVtyMyFVDFXQG5R1nkAzZX"
+
+
+Notes:
+- the coin:gem rate is variable and taken from the in-game auction settlement
+- standard fee of 0.02 gems for storage vault generation applies
+- this function uses the "transaction comment", aka OP_RETURN
+- in Huntercore client and daemon, sendtoaddress command is different.
+  They probably can't be used for this right now.
+
+- Each gem bought will result in -1 "immature gems from trade P/L" for Cortez, with a hard limit of -100
+- the total amount of gems in existence will be unchanged (but short term spike of gems in circulation is possible)
+- The adventurers inventory page (adventurers.txt) will state the available amount,
+  recalculated for each block
+
+
+New: Huntercoin creatures (20160923)
 enabled on mainnet after block 1400000
 ======================================
 
