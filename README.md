@@ -7,9 +7,9 @@ www.huntercoin.org
 
 latest binaries for Windows + Linux
 
-huntercoin-betterQt-exp-binaries-20160922.zip, 31.7 MB
+huntercoin-betterQt-exp-binaries-20160925.zip, 31.7 MB
 
-https://mega.nz/#!WVdixSzL!Jxkf-ijnnvBtSifVR0CQNoTutgyRzc6GyndJlPBqc_E
+https://mega.nz/#!rcVjELKK!TLmWYkhMPC7XpLjyAx1F__TikW_SKnTrXTUOIdQCGeA
 
 ![hunters](images/hunters1.jpg)
 
@@ -32,5 +32,6 @@ or uncomment this to compile in advanced mode:
 
 https://github.com/wiggi/huntercoin/blob/betterQt-with-storage/src/gamestate.h#L17
 
-Don't forget to copy game_sv4.dat to '.huntercoin'
+Don't forget to copy game_sv4.dat to '.huntercoin', and make sure that the
+blockchain is always equally or more up-to-date than the gamestate.
 
