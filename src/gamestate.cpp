@@ -2565,7 +2565,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                         mi2->second.huntername.assign(buf);
                                     }
                                     mi3->second.ex_trade_profitloss -= tmp_gem_amount;
-                                    printf("convert to gems: error: new addr %s, amount coins %s, gems %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str(), FormatMoney(tmp_gem_amount).c_str());
+                                    printf("convert to gems: ok: new addr %s, amount coins %s, gems %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str(), FormatMoney(tmp_gem_amount).c_str());
                                 }
                                 else
                                 {

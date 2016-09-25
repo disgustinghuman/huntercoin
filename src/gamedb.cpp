@@ -144,6 +144,8 @@ public:
 
                                 for (int i = 0; i < votingcache_idx; i++)
                                 {
+                                    if (votingcache_zhunt_test[i]) continue; // otherwise 2 such transactions (from same wallet) in the same block would fail
+
                                     if (votingcache_txid60bit[i] == tmp_txid60bit_input)
                                     {
                                         votingcache_amount[i] = -1;
