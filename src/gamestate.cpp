@@ -61,6 +61,9 @@ inline bool IsWalkable(const Coord &c)
  * does not ever change.
  */
 static std::vector<Coord> walkableTiles;
+// for FORK_TIMESAVE -- 2 more sets of walkable tiles
+static std::vector<Coord> walkableTiles_ts_players;
+static std::vector<Coord> walkableTiles_ts_banks;
 
 /* Calculate carrying capacity.  This is where it is basically defined.
    It depends on the block height (taking forks changing it into account)
@@ -130,24 +133,60 @@ DropHeart (int nHeight)
 
   const int heartEvery = (ForkInEffect (FORK_LESSHEARTS, nHeight) ? 500 : 10);
   return nHeight % heartEvery == 0;
-} 
+}
 
 /* Ensure that walkableTiles is filled.  */
 static void
 FillWalkableTiles ()
 {
-  if (!walkableTiles.empty ())
-    return;
+    // for FORK_TIMESAVE -- less possible player and bank spawn tiles
+    if (walkableTiles_ts_players.empty ())
+    {
+        for (int x = 0; x < MAP_WIDTH; ++x)
+          for (int y = 0; y < MAP_HEIGHT; ++y)
+            if (IsWalkable (x, y))
+            {
+                if ( ! (SpawnMap[y][x] & SPAWNMAPFLAG_PLAYER) ) // note: player spawn tiles and bank spawn tiles are separated
+                  continue;
 
-  for (int x = 0; x < MAP_WIDTH; ++x)
-    for (int y = 0; y < MAP_HEIGHT; ++y)
-      if (IsWalkable (x, y))
-        walkableTiles.push_back (Coord (x, y));
+              walkableTiles_ts_players.push_back (Coord (x, y));
+            }
 
-  /* Do not forget to sort in the order defined by operator<!  */
-  std::sort (walkableTiles.begin (), walkableTiles.end ());
+        /* Do not forget to sort in the order defined by operator<!  */
+        std::sort (walkableTiles_ts_players.begin (), walkableTiles_ts_players.end ());
+        assert (!walkableTiles_ts_players.empty ());
+    }
+    if (walkableTiles_ts_banks.empty ())
+    {
+        for (int x = 0; x < MAP_WIDTH; ++x)
+          for (int y = 0; y < MAP_HEIGHT; ++y)
+            if (IsWalkable (x, y))
+            {
+                if ( ! (SpawnMap[y][x] & SPAWNMAPFLAG_BANK) )
+                  continue;
 
-  assert (!walkableTiles.empty ());
+              walkableTiles_ts_banks.push_back (Coord (x, y));
+            }
+
+        /* Do not forget to sort in the order defined by operator<!  */
+        std::sort (walkableTiles_ts_banks.begin (), walkableTiles_ts_banks.end ());
+        assert (!walkableTiles_ts_banks.empty ());
+    }
+
+    if (!walkableTiles.empty ())
+      return;
+
+    for (int x = 0; x < MAP_WIDTH; ++x)
+      for (int y = 0; y < MAP_HEIGHT; ++y)
+        if (IsWalkable (x, y))
+        {
+          walkableTiles.push_back (Coord (x, y));
+        }
+
+    /* Do not forget to sort in the order defined by operator<!  */
+    std::sort (walkableTiles.begin (), walkableTiles.end ());
+
+    assert (!walkableTiles.empty ());
 }
 
 } // namespace Game
@@ -559,11 +598,19 @@ Move::MinimumGameFee (unsigned nHeight) const
     {
       const int64_t coinAmount = GetNameCoinAmount (nHeight);
 
+      // fee for new hunter is 1 HUC
+      if (ForkInEffect (FORK_TIMESAVE, nHeight))
+        return coinAmount + COIN;
+
       if (ForkInEffect (FORK_LIFESTEAL, nHeight))
         return coinAmount + 5 * COIN;
 
       return coinAmount;
     }
+
+  // destruct fee is 1 HUC
+  if (ForkInEffect (FORK_TIMESAVE, nHeight))
+    return COIN * destruct.size ();
 
   if (!ForkInEffect (FORK_LIFESTEAL, nHeight))
     return 0;
@@ -606,6 +653,8 @@ AttackableCharacter::AttackSelf (const GameState& state)
 void
 CharactersOnTiles::EnsureIsBuilt (const GameState& state)
 {
+  // if (built) printf("protection: already built h=%d\n", state.nHeight);
+
   if (built)
     return;
   assert (tiles.empty ());
@@ -613,6 +662,14 @@ CharactersOnTiles::EnsureIsBuilt (const GameState& state)
   BOOST_FOREACH (const PAIRTYPE(PlayerID, PlayerState)& p, state.players)
     BOOST_FOREACH (const PAIRTYPE(int, CharacterState)& pc, p.second.characters)
       {
+        // newly spawned hunters not attackable
+        if (ForkInEffect (FORK_TIMESAVE, state.nHeight))
+          if (CHARACTER_IS_PROTECTED(pc.second.stay_in_spawn_area))
+          {
+            // printf("protection: character at x=%d y=%d is protected\n", pc.second.coord.x, pc.second.coord.y);
+            continue;
+          }
+
         AttackableCharacter a;
         a.chid = CharacterID (p.first, pc.first);
         a.color = p.second.color;
@@ -649,6 +706,15 @@ CharactersOnTiles::ApplyAttacks (const GameState& state,
 
           const int radius = GetDestructRadius (state.nHeight, i == 0);
           const CharacterState& ch = miCh->second;
+
+          // hunters in spectator mode can't attack
+          if (ForkInEffect (FORK_TIMESAVE, state.nHeight))
+            if (CHARACTER_IN_SPECTATOR_MODE(ch.stay_in_spawn_area))
+            {
+              // printf("protection: character at x=%d y=%d can't attack\n", ch.coord.x, ch.coord.y);
+              continue;
+            }
+
           const Coord& c = ch.coord;
           for (int y = c.y - radius; y <= c.y + radius; y++)
             for (int x = c.x - radius; x <= c.x + radius; x++)
@@ -861,8 +927,21 @@ CharactersOnTiles::DistributeDrawnLife (RandomGenerator& rnd,
 void
 CharacterState::Spawn (unsigned nHeight, int color, RandomGenerator &rnd)
 {
+  // less possible player spawn tiles
+  if (ForkInEffect (FORK_TIMESAVE, nHeight))
+  {
+      FillWalkableTiles ();
+
+      const int pos = rnd.GetIntRnd (walkableTiles_ts_players.size ());
+      coord = walkableTiles_ts_players[pos];
+
+      dir = rnd.GetIntRnd (1, 8);
+      if (dir >= 5)
+        ++dir;
+      assert (dir >= 1 && dir <= 9 && dir != 5);
+  }
   /* Pick a random walkable spawn location after the life-steal fork.  */
-  if (ForkInEffect (FORK_LIFESTEAL, nHeight))
+  else if (ForkInEffect (FORK_LIFESTEAL, nHeight))
     {
       FillWalkableTiles ();
 
@@ -2136,17 +2215,51 @@ GameState::KillSpawnArea (StepResult& step)
           const int i = pc.first;
           CharacterState &ch = pc.second;
 
-          if (!IsBank (ch.coord))
-            {
-              ch.stay_in_spawn_area = 0;
-              continue;
-            }
+          // process logout timer
+          if (ForkInEffect (FORK_TIMESAVE, nHeight))
+          {
+              if (IsBank (ch.coord))
+              {
+                  assert (IsBank (ch.coord)); // pre-fork code has this line (why?)
+                  ch.stay_in_spawn_area = CHARACTER_MODE_LOGOUT; // hunters will never be on bank tile while in spectator mode
+              }
+              else if (SpawnMap[ch.coord.y][ch.coord.x] & SPAWNMAPFLAG_PLAYER)
+              {
+                  if (CHARACTER_SPAWN_PROTECTION_ALMOST_FINISHED(ch.stay_in_spawn_area))
+                  {
+                      // enter spectator mode if standing still
+                      // notes : - movement will put the hunter in normal mode (when movement is processed)
+                      //         - right now (in KillSpawnArea) waypoint updates are not yet applied for current block,
+                      //           i.e. (ch.waypoints.empty()) is always true
+                      ch.stay_in_spawn_area = CHARACTER_MODE_SPECTATOR_BEGIN;
+                  }
+                  else
+                  {
+                      ch.stay_in_spawn_area++;
+                  }
+              }
+              else if (CHARACTER_IS_PROTECTED(ch.stay_in_spawn_area)) // newly spawned or spectator
+              {
+                  ch.stay_in_spawn_area++;
+              }
 
-          /* Make sure to increment the counter in every case.  */
-          assert (IsBank (ch.coord));
-          const int maxStay = MaxStayOnBank (nHeight);
-          if (ch.stay_in_spawn_area++ < maxStay || maxStay == -1)
-            continue;
+              if (CHARACTER_NO_LOGOUT(ch.stay_in_spawn_area))
+                  continue;
+          }
+          else
+          {
+              if (!IsBank (ch.coord))
+              {
+                ch.stay_in_spawn_area = 0;
+                continue;
+              }
+
+              /* Make sure to increment the counter in every case.  */
+              assert (IsBank (ch.coord));
+              const int maxStay = MaxStayOnBank (nHeight);
+              if (ch.stay_in_spawn_area++ < maxStay || maxStay == -1)
+                continue;
+          }
 
           /* Handle the character's loot and kill the player.  */
           const KilledByInfo killer(KilledByInfo::KILLED_SPAWN);
@@ -2255,7 +2368,18 @@ GameState::UpdateBanks (RandomGenerator& rng)
       assert (banks.size () == DYNBANKS_NUM_BANKS);
       assert (newBanks.empty ());
 
-      BOOST_FOREACH (const PAIRTYPE(Coord, unsigned)& b, banks)
+      // reinitialize all banks as to not break things,
+      // e.g. "assert (optionsSet.count (b.first) == 1)"
+      if (IsForkHeight (FORK_TIMESAVE, nHeight))
+      {
+        BOOST_FOREACH (const PAIRTYPE(Coord, unsigned)& b, banks)
+        {
+          assert (b.second >= 1);
+        }
+      }
+      else // pre-fork
+      {
+        BOOST_FOREACH (const PAIRTYPE(Coord, unsigned)& b, banks)
         {
           assert (b.second >= 1);
 
@@ -2265,12 +2389,44 @@ GameState::UpdateBanks (RandomGenerator& rng)
           if (b.second > 1)
             newBanks.insert (std::make_pair (b.first, b.second - 1));
         }
+      }
     }
 
   /* Re-create banks that are missing now.  */
 
   assert (newBanks.size () <= DYNBANKS_NUM_BANKS);
 
+  // less possible bank spawn tiles
+  if (ForkInEffect (FORK_TIMESAVE, nHeight))
+  {
+  FillWalkableTiles ();
+  std::set<Coord> optionsSet(walkableTiles_ts_banks.begin (), walkableTiles_ts_banks.end ());
+  BOOST_FOREACH (const PAIRTYPE(Coord, unsigned)& b, newBanks)
+    {
+      assert (optionsSet.count (b.first) == 1);
+      optionsSet.erase (b.first);
+    }
+  assert (optionsSet.size () + newBanks.size () == walkableTiles_ts_banks.size ());
+
+  std::vector<Coord> options(optionsSet.begin (), optionsSet.end ());
+  for (unsigned cnt = newBanks.size (); cnt < DYNBANKS_NUM_BANKS; ++cnt)
+    {
+      const int ind = rng.GetIntRnd (options.size ());
+      const int life = rng.GetIntRnd (DYNBANKS_MIN_LIFE, DYNBANKS_MAX_LIFE);
+      const Coord& c = options[ind];
+
+      assert (newBanks.count (c) == 0);
+      newBanks.insert (std::make_pair (c, life));
+
+      /* Do not use a silly trick like swapping in the last element.
+         We want to keep the array ordered at all times.  The order is
+         important with respect to consensus, and this makes the consensus
+         protocol "clearer" to describe.  */
+      options.erase (options.begin () + ind);
+    }
+  }
+  else // pre-fork
+  {
   FillWalkableTiles ();
   std::set<Coord> optionsSet(walkableTiles.begin (), walkableTiles.end ());
   BOOST_FOREACH (const PAIRTYPE(Coord, unsigned)& b, newBanks)
@@ -2296,6 +2452,7 @@ GameState::UpdateBanks (RandomGenerator& rng)
          protocol "clearer" to describe.  */
       options.erase (options.begin () + ind);
     }
+  }
 
   banks.swap (newBanks);
   assert (banks.size () == DYNBANKS_NUM_BANKS);
@@ -3936,6 +4093,15 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             }
 #endif
 
+            // can't move in spectator mode, moving will lose spawn protection
+            if ((ForkInEffect (FORK_TIMESAVE, outState.nHeight)) &&
+                ( ! (pc.second.waypoints.empty()) ))
+            {
+                if (CHARACTER_IN_SPECTATOR_MODE(pc.second.stay_in_spawn_area))
+                    pc.second.StopMoving();
+                else
+                    pc.second.stay_in_spawn_area = CHARACTER_MODE_NORMAL;
+            }
             pc.second.MoveTowardsWaypoint();
         }
 
@@ -4465,7 +4631,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
             int i = pc.first;
             CharacterState &ch = pc.second;
 
-            if (ch.loot.nAmount > 0 && outState.IsBank (ch.coord))
+            // player spawn tiles work like banks (for the purpose of banking)
+            if (((ch.loot.nAmount > 0) && (outState.IsBank (ch.coord))) ||
+                ((ForkInEffect (FORK_TIMESAVE, outState.nHeight)) && (ch.loot.nAmount > 0) && (IsInsideMap(ch.coord.x, ch.coord.y)) && (SpawnMap[ch.coord.y][ch.coord.x] & SPAWNMAPFLAG_PLAYER)))
             {
                 // Tax from banking: 10%
                 int64_t nTax = ch.loot.nAmount / 10;
@@ -4542,7 +4710,10 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
     assert(nTotalTreasure + nCrownBonus == stepData.nTreasureAmount);
 
     // Players collect loot
-    outState.DivideLootAmongPlayers();
+    // reward coordinated attack against 24/7 players, if any
+    if (( ! (ForkInEffect (FORK_TIMESAVE, outState.nHeight)) ) ||
+        ((outState.nHeight % 500 >= 50) && (outState.nHeight % 1000 >= 100)))
+            outState.DivideLootAmongPlayers();
     outState.CrownBonus(nCrownBonus);
 
     /* Update the banks.  */
