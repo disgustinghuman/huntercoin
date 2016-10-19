@@ -64,7 +64,9 @@ struct GameGraphicsObjects
 QPen visualize_spawn_pen(Qt::NoPen);
 bool visualize_spawn_done = false;
 int visualize_nHeight;
-#define VISUALIZE_TIMESAVE_IN_EFFECT(H) (((fTestNet)&&(H>331100))||((!fTestNet)&&(H>1999999)))
+int visualize_x;
+int visualize_y;
+#define VISUALIZE_TIMESAVE_IN_EFFECT(H) (((fTestNet)&&(H>331500))||((!fTestNet)&&(H>1999999)))
 
 // Cache scene objects to avoid recreating them on each state update
 class GameMapCache
@@ -93,11 +95,19 @@ class GameMapCache
             coin->setZValue(0.1);
 
             // for FORK_TIMESAVE -- reward coordinated attack against 24/7 players, if any
-            if (( ! (VISUALIZE_TIMESAVE_IN_EFFECT(visualize_nHeight)) ) ||
-                ((visualize_nHeight % 500 >= 50) && (visualize_nHeight % 1000 >= 100)))
-                coin->setOpacity(1.0);
+            if (VISUALIZE_TIMESAVE_IN_EFFECT (visualize_nHeight))
+            {
+                if ((((visualize_x % 2) + (visualize_y % 2) > 1) && (visualize_nHeight % 500 >= 300)) ||  // for 150 blocks, every 4th coin spawn is ghosted
+                    (((visualize_x % 2) + (visualize_y % 2) > 0) && (visualize_nHeight % 500 >= 450)) ||  // for 30 blocks, 3 out of 4 coin spawns are ghosted
+                    (visualize_nHeight % 500 >= 480))                                             // for 20 blocks, full ghosting
+                    coin->setOpacity(0.4);
+                else
+                    coin->setOpacity(1.0);
+            }
             else
-                coin->setOpacity(0.4);
+            {
+                 coin->setOpacity(1.0);
+            }
 
             text = new QGraphicsTextItem(coin);
             text->setHtml(
@@ -112,11 +122,19 @@ class GameMapCache
         void Update(int64 amount)
         {
             // for FORK_TIMESAVE -- reward coordinated attack against 24/7 players, if any
-            if (( ! (VISUALIZE_TIMESAVE_IN_EFFECT(visualize_nHeight)) ) ||
-                ((visualize_nHeight % 500 >= 50) && (visualize_nHeight % 1000 >= 100)))
-                coin->setOpacity(1.0);
+            if (VISUALIZE_TIMESAVE_IN_EFFECT (visualize_nHeight))
+            {
+                if ((((visualize_x % 2) + (visualize_y % 2) > 1) && (visualize_nHeight % 500 >= 300)) ||  // for 150 blocks, every 4th coin spawn is ghosted
+                    (((visualize_x % 2) + (visualize_y % 2) > 0) && (visualize_nHeight % 500 >= 450)) ||  // for 30 blocks, 3 out of 4 coin spawns are ghosted
+                    (visualize_nHeight % 500 >= 480))                                             // for 20 blocks, full ghosting
+                    coin->setOpacity(0.4);
+                else
+                    coin->setOpacity(1.0);
+            }
             else
-                coin->setOpacity(0.4);
+            {
+                 coin->setOpacity(1.0);
+            }
 
             referenced = true;
             if (amount == nAmount)
@@ -328,6 +346,10 @@ public:
     void PlaceCoin(const Coord &coord, int64 nAmount)
     {
         CachedCoin &c = cached_coins[coord];
+
+        // for FORK_TIMESAVE
+        visualize_x = coord.x;
+        visualize_y = coord.y;
 
         if (!c)
             c.Create(scene, grobjs, coord.x * TILE_SIZE, coord.y * TILE_SIZE, nAmount);
