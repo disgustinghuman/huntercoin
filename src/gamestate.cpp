@@ -1506,6 +1506,15 @@ void GameState::DivideLootAmongPlayers()
                                                    isCrownHolder);
 
           const Coord& coord = tileChar.ch->coord;
+
+          // reward coordinated attack against 24/7 players, if any
+          // ghosting with phasing-in
+          if (ForkInEffect (FORK_TIMESAVE, nHeight))
+            if ((((coord.x % 2) + (coord.y % 2) > 1) && (nHeight % 500 >= 300)) ||  // for 150 blocks, every 4th coin spawn is ghosted
+                (((coord.x % 2) + (coord.y % 2) > 0) && (nHeight % 500 >= 450)) ||  // for 30 blocks, 3 out of 4 coin spawns are ghosted
+                (nHeight % 500 >= 480))                                             // for 20 blocks, full ghosting
+                     continue;
+
           if (loot.count (coord) > 0)
             {
               std::map<Coord, int>::iterator mi;
@@ -1881,10 +1890,12 @@ GameState::KillSpawnArea (StepResult& step)
                   }
                   else
                   {
-                      ch.stay_in_spawn_area++;
+                      // give new hunters 10 blocks more thinking time before ghosting ends
+                      if ((nHeight % 500 < 490) || (ch.stay_in_spawn_area > 0))
+                          ch.stay_in_spawn_area++;
                   }
               }
-              else if (CHARACTER_IS_PROTECTED(ch.stay_in_spawn_area)) // newly spawned or spectator
+              else if (CHARACTER_IS_PROTECTED(ch.stay_in_spawn_area)) // catch all (for hunters who spawned pre-fork)
               {
                   ch.stay_in_spawn_area++;
               }
@@ -2073,17 +2084,17 @@ GameState::UpdateBanks (RandomGenerator& rng)
   }
   else // pre-fork
   {
-  FillWalkableTiles ();
-  std::set<Coord> optionsSet(walkableTiles.begin (), walkableTiles.end ());
-  BOOST_FOREACH (const PAIRTYPE(Coord, unsigned)& b, newBanks)
+    FillWalkableTiles ();
+    std::set<Coord> optionsSet(walkableTiles.begin (), walkableTiles.end ());
+    BOOST_FOREACH (const PAIRTYPE(Coord, unsigned)& b, newBanks)
     {
       assert (optionsSet.count (b.first) == 1);
       optionsSet.erase (b.first);
     }
-  assert (optionsSet.size () + newBanks.size () == walkableTiles.size ());
+    assert (optionsSet.size () + newBanks.size () == walkableTiles.size ());
 
-  std::vector<Coord> options(optionsSet.begin (), optionsSet.end ());
-  for (unsigned cnt = newBanks.size (); cnt < DYNBANKS_NUM_BANKS; ++cnt)
+    std::vector<Coord> options(optionsSet.begin (), optionsSet.end ());
+    for (unsigned cnt = newBanks.size (); cnt < DYNBANKS_NUM_BANKS; ++cnt)
     {
       const int ind = rng.GetIntRnd (options.size ());
       const int life = rng.GetIntRnd (DYNBANKS_MIN_LIFE, DYNBANKS_MAX_LIFE);
@@ -2290,10 +2301,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
     assert(nTotalTreasure + nCrownBonus == stepData.nTreasureAmount);
 
     // Players collect loot
-    // reward coordinated attack against 24/7 players, if any
-    if (( ! (ForkInEffect (FORK_TIMESAVE, outState.nHeight)) ) ||
-        ((outState.nHeight % 500 >= 50) && (outState.nHeight % 1000 >= 100)))
-            outState.DivideLootAmongPlayers();
+    outState.DivideLootAmongPlayers();
     outState.CrownBonus(nCrownBonus);
 
     /* Update the banks.  */
