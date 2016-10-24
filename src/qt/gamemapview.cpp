@@ -1794,7 +1794,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         for (int y = 0; y < MAP_HEIGHT; y++)
             for (int x = 0; x < MAP_WIDTH; x++)
             {
-                if (SpawnMap[y][x] & SPAWNMAPFLAG_PLAYER)
+                if (SpawnMap_visualize[y][x] & SPAWNMAPFLAG_PLAYER)
                 {
                     scene->addRect(x * TILE_SIZE, y * TILE_SIZE,
                         TILE_SIZE, TILE_SIZE,
@@ -2731,6 +2731,21 @@ void GameMapView::updateGameMap(const GameState &gameState)
     {
 #ifdef AUX_DEBUG_DUMP_GAMEMAP
         FILE *fp;
+        fp = fopen("generatedspawnmap.txt", "w");
+        if (fp != NULL)
+        {
+            fprintf(fp, "const unsigned char Game::SpawnMap[MAP_HEIGHT][MAP_WIDTH] = {\n");
+            for (int y = 0; y < Game::MAP_HEIGHT; y++)
+              for (int x = 0; x < Game::MAP_WIDTH; x++)
+              {
+                  if (x == 0) fprintf(fp, "    {");
+                  if (x < Game::MAP_WIDTH - 1) fprintf(fp, "%d,", SpawnMap[y][x]);
+                  else fprintf(fp, "%d},\n", SpawnMap[y][x]);
+              }
+            fprintf(fp, "};\n");
+            fclose(fp);
+        }
+        MilliSleep(20);
         fp = fopen("generatedgamemap.txt", "w");
         if (fp != NULL)
         {
@@ -2746,8 +2761,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   for (int x = 0; x < Game::MAP_WIDTH; x++)
                   {
                       if (x == 0) fprintf(fp, "        {");
-                      else if (x == Game::MAP_WIDTH - 1) fprintf(fp, "%d},\n", Displaycache_gamemap[y][x][z]);
-                      else fprintf(fp, "%d,", Displaycache_gamemap[y][x][z]);
+                      if (x < Game::MAP_WIDTH - 1) fprintf(fp, "%d,", Displaycache_gamemap[y][x][z]);
+                      else fprintf(fp, "%d},\n", Displaycache_gamemap[y][x][z]);
                   }
                 fprintf(fp, "    },\n");
             }

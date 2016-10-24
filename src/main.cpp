@@ -102,8 +102,8 @@ ForkInEffect (Fork type, unsigned nHeight)
 
     case FORK_TIMESAVE:
       return nHeight >= (fTestNet ? 331500 : 1999999);
-  case FORK_TIMESAVE_PART2:
-    return nHeight >= (fTestNet ? 350000 : 1999999);
+    case FORK_TIMESAVE_PART2:
+      return nHeight >= (fTestNet ? 350000 : 1999999);
 
     default:
       assert (false);
