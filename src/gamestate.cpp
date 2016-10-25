@@ -82,7 +82,7 @@ GetCarryingCapacity (int nHeight, bool isGeneral, bool isCrownHolder)
 static int64_t
 GetNameCoinAmount (unsigned nHeight)
 {
-  if (ForkInEffect (FORK_TIMESAVE_PART2, nHeight))
+  if (ForkInEffect (FORK_TIMESAVE, nHeight))
     return 100 * COIN;
   if (ForkInEffect (FORK_LESSHEARTS, nHeight))
     return 200 * COIN;
