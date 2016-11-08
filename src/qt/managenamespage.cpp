@@ -386,7 +386,7 @@ ManageNamesPage::ManageNamesPage(QWidget *parent) :
     gameMapView = new GameMapView(this);
     ui->verticalLayoutGameMap->addWidget(gameMapView);
     gameMapView->setAttribute(Qt::WA_NoMousePropagation, true);
-    gameMapView->setStatusTip(tr("Left click - make move. Right button - scroll map. Mouse wheel - zoom map. Middle click - reset zoom. Ctrl + +,-,0 - zoom in/out/reset"));
+    gameMapView->setStatusTip(tr("Middle mouse click - toggle advanced view. Left click - make move. Right button - scroll map. Mouse wheel - zoom map. Ctrl + +,-,0 - zoom in/out/reset"));
 
     connect(gameMapView, SIGNAL(tileClicked(int, int, bool)), this, SLOT(onTileClicked(int, int, bool)));
 
