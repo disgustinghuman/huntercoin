@@ -1795,8 +1795,6 @@ void GameMapView::updateGameMap(const GameState &gameState)
         for (int y = 0; y < MAP_HEIGHT; y++)
             for (int x = 0; x < MAP_WIDTH; x++)
             {
-                if (SpawnMap_algo[y][x] != SpawnMap[y][x])
-                    printf("SpawnMap sanity test failed at %d %d\n", x, y);
                 if (SpawnMap[y][x] & SPAWNMAPFLAG_PLAYER)
                 {
                     scene->addRect(x * TILE_SIZE, y * TILE_SIZE,
@@ -1806,7 +1804,6 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     if (!visualize_spawn_done) visualize_spawn_done = true;
                 }
             }
-        printf("SpawnMap sanity test done\n");
     }
 
 
@@ -1912,6 +1909,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 entry.name += QString::fromUtf8(" \u265B");
 
             // for FORK_TIMESAVE -- show protected/spectator state
+            if (characterState.stay_in_spawn_area != CHARACTER_MODE_NORMAL)
             {
                 entry.name += QString::fromStdString(" (");
                 entry.name += QString::number(characterState.stay_in_spawn_area);
@@ -2735,21 +2733,6 @@ void GameMapView::updateGameMap(const GameState &gameState)
     {
 #ifdef AUX_DEBUG_DUMP_GAMEMAP
         FILE *fp;
-        fp = fopen("generatedspawnmap.txt", "w");
-        if (fp != NULL)
-        {
-            fprintf(fp, "const unsigned char Game::SpawnMap[MAP_HEIGHT][MAP_WIDTH] = {\n");
-            for (int y = 0; y < Game::MAP_HEIGHT; y++)
-              for (int x = 0; x < Game::MAP_WIDTH; x++)
-              {
-                  if (x == 0) fprintf(fp, "    {");
-                  if (x < Game::MAP_WIDTH - 1) fprintf(fp, "%d,", SpawnMap[y][x]);
-                  else fprintf(fp, "%d},\n", SpawnMap[y][x]);
-              }
-            fprintf(fp, "};\n");
-            fclose(fp);
-        }
-        MilliSleep(20);
         fp = fopen("generatedgamemap.txt", "w");
         if (fp != NULL)
         {
