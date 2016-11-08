@@ -12,9 +12,6 @@
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/algorithm/string/case_conv.hpp> // for to_lower()
 
-// for FORK_TIMESAVE
-#include "gamemap.h"
-
 using namespace std;
 using namespace boost;
 
