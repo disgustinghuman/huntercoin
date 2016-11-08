@@ -22,7 +22,7 @@ extern const short GameMap[MAP_LAYERS][MAP_HEIGHT][MAP_WIDTH];
 #endif
 
 // for FORK_TIMESAVE
-extern unsigned char SpawnMap[MAP_HEIGHT][MAP_WIDTH];
+extern const unsigned char SpawnMap[MAP_HEIGHT][MAP_WIDTH];
 #define SPAWNMAPFLAG_BANK 1
 #define SPAWNMAPFLAG_PLAYER 2
 #define CHARACTER_MODE_NORMAL 6

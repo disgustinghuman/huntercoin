@@ -384,43 +384,6 @@ bool AppInit2(int argc, char* argv[])
     strErrors = "";
     int64 nStart;
 
-    // for FORK_TIMESAVE -- calculate possible player spawn tiles and bank spawn tiles
-    {
-        for (int h = 0; h < Game::NUM_HARVEST_AREAS; h++)
-            for (int a = 0; a < Game::HarvestAreaSizes[h]; a++)
-            {
-                 int harvest_x = Game::HarvestAreas[h][2 * a];
-                 int harvest_y = Game::HarvestAreas[h][2 * a + 1];
-                 if (Game::IsInsideMap(harvest_x, harvest_y))
-                 {
-                     for (int x1 = harvest_x - 1; x1 <= harvest_x + 1; x1++)
-                         for (int y1 = harvest_y - 1; y1 <= harvest_y + 1; y1++)
-                         {
-                             if ((Game::IsInsideMap(x1, y1)) &&
-                                 (Game::IsWalkable(x1, y1)))
-                                 Game::SpawnMap[y1][x1] = SPAWNMAPFLAG_BANK;
-                         }
-                 }
-            }
-        for (int h = 0; h < Game::NUM_HARVEST_AREAS; h++)
-            for (int a = 0; a < Game::HarvestAreaSizes[h]; a++)
-            {
-                 int harvest_x = Game::HarvestAreas[h][2 * a];
-                 int harvest_y = Game::HarvestAreas[h][2 * a + 1];
-                 if (Game::IsInsideMap(harvest_x, harvest_y))
-                 {
-                     for (int x2 = harvest_x - 2; x2 <= harvest_x + 2; x2++)
-                         for (int y2 = harvest_y - 2; y2 <= harvest_y + 2; y2++)
-                         {
-                             if ((Game::IsInsideMap(x2, y2)) &&
-                                 (Game::IsWalkable(x2, y2)) &&
-                                 ( ! (Game::SpawnMap[y2][x2] & SPAWNMAPFLAG_BANK) ))
-                                 Game::SpawnMap[y2][x2] = SPAWNMAPFLAG_PLAYER;
-                         }
-                 }
-            }
-    }
-
     /* Start the RPC server already here.  This is to make it available
        "immediately" upon starting the daemon process.  Until everything
        is initialised, it will always just return a "status error" and

@@ -502,7 +502,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
     }
 
     // for FORK_TIMESAVE -- visualize player spawns
-    // note: graphics (GameMapView::GameMapView) is initialized before SpawnMap can be calculated in init.cpp
+    // note: Formerly, the SpawnMap was calculated in init.cpp, after graphics initialization.
+    //       We could now move player spawn visualization code to GameMapView::GameMapView, but it would make the system less flexible.
     visualize_nHeight = gameState.nHeight;
     if (!visualize_spawn_done)
     {
@@ -563,6 +564,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 entry.name += QString::fromUtf8(" \u265B");
 
             // for FORK_TIMESAVE -- show protected/spectator state
+            if (characterState.stay_in_spawn_area != CHARACTER_MODE_NORMAL)
             {
                 entry.name += QString::fromStdString(" (");
                 entry.name += QString::number(characterState.stay_in_spawn_area);

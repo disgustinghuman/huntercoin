@@ -626,8 +626,6 @@ AttackableCharacter::AttackSelf (const GameState& state)
 void
 CharactersOnTiles::EnsureIsBuilt (const GameState& state)
 {
-  // if (built) printf("protection: already built h=%d\n", state.nHeight);
-
   if (built)
     return;
   assert (tiles.empty ());
