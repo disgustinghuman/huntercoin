@@ -36,8 +36,8 @@ static const int NUM_TILE_IDS = 503; // 235;      // Total number of different t
 #endif
 
 // for FORK_TIMESAVE
-extern unsigned char SpawnMap[MAP_HEIGHT][MAP_WIDTH];
-extern const unsigned char SpawnMap_visualize[MAP_HEIGHT][MAP_WIDTH];
+extern unsigned char SpawnMap_algo[MAP_HEIGHT][MAP_WIDTH];
+extern const unsigned char SpawnMap[MAP_HEIGHT][MAP_WIDTH];
 #define SPAWNMAPFLAG_BANK 1
 #define SPAWNMAPFLAG_PLAYER 2
 #define CHARACTER_MODE_NORMAL 6

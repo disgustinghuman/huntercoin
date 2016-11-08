@@ -1787,14 +1787,17 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
 
     // for FORK_TIMESAVE -- visualize player spawns
-    // note: graphics (GameMapView::GameMapView) is initialized before SpawnMap can be calculated in init.cpp
+    // note: Formerly, the SpawnMap was calculated in init.cpp, after graphics initialization.
+    //       We could now move player spawn visualization code to GameMapView::GameMapView, but it would make the system less flexible.
     visualize_nHeight = gameState.nHeight;
     if (!visualize_spawn_done)
     {
         for (int y = 0; y < MAP_HEIGHT; y++)
             for (int x = 0; x < MAP_WIDTH; x++)
             {
-                if (SpawnMap_visualize[y][x] & SPAWNMAPFLAG_PLAYER)
+                if (SpawnMap_algo[y][x] != SpawnMap[y][x])
+                    printf("SpawnMap sanity test failed at %d %d\n", x, y);
+                if (SpawnMap[y][x] & SPAWNMAPFLAG_PLAYER)
                 {
                     scene->addRect(x * TILE_SIZE, y * TILE_SIZE,
                         TILE_SIZE, TILE_SIZE,
@@ -1803,6 +1806,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     if (!visualize_spawn_done) visualize_spawn_done = true;
                 }
             }
+        printf("SpawnMap sanity test done\n");
     }
 
 

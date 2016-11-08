@@ -564,7 +564,7 @@ bool AppInit2(int argc, char* argv[])
                          {
                              if ((Game::IsInsideMap(x1, y1)) &&
                                  (Game::IsWalkable(x1, y1)))
-                                 Game::SpawnMap[y1][x1] = SPAWNMAPFLAG_BANK;
+                                 Game::SpawnMap_algo[y1][x1] = SPAWNMAPFLAG_BANK;
                          }
                  }
             }
@@ -580,8 +580,8 @@ bool AppInit2(int argc, char* argv[])
                          {
                              if ((Game::IsInsideMap(x2, y2)) &&
                                  (Game::IsWalkable(x2, y2)) &&
-                                 ( ! (Game::SpawnMap[y2][x2] & SPAWNMAPFLAG_BANK) ))
-                                 Game::SpawnMap[y2][x2] = SPAWNMAPFLAG_PLAYER;
+                                 ( ! (Game::SpawnMap_algo[y2][x2] & SPAWNMAPFLAG_BANK) ))
+                                 Game::SpawnMap_algo[y2][x2] = SPAWNMAPFLAG_PLAYER;
                          }
                  }
             }
