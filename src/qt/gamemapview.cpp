@@ -3867,11 +3867,16 @@ void GameMapView::updateGameMap(const GameState &gameState)
         if (bd == 5) bd = 2;
         gameMapCache->AddPlayer(tmp_name, TILE_SIZE * bank_xpos[m], TILE_SIZE * bank_ypos[m], 1 + 0, bs, RPG_ICON_EMPTY, RPG_ICON_EMPTY, RPG_ICON_EMPTY, bd, 0);
     }
+
+// don't display in safemode, the client side prediction is no longer reliable
+#ifdef PERMANENT_LUGGAGE
     // gems and storage
     if (gem_visualonly_state == GEM_SPAWNED)
     {
         gameMapCache->AddPlayer("Tia'tha '1 soul gem here, for free'", TILE_SIZE * gem_visualonly_x, TILE_SIZE * gem_visualonly_y, 1 + 0, 20, 453, RPG_ICON_EMPTY, RPG_ICON_EMPTY, 2, 0);
     }
+#endif
+
 #ifdef AUX_STORAGE_ZHUNT
     if (gem_visualonly_state == GEM_SPAWNED)
     {
