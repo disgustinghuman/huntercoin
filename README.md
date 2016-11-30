@@ -1,15 +1,15 @@
-huntercoin
+Huntercoin
 ==========
 
 Human-mineable crypto currency / decentralized game
 
 www.huntercoin.org
 
-latest binaries for Windows + Linux
+latest Windows build:
 
-huntercoin-betterQt-exp-binaries-20160925.zip, 31.7 MB
+huntercoin-qt-v140-win32-20161128.zip, 14.6 MB
 
-https://mega.nz/#!rcVjELKK!TLmWYkhMPC7XpLjyAx1F__TikW_SKnTrXTUOIdQCGeA
+https://mega.nz/#!qUdx0LKD!sSWS-Jt06hgeIrl1H1Z_utOOpZReABNDAJ3kwrpkLbg
 
 ![hunters](images/hunters1.jpg)
 
@@ -24,14 +24,13 @@ if Qt Creator is installed after this, open huntercoin-qt.pro, and Build | Build
     qmake
     make
 
-Advanced mode:
+Advanced mode
+=============
 
-rename huntercoin-qt to huntercoin-qt-safemode and replace with huntercoin-qt from binary release
-
-or uncomment this to compile in advanced mode:
+rename huntercoin-qt to huntercoin-qt-safemode and uncomment this to build in advanced mode:
 
 https://github.com/wiggi/huntercoin/blob/betterQt-with-storage/src/gamestate.h#L17
 
-Don't forget to copy game_sv4.dat to '.huntercoin', and make sure that the
+Don't forget to copy the gamestate file game_sv4.dat to '.huntercoin', and make sure that the
 blockchain is always equally or more up-to-date than the gamestate.
 

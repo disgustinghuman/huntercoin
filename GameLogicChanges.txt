@@ -1,12 +1,38 @@
-Life-Steal Fork:
-----------------
+Basic Game Rules:
+-----------------
 
-* New game fee of 20 HUC for destruct and 5 HUC (in addition
+* Huntercoin is a game played within the blockchain, blocks and game turns are the same.
+  Players can create one or many characters (hunters) to collect coins and fight each other
+  on single map with a size of 502x502 tiles.
+
+* Each Hunter is member of a team. 4 teams exist: Yellow, Red, Green and Blue. Hunters can't kill hunters from same team.
+
+* Hunters can "destruct" to kill enemy hunters on adjacent tiles. Loot from killed hunters is dropped to the ground.
+
+* Destruct does several things:
+  It absorbs life energy (measured in HUC) from the victim(s).
+  It defends against being destructed by hostile hunters (reliably even against multiple foes)
+  However, sending destruct will also render yourself defenseless for a short time,
+  because transactions need a certain time to confirm. Timing is important.
+
+* Hunters can pick up the "Crown of Fortune", which yields 0.25 coins per block. Upon reaching a bank,
+  this item returns to a random place on the map. While holding the crown, the hunter can't destruct.  
+
+* Sooner or later, hunters need to find a "bank". Doing so will convert their collected loot to HUC,
+  which are sent to the player's wallet.
+
+* Staying at the bank tile allows hunters to logout, and their value is refunded and sent to the player's wallet.
+
+
+Life-Steal Fork: (Block 795000 - 1521499)
+-----------------------------------------
+
+* Game fee of 20 HUC for destruct and 5 HUC (in addition
   to the 200 HUC locked in the hunter) for spawning hunters.
 
 * Carrying capacity lowered to 100 HUC (crown holder is still exempt).
 
-* Death on a bank happens now after 2 blocks, not 30 as before.
+* Death on a bank (logout and refund) happens now after 2 blocks, not 30 as before.
 
 * Hearts never spawn.
 
@@ -40,3 +66,46 @@ Life-Steal Fork:
   between 25 and 100 blocks.  Whenever the life time of a bank
   runs out, it is randomly re-created on a fresh walkable tile
   and with a fresh life time.
+
+
+Timesave fork:  (Block 1521500 and higher)
+------------------------------------------
+
+* Players and banks spawn always near coin harvest areas:
+
+ pppppppp
+pp......p
+p..cccc.p
+p.ccccc##       #  unwalkable tile
+p.cccccc#p      c  coin harvest tile
+p.cccccc.p      .  adjacent tile
+p...cccc.p      p  player spawn
+ppp......p
+  pppppppp
+
+  Banks can spawn on coin harvest tiles 'c' and adjacent tiles '.'
+
+* Logout on bank tile in 1 block (i.e. you can't be on a bank tile and not logout)
+
+* Player spawn tiles work like banks, faster than pre-fork banks (2 blocks until logout).
+  If banking on player spawn strip, the Crown of Fortune will remain with this hunter.
+
+* New hunter cost 1 HUC (down from 5)
+
+* Sending "destruct" cost 1 HUC (down from 20)
+
+* Refundable cost of a hunter is halved to 100
+  (e.g. if you kill 2 hunters in PvP you will be refunded 100+2*100=300 HUC after logout)
+
+* Hunters are invulnerable after spawn for 5 blocks or until the hunter starts to move (waypoints set).
+  Hunters can choose to stand still to become spectator. 
+  Spectators are invulnerable and can't move, will automatically logout 15 blocks after becoming one.
+
+* "Ghost coins" every 500 blocks
+  Ghost coins appear semi-opaque, hunters can't harvest them
+  Schedule: at block 300 out of full 500, every 4th coin
+            at block 450 out of full 500, 3 out of 4 coins
+            at block 480 out of full 500, all coins
+            at block 500, return to normal
+  Every "ghosting" event will accumulate about 700 HUC that are released at once when it ends
+
