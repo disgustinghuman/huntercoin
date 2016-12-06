@@ -3337,8 +3337,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 fprintf(fp, "<meta charset=\"utf-8\">\n");
                 fprintf(fp, "<meta http-equiv=\"refresh\" content=\"6\" > <!-- refresh every 6 seconds -->\n");
                 fprintf(fp, "<title>chronoDollar order book & stats</title>\n");
+                fprintf(fp, "<style>\n");
+                fprintf(fp, "body {\n");
+                fprintf(fp, "        color: white;\n");
+                fprintf(fp, "        background-color: #111111;\n");
+                fprintf(fp, "</style>\n");
                 fprintf(fp, "</head>\n");
-
                 fprintf(fp, "<body>\n");
                 fprintf(fp, "<pre>\n");
 #else
@@ -3353,8 +3357,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                 fprintf(fp, "\n CRD:GEM open orders (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
                 fprintf(fp, " ----------------------------------------------\n\n");
-                fprintf(fp, "                                     hunter       ask       ask       order    chronoDollar   gems at risk   additional\n");
-                fprintf(fp, "storage vault key                    name         size      price     chronon      position   if filled      P/L if filled   flags\n");
+                fprintf(fp, "                                     hunter       ask       ask       order       gems at risk   additional\n");
+                fprintf(fp, "storage vault key                    name         size      price     chronon     if filled      P/L if filled   flags\n");
                 fprintf(fp, "\n");
 
                 // sorted order book
@@ -3388,7 +3392,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         // sorted order book
                         if (bs_count < SORTED_ORDER_BOOK_LINES - 1)
                         {
-                            sprintf(Displaycache_book[bs_count], "%s   %-10s %6s at %7s     %7d       %7s   %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(tmp_ask_price).c_str(), tmp_ask_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_askorder).c_str(), FormatMoney(pl_a).c_str(), s.c_str());
+#ifdef TRADE_OUTPUT_HTML
+                            if (tmp_orderflags & (ORDERFLAG_ASK_SETTLE | ORDERFLAG_ASK_INVALID))
+                                sprintf(Displaycache_book[bs_count], "<font color=gray>%s   %-10s %6s at %7s     %7d     %10s         %6s     %-11s</font>\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(tmp_ask_price).c_str(), tmp_ask_chronon, FormatMoney(risk_askorder).c_str(), FormatMoney(pl_a).c_str(), s.c_str());
+                            else
+#endif
+                                sprintf(Displaycache_book[bs_count], "%s   %-10s %6s at %7s     %7d     %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(tmp_ask_price).c_str(), tmp_ask_chronon, FormatMoney(risk_askorder).c_str(), FormatMoney(pl_a).c_str(), s.c_str());
                             Displaycache_book_sort1[bs_count] = tmp_ask_price;
                             Displaycache_book_sort2[bs_count] = tmp_ask_chronon;
                             Displaycache_book_done[bs_count] = false;
@@ -3396,7 +3405,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         }
                         else
                         {
-                            fprintf(fp, "%s   %-10s %6s at %7s     %7d       %7s   %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(tmp_ask_price).c_str(), tmp_ask_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_askorder).c_str(), FormatMoney(pl_a).c_str(), s.c_str());
+                            fprintf(fp, "%s   %-10s %6s at %7s     %7d     %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_ask_size).c_str(), FormatMoney(tmp_ask_price).c_str(), tmp_ask_chronon, FormatMoney(risk_askorder).c_str(), FormatMoney(pl_a).c_str(), s.c_str());
                         }
                     }
                 }
@@ -3413,7 +3422,6 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         {
                             bs_idx = i;
                             bs1_max = Displaycache_book_sort1[i];
-//                            bs2_max = 0;
                             bs2_max = Displaycache_book_sort2[i];
                         }
                         else if ((Displaycache_book_sort1[i] == bs1_max) && (Displaycache_book_sort2[i] >= bs2_max)) // later timestamp goes first
@@ -3443,8 +3451,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 {
                     fprintf(fp, "best bid full size = %6s                     %6s at %7s     %7d\n\n", FormatMoney(tradecache_bestbid_fullsize).c_str(), FormatMoney(tradecache_bestbid_size).c_str(), FormatMoney(tradecache_bestbid_price).c_str(), tradecache_bestbid_chronon);
                 }
-                fprintf(fp, "                                     hunter       bid       bid       order    chronoDollar   gems at risk   additional\n");
-                fprintf(fp, "storage vault key                    name         size      price     chronon      position   if filled      P/L if filled   flags\n");
+                fprintf(fp, "                                     hunter       bid       bid       order       gems at risk   additional\n");
+                fprintf(fp, "storage vault key                    name         size      price     chronon     if filled      P/L if filled   flags\n");
                 fprintf(fp, "\n");
                 BOOST_FOREACH(const PAIRTYPE(const std::string, StorageVault) &st, gameState.vault)
                 {
@@ -3470,7 +3478,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
                       // sorted order book
                       if (bs_count < SORTED_ORDER_BOOK_LINES - 1)
                       {
-                          sprintf(Displaycache_book[bs_count], "%s   %-10s %6s at %7s     %7d       %7s   %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), tmp_bid_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_bidorder).c_str(), FormatMoney(pl_b).c_str(), s.c_str());
+#ifdef TRADE_OUTPUT_HTML
+                          if (tmp_orderflags & (ORDERFLAG_ASK_SETTLE | ORDERFLAG_ASK_INVALID))
+                              sprintf(Displaycache_book[bs_count], "<font color=gray>%s   %-10s %6s at %7s     %7d     %10s         %6s     %-11s</font>\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), tmp_bid_chronon, FormatMoney(risk_bidorder).c_str(), FormatMoney(pl_b).c_str(), s.c_str());
+                          else
+#endif
+                              sprintf(Displaycache_book[bs_count], "%s   %-10s %6s at %7s     %7d     %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), tmp_bid_chronon, FormatMoney(risk_bidorder).c_str(), FormatMoney(pl_b).c_str(), s.c_str());
                           Displaycache_book_sort1[bs_count] = tmp_bid_price;
                           Displaycache_book_sort2[bs_count] = tmp_bid_chronon;
                           Displaycache_book_done[bs_count] = false;
@@ -3478,7 +3491,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                       }
                       else
                       {
-                          fprintf(fp, "%s   %-10s %6s at %7s     %7d       %7s   %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), tmp_bid_chronon, FormatMoney(tmp_position_size).c_str(), FormatMoney(risk_bidorder).c_str(), FormatMoney(pl_b).c_str(), s.c_str());
+                          fprintf(fp, "%s   %-10s %6s at %7s     %7d     %10s         %6s     %-11s\n", st.first.c_str(), st.second.huntername.c_str(), FormatMoney(tmp_bid_size).c_str(), FormatMoney(tmp_bid_price).c_str(), tmp_bid_chronon, FormatMoney(risk_bidorder).c_str(), FormatMoney(pl_b).c_str(), s.c_str());
                       }
                   }
                 }
@@ -3496,7 +3509,6 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         {
                             bs_idx = i;
                             bs1_max = Displaycache_book_sort1[i];
-//                            bs2_min = AUX_COIN * AUX_COIN;
                             bs2_max = Displaycache_book_sort2[i];
                         }
                         else if ((Displaycache_book_sort1[i] == bs1_max) && (Displaycache_book_sort2[i] < bs2_min)) // earlier timestamp goes first
@@ -3510,9 +3522,75 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   Displaycache_book_done[bs_idx] = true;
                 }
 
-                fprintf(fp, "\n\n");
+                fprintf(fp, "\n\n CRD:GEM settlement (chronon %7d, %s, first regular expiration: %7d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUX_MINHEIGHT_SETTLE(fTestNet));
+                fprintf(fp, " --------------------------------------------------------------------------------\n\n");
 
-                fprintf(fp, "\n CRD:GEM trader positions (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
+                if (gameState.auction_settle_price == 0)
+                {
+                     printf("trade test: ERROR: gameState.auction_settle_price == 0\n");
+                }
+                else if (gameState.feed_nextexp_price == 0)
+                {
+                     printf("trade test: ERROR: gameState.feed_nextexp_price == 0\n");
+                }
+                else if (gameState.crd_prevexp_price > 0)
+                {
+                    int64 tmp_settlement = (((AUX_COIN * AUX_COIN) / gameState.auction_settle_conservative) * AUX_COIN) / gameState.feed_nextexp_price;
+                    tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
+
+                    fprintf(fp, "                                                                      expiry\n");
+                    fprintf(fp, "                                                 settlement price     chronon    covered call strike\n\n");
+                    fprintf(fp, "previous                                                    %-7s   %7d    %-7s\n", FormatMoney(gameState.crd_prevexp_price).c_str(), tmp_oldexp_chronon, FormatMoney(gameState.crd_prevexp_price * 3).c_str());
+                    fprintf(fp, "pending                                                     %-7s   %7d    %-7s\n", FormatMoney(tmp_settlement).c_str(), tmp_newexp_chronon, FormatMoney(tmp_settlement * 3).c_str());
+                    if ((gameState.nHeight >= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet)) && (tradecache_crd_nextexp_mm_adjusted > 0))
+                    {
+                    fprintf(fp, "pending (adjusted for market maker)                         %-7s\n", FormatMoney(tradecache_crd_nextexp_mm_adjusted).c_str());
+                    }
+
+                    fprintf(fp, "\n\n Order examples (copy and submit into fully synced Huntercoin client)\n");
+                    fprintf(fp, " --------------------------------------------------------------------\n\n");
+
+                    fprintf(fp, "->message to buy 1 chronoDollar (and sell 1 covered call)\n");
+#ifdef TRADE_OUTPUT_HTML
+                    fprintf(fp, "<button id=\"b1\" onclick=\"copyToClipboard(document.getElementById('b1').innerHTML)\">");
+                    fprintf(fp, "CRD:GEM set bid 1 at %s", FormatMoney(tmp_settlement).c_str());
+                    fprintf(fp, "</button>");
+                    fprintf(fp, "\n\n");
+                    fprintf(fp, "->message to sell 1 chronoDollar (and buy 1 covered call)\n");
+                    fprintf(fp, "<button id=\"b2\" onclick=\"copyToClipboard(document.getElementById('b2').innerHTML)\">");
+                    fprintf(fp, "CRD:GEM set ask 1 at %s", FormatMoney(tmp_settlement).c_str());
+                    fprintf(fp, "</button>");
+                    fprintf(fp, "\n\n");
+                    fprintf(fp, "->messages to order rollover of an 1 chronoDollar (long or short) position\n");
+                    fprintf(fp, "<button id=\"b3\" onclick=\"copyToClipboard(document.getElementById('b3').innerHTML)\">");
+                    fprintf(fp, "CRD:GEM set bid 1 at settlement");
+                    fprintf(fp, "</button>");
+                    fprintf(fp, "\n");
+                    fprintf(fp, "<button id=\"b4\" onclick=\"copyToClipboard(document.getElementById('b4').innerHTML)\">");
+                    fprintf(fp, "CRD:GEM set ask 1 at settlement");
+                    fprintf(fp, "</button>");
+#else
+                    fprintf(fp, "CRD:GEM set bid 1 at %s", FormatMoney(tmp_settlement).c_str());
+                    fprintf(fp, "\n\n");
+                    fprintf(fp, "->message to sell 1 chronoDollar (and buy 1 covered call)\n");
+                    fprintf(fp, "CRD:GEM set ask 1 at %s", FormatMoney(tmp_settlement).c_str());
+                    fprintf(fp, "\n\n");
+                    fprintf(fp, "->messages to order rollover of an 1 chronoDollar (long or short) position\n");
+                    fprintf(fp, "CRD:GEM set bid 1 at settlement");
+                    fprintf(fp, "\n");
+                    fprintf(fp, "CRD:GEM set ask 1 at settlement");
+#endif
+                    fprintf(fp, "\n\n");
+                    fprintf(fp, "notes: - all orders and bitassets are specific to a hunter and its player address\n");
+                    fprintf(fp, "       - format for huntercore-qt console, huntercoin-qt console, and all daemon versions:\n");
+                    fprintf(fp, "         name_update my_hunter_name {\"msg\":\"my_message\"}\n");
+                    fprintf(fp, "       - minimum size: 1 chronoDollar\n");
+#ifdef TRADE_OUTPUT_HTML
+                    fprintf(fp, "<script>function copyToClipboard(text) { window.prompt(\"Copy to clipboard: Ctrl+C\", text); }</script>");
+#endif
+                }
+
+                fprintf(fp, "\n\n CRD:GEM trader positions (chronon %7d, %s)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet");
                 fprintf(fp, " ---------------------------------------------------\n\n");
                 fprintf(fp, "                                                                                 immature\n");
                 fprintf(fp, "                                     hunter               chronoDollar   trade   gems from  gems, not     long    bid    bid      ask     ask     short\n");
@@ -3566,45 +3644,6 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   }
                 }
 
-
-                fprintf(fp, "\n\n CRD:GEM settlement (chronon %7d, %s, first regular expiration: %7d)\n", gameState.nHeight, fTestNet ? "testnet" : "mainnet", AUX_MINHEIGHT_SETTLE(fTestNet));
-                fprintf(fp, " --------------------------------------------------------------------------------\n\n");
-
-                if (gameState.auction_settle_price == 0)
-                {
-                     printf("trade test: ERROR: gameState.auction_settle_price == 0\n");
-                }
-                else if (gameState.feed_nextexp_price == 0)
-                {
-                     printf("trade test: ERROR: gameState.feed_nextexp_price == 0\n");
-                }
-                else if (gameState.crd_prevexp_price > 0)
-                {
-//                    int64 tmp_settlement = (((AUX_COIN * AUX_COIN) / gameState.auction_settle_price) * AUX_COIN) / gameState.feed_nextexp_price;
-                    int64 tmp_settlement = (((AUX_COIN * AUX_COIN) / gameState.auction_settle_conservative) * AUX_COIN) / gameState.feed_nextexp_price;
-                    tmp_settlement = tradecache_pricetick_down(tradecache_pricetick_up(tmp_settlement)); // snap to grid
-
-                    fprintf(fp, "                                                             expiry\n");
-                    fprintf(fp, "                                      settlement price       chronon    covered call strike\n\n");
-                    fprintf(fp, "previous                                          %-7s    %7d    %-7s\n", FormatMoney(gameState.crd_prevexp_price).c_str(), tmp_oldexp_chronon, FormatMoney(gameState.crd_prevexp_price * 3).c_str());
-                    fprintf(fp, "pending                                           %-7s    %7d    %-7s\n", FormatMoney(tmp_settlement).c_str(), tmp_newexp_chronon, FormatMoney(tmp_settlement * 3).c_str());
-                    if ((gameState.nHeight >= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet)) && (tradecache_crd_nextexp_mm_adjusted > 0))
-                    {
-                    fprintf(fp, "pending (adjusted for market maker)               %-7s\n", FormatMoney(tradecache_crd_nextexp_mm_adjusted).c_str());
-                    }
-                    fprintf(fp, "\n");
-                    fprintf(fp, "->example chat message to buy 1 chronoDollar (and sell 1 covered call)\n");
-                    fprintf(fp, "CRD:GEM set bid 1 at %s\n", FormatMoney(tmp_settlement).c_str());
-                    fprintf(fp, "\n");
-                    fprintf(fp, "->example chat message to sell 1 chronoDollar (and buy 1 covered call)\n");
-                    fprintf(fp, "CRD:GEM set ask 1 at %s\n", FormatMoney(tmp_settlement).c_str());
-                    fprintf(fp, "\n");
-                    fprintf(fp, "->chat messages to order rollover of an 1 chronoDollar (long or short) position\n");
-                    fprintf(fp, "CRD:GEM set bid 1 at settlement\n");
-                    fprintf(fp, "CRD:GEM set ask 1 at settlement\n");
-                    fprintf(fp, "\n");
-                }
-
                 // market maker
                 if (gameState.nHeight >= AUX_MINHEIGHT_TRADE(fTestNet))
                 {
@@ -3630,7 +3669,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     MM_ORDERLIMIT_UNPACK(gameState.crd_mm_orderlimits, tmp_max_bid, tmp_min_ask);
 
                     fprintf(fp, "\n");
-                    fprintf(fp, "->example chat message to vote MM bid/ask limits:\n");
+                    fprintf(fp, "->example message to vote MM bid/ask limits:\n");
                     fprintf(fp, "CRD:GEM vote MM max bid %s min ask %s\n", FormatMoney(tmp_max_bid).c_str(), FormatMoney(tmp_min_ask).c_str());
                     fprintf(fp, "\n");
                     fprintf(fp, "median vote                                       max bid   min ask    updated\n\n");
