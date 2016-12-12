@@ -1198,6 +1198,7 @@ int pmon_all_wp_unconfirmed_y[PMON_ALL_MAX];
 int pmon_all_color[PMON_ALL_MAX];
 int pmon_all_tx_age[PMON_ALL_MAX];
 bool pmon_all_cache_isinmylist[PMON_ALL_MAX]; // only valid for current block
+int pmon_all_invulnerability[PMON_ALL_MAX];
 int pmon_all_count;
 std::string pmon_my_names[PMON_MY_MAX];
 int pmon_my_alarm_dist[PMON_MY_MAX];

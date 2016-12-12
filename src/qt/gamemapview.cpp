@@ -1978,12 +1978,27 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 pmon_all_y[pmon_all_count] = coord.y;
                 pmon_all_color[pmon_all_count] = pl.color;
 
-//                entry.icon_d1 = 0;
-//                entry.icon_d2 = 0;
-                if (pl.value > 40000000000)
-                    entry.icon_d1 = RPG_ICON_HUC_BANDIT400;
-                else if (pl.value > 20000000000)
-                    entry.icon_d1 = RPG_ICON_HUC_BANDIT;
+                if (VISUALIZE_TIMESAVE_IN_EFFECT(visualize_nHeight))
+                {
+                    if (CHARACTER_IN_SPECTATOR_MODE(characterState.stay_in_spawn_area))
+                        pmon_all_invulnerability[pmon_all_count] = 2;
+                    else if (CHARACTER_HAS_SPAWN_PROTECTION(characterState.stay_in_spawn_area))
+                        pmon_all_invulnerability[pmon_all_count] = 1;
+                    else
+                        pmon_all_invulnerability[pmon_all_count] = 0;
+
+                    if (pl.value > 20000000000)
+                        entry.icon_d1 = RPG_ICON_HUC_BANDIT400;
+                    else if (pl.value > 10000000000)
+                        entry.icon_d1 = RPG_ICON_HUC_BANDIT;
+                }
+                else
+                {
+                    if (pl.value > 40000000000)
+                        entry.icon_d1 = RPG_ICON_HUC_BANDIT400;
+                    else if (pl.value > 20000000000)
+                        entry.icon_d1 = RPG_ICON_HUC_BANDIT;
+                }
 #ifdef AUX_AUCTION_BOT
                 if ((tmp_auction_auto_on_duty) && (pmon_config_auction_auto_stateicon > 0) && (pmon_config_auction_auto_stateicon < NUM_TILE_IDS))
                     entry.icon_d2 = pmon_config_auction_auto_stateicon;
@@ -2420,8 +2435,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
         if (pmon_my_alarm_state[m])
             my_alarm_range += 2;
 
+        pmon_my_foe_dist[m] = 10000;
+
         int my_idx = pmon_my_idx[m];
-        if (my_idx < 0)  // not alive
+        if ((my_idx < 0) || (pmon_all_invulnerability[my_idx] > 0))  // not alive or not in danger
         {
             pmon_my_foecontact_age[m] = 0;
             pmon_my_alarm_state[m] = 0;
@@ -2438,7 +2455,6 @@ void GameMapView::updateGameMap(const GameState &gameState)
             continue;
         }
         int my_enemy_tx_age = -1;
-        pmon_my_foe_dist[m] = 10000;
 
         int my_next_x = pmon_all_next_x[my_idx];
         int my_next_y = pmon_all_next_y[my_idx];
@@ -2469,6 +2485,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         {
             if (k_all == my_idx) continue; // that's me
             if (pmon_all_cache_isinmylist[k_all]) continue; // one of my players
+            if (pmon_all_invulnerability[k_all] >= 2) continue;
 
             // hit+run system
             int dtn = pmon_DistanceHelper(my_x, my_y, pmon_all_x[k_all], pmon_all_y[k_all], false);

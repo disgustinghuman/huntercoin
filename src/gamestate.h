@@ -1281,6 +1281,7 @@ extern int pmon_all_color[PMON_ALL_MAX];
 extern int pmon_all_color[PMON_ALL_MAX];
 extern int pmon_all_tx_age[PMON_ALL_MAX];
 extern bool pmon_all_cache_isinmylist[PMON_ALL_MAX];
+extern int pmon_all_invulnerability[PMON_ALL_MAX];
 extern int pmon_all_count;
 #define PMON_MY_MAX 50
 extern std::string pmon_my_names[PMON_MY_MAX];
@@ -1464,7 +1465,8 @@ extern int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 positi
 #define AUX_MINHEIGHT_GTC_FOR_AUCTION(T) (T?326000:1320000)
 #define AUCTIONFLAG_ASK_GTC 1
 #define AUX_MINHEIGHT_ZHUNT(T) (T?328000:1400000)
-#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?390000:1520000)
+#define AUX_MINHEIGHT_ZHUNT_REBALANCE(T) (T?352000:1520000)
+#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?390000:1560000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
 #define MM_ORDERLIMIT_UNPACK(I64,B,A) {B=(I64%1000000000)*1000;A=(I64/1000000000)*1000;}

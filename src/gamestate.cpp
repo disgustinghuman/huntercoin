@@ -2689,6 +2689,9 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                 mi->second.ai_coord.y = zhunt_tp_exit_y[tmp_myspawnpoint];
                                 mi->second.ai_dir = 8; // will change to random dir (0..7)
                                 printf("summon creature: zombie, addr %s, amount %s\n", votingcache_vault_addr[i].c_str(), FormatMoney(votingcache_amount[i]).c_str());
+
+                                if (outState.nHeight >= AUX_MINHEIGHT_ZHUNT_REBALANCE(fTestNet))
+                                    mi->second.ai_life = 20;
                             }
                         }
                     }
@@ -3065,11 +3068,19 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                 st.second.ex_order_size_ask = tmp_ask_size;
                 st.second.ex_order_chronon_ask = tmp_ask_chronon;
 
-                // MM receives 7/3 of gems that spawn on map
-                if (out_height >= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet))
+                // market maker -- subsidy
+                if (outState.nHeight % GEM_RESET_INTERVAL(fTestNet) == 0)
                 {
-                    if (outState.nHeight % GEM_RESET_INTERVAL(fTestNet) == 0)
+                    if (out_height >= AUX_MINHEIGHT_ZHUNT_REBALANCE(fTestNet))
+                    {
+                        // receives 5/1 of gems that spawn for normal hunters (since block 1520000)
+                        st.second.nGems += GEM_NORMAL_VALUE * 5;
+                    }
+                    else if (out_height >= AUX_MINHEIGHT_MM_AI_UPGRADE(fTestNet))
+                    {
+                        // receives 7/3 of gems that spawn for normal hunters (since block 1240000)
                         st.second.nGems += 34000000 * 7;
+                    }
                 }
             }
 
@@ -3156,7 +3167,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     }
                     else
                     {
-                        tradecache_crd_settlement_mm_size -= s; // MM will sell it to us
+                        tradecache_crd_settlement_mm_size -= s; // market maker will sell it to us
                     }
 
                     if (tmp_order_flags & ORDERFLAG_BID_ACTIVE)
@@ -3181,7 +3192,7 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                     }
                     else
                     {
-                        tradecache_crd_settlement_mm_size += s; // MM will buy it from us
+                        tradecache_crd_settlement_mm_size += s; // market maker will buy it from us
                     }
 
                     if (tmp_order_flags & ORDERFLAG_ASK_ACTIVE)
@@ -4401,11 +4412,21 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
 
         if (feedcache_status)
         {
-            // reward for price feed, and reward for providing liquidity: each 1/3 of gems that spawn on map
+            // reserved gems, to be used as reward for price feed, and for the liquidity fund
             if (outState.nHeight % GEM_RESET_INTERVAL(fTestNet) == 0)
             {
-                outState.feed_reward_remaining += 34000000;
-                outState.liquidity_reward_remaining += 34000000;
+                if (outState.nHeight >= AUX_MINHEIGHT_ZHUNT_REBALANCE(fTestNet))
+                {
+                    // each 1/1 of gems that spawn for normal hunters (since block 1520000)
+                    outState.feed_reward_remaining += GEM_NORMAL_VALUE;
+                    outState.liquidity_reward_remaining += GEM_NORMAL_VALUE;
+                }
+                else
+                {
+                    // each 1/3 of gems that spawn for normal hunters (since block 1030000)
+                    outState.feed_reward_remaining += 34000000;
+                    outState.liquidity_reward_remaining += 34000000;
+                }
             }
         }
         if (feedcache_status == FEEDCACHE_EXPIRY)
@@ -5097,15 +5118,21 @@ bool Game::PerformStep(const GameState &inState, const StepData &stepData, GameS
                                                 st.second.ai_life--;
                                             }
 
-                                            if ((zhunt_distancemap[yn][xn] <= tmp_myblinkrange) &&
-                                                (st.second.ai_magicka >= 5))
+                                            if (zhunt_distancemap[yn][xn] <= tmp_myblinkrange)
                                             {
-                                                st.second.ai_coord.x = zhunt_tp_exit_x[itp];
-                                                st.second.ai_coord.y = zhunt_tp_exit_y[itp];
-                                                st.second.ai_state |= ZHUNT_STATE_BLINK;
+                                                int blink_cost = 5;
+                                                if (outState.nHeight >= AUX_MINHEIGHT_ZHUNT_REBALANCE(fTestNet))
+                                                    blink_cost = 50;
 
-                                                // cost 5 point of magicka
-                                                st.second.ai_magicka -= 5;
+                                                if (st.second.ai_magicka >= blink_cost)
+                                                {
+                                                    st.second.ai_coord.x = zhunt_tp_exit_x[itp];
+                                                    st.second.ai_coord.y = zhunt_tp_exit_y[itp];
+                                                    st.second.ai_state |= ZHUNT_STATE_BLINK;
+
+                                                    // cost 50 point of magicka
+                                                    st.second.ai_magicka -= blink_cost;
+                                                }
                                             }
                                         }
                                         break;
