@@ -2485,7 +2485,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
         {
             if (k_all == my_idx) continue; // that's me
             if (pmon_all_cache_isinmylist[k_all]) continue; // one of my players
-            if (pmon_all_invulnerability[k_all] >= 2) continue;
+            if (pmon_all_invulnerability[k_all] >= 2) continue; // ignore spectators completely
 
             // hit+run system
             int dtn = pmon_DistanceHelper(my_x, my_y, pmon_all_x[k_all], pmon_all_y[k_all], false);
@@ -2493,6 +2493,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
             if (pmon_all_color[my_idx] == pmon_all_color[k_all]) continue; // same team
 
+            if ((pmon_all_invulnerability[k_all] == 0) || (pmon_all_tx_age[k_all] > 0)) // don't attack if foe has spawn invuln. and no pending tx
             if ((abs(my_next_x - pmon_all_next_x[k_all]) <= 1) && (abs(my_next_y - pmon_all_next_y[k_all]) <= 1))
             {
                 enemy_in_range = true;
