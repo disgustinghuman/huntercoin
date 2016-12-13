@@ -7,9 +7,9 @@ www.huntercoin.org
 
 latest Windows build:
 
-huntercoin-qt-v140-win32-20161128.zip, 14.6 MB
+huntercoin-qt-v140-win32-20161213.zip, 19.7 MB
 
-https://mega.nz/#!qUdx0LKD!sSWS-Jt06hgeIrl1H1Z_utOOpZReABNDAJ3kwrpkLbg
+https://mega.nz/#!rNNBAZRT!Jdbqy2SJjzc0ILRsE-XMlOgovsVFVOP01t6OM6Gi6as
 
 ![hunters](images/hunters1.jpg)
 

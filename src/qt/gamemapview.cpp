@@ -2496,6 +2496,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if ((pmon_all_invulnerability[k_all] == 0) || (pmon_all_tx_age[k_all] > 0)) // don't attack if foe has spawn invuln. and no pending tx
             if ((abs(my_next_x - pmon_all_next_x[k_all]) <= 1) && (abs(my_next_y - pmon_all_next_y[k_all]) <= 1))
             {
+                // if foe has spawn invuln. and pending tx, attack right now
+                if ((pmon_all_invulnerability[k_all] > 0) && (pmon_all_tx_age[k_all] > 0))
+                    pmon_my_foecontact_age[m] = pmon_config_hold - 1; // will be incremented if (enemy_in_range) is true
+
                 enemy_in_range = true;
                 my_enemy_tx_age = pmon_all_tx_age[k_all];
 
@@ -2590,10 +2594,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
         //
         if (enemy_on_top_of_us)
         {
+            // attack right now
             pmon_my_foecontact_age[m] = pmon_config_hold;
         }
         else if ((pmon_my_foecontact_age[m] >= 1))
         {
+            // attack right now
             if (enemy_is_adjacent)
                 pmon_my_foecontact_age[m] = pmon_config_hold;
             else if ( (!(pmon_my_new_wps[m].empty())) && (pmon_my_tactical_sitch[m] < 2) )

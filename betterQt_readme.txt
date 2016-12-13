@@ -7,8 +7,8 @@ https://github.com/wiggi/huntercoin
 Latest Windows build
 ====================
 
-huntercoin-qt-v140-win32-20161128.zip, 14.6 MB
-https://mega.nz/#!qUdx0LKD!sSWS-Jt06hgeIrl1H1Z_utOOpZReABNDAJ3kwrpkLbg
+huntercoin-qt-v140-win32-20161213.zip, 19.7 MB
+https://mega.nz/#!rNNBAZRT!Jdbqy2SJjzc0ILRsE-XMlOgovsVFVOP01t6OM6Gi6as
 
 
 
@@ -207,9 +207,7 @@ Advanced mode:
 
 Gems:           a NPC by the name of "Tia'tha" will spawn every 1242 chronons near the middle of the right or left map border
                 (1 free gem, and 1 free storage vault for the first hunter on same tile),
-                and in advanced mode can be found near the blue water announcing the next gem spawn.
-
-                In safemode, the client is amnesiac about current gem spawn state if restarted.
+                otherwise can be found near the blue water announcing the next gem spawn.
 
 Storage vaults: Item storage for hunters, not affected in case of death or disaster. Player reward address is used as "vault key" if possible,
                 or player name address otherwise (this is the same for bought and "harvested" items).
