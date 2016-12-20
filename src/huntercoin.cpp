@@ -1399,6 +1399,7 @@ bool pmon_name_pending_start()
 
     for (unsigned int m = 0; m < PMON_MY_MAX; m++)
     {
+        // clear variables for my hunters
         pmon_my_alarm_state[m] = 0;
     }
 

@@ -144,9 +144,14 @@ class GameMapCache
                 if ((((visualize_x % 2) + (visualize_y % 2) > 1) && (visualize_nHeight % 500 >= 300)) ||  // for 150 blocks, every 4th coin spawn is ghosted
                     (((visualize_x % 2) + (visualize_y % 2) > 0) && (visualize_nHeight % 500 >= 450)) ||  // for 30 blocks, 3 out of 4 coin spawns are ghosted
                     (visualize_nHeight % 500 >= 480))                                             // for 20 blocks, full ghosting
+                {
                     coin->setOpacity(0.4);
+                    if (IsInsideMap(visualize_x, visualize_y)) AI_coinmap_copy[visualize_y][visualize_x] = 0;
+                }
                 else
+                {
                     coin->setOpacity(1.0);
+                }
             }
             else
             {
@@ -171,9 +176,14 @@ class GameMapCache
                 if ((((visualize_x % 2) + (visualize_y % 2) > 1) && (visualize_nHeight % 500 >= 300)) ||  // for 150 blocks, every 4th coin spawn is ghosted
                     (((visualize_x % 2) + (visualize_y % 2) > 0) && (visualize_nHeight % 500 >= 450)) ||  // for 30 blocks, 3 out of 4 coin spawns are ghosted
                     (visualize_nHeight % 500 >= 480))                                             // for 20 blocks, full ghosting
+                {
                     coin->setOpacity(0.4);
+                    if (IsInsideMap(visualize_x, visualize_y)) AI_coinmap_copy[visualize_y][visualize_x] = 0;
+                }
                 else
+                {
                     coin->setOpacity(1.0);
+                }
             }
             else
             {
@@ -2410,12 +2420,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
         if (pmon_state == PMONSTATE_SHUTDOWN)
         {
+            // clear variables for my hunters
             pmon_my_foecontact_age[m] = 0;
             pmon_my_alarm_state[m] = 0;
             pmon_my_idlecount[m] = 0;
             pmon_my_bankdist[m] = 0;
             pmon_my_bankstate[m] = 0;
-            pmon_my_new_wps[m].clear();
+//            pmon_my_new_wps[m].clear();
             pmon_my_tactical_sitch[m] = 0;
             pmon_my_movecount[m] = 0;
 
@@ -2440,12 +2451,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
         int my_idx = pmon_my_idx[m];
         if ((my_idx < 0) || (pmon_all_invulnerability[my_idx] > 0))  // not alive or not in danger
         {
+            // clear variables for my hunters
             pmon_my_foecontact_age[m] = 0;
             pmon_my_alarm_state[m] = 0;
             pmon_my_idlecount[m] = 0;
             pmon_my_bankdist[m] = 0;
             pmon_my_bankstate[m] = 0;
-            pmon_my_new_wps[m].clear();
+            if (my_idx < 0) pmon_my_new_wps[m].clear(); // only if not alive
             pmon_my_tactical_sitch[m] = 0;
             pmon_my_movecount[m] = 0;
 
