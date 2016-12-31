@@ -1724,6 +1724,46 @@ static int pmon_CoordUpd(int u, int v, int du, int dv, int from_u, int from_v)
 }
 int pmon_CoordHelper_x = 0;
 int pmon_CoordHelper_y = 0;
+// for "dead man switch" path
+static bool pmon_CoordHelper_no_banks(int current_x, int current_y, int from_x, int from_y, int target_x, int target_y, int steps)
+{
+    int new_c_x;
+    int new_c_y;
+
+    int dx = target_x - from_x;
+    int dy = target_y - from_y;
+
+    for (int n; n < steps; n++)
+    {
+        if (abs(dx) > abs(dy))
+        {
+            new_c_x = pmon_CoordStep(current_x, target_x);
+            new_c_y = pmon_CoordUpd(new_c_x, current_y, dx, dy, from_x, from_y);
+        }
+        else
+        {
+            new_c_y = pmon_CoordStep(current_y, target_y);
+            new_c_x = pmon_CoordUpd(new_c_y, current_x, dy, dx, from_y, from_x);
+        }
+
+        // no LOS                              avoid banks
+        if ((!IsWalkable(new_c_x, new_c_y)) || (AI_coinmap_copy[new_c_y][new_c_x] == -1))
+        {
+            pmon_CoordHelper_x = current_x;
+            pmon_CoordHelper_y = current_y;
+            return false;
+        }
+
+        current_x = new_c_x;
+        current_y = new_c_y;
+        if ((current_x == target_x) && (current_y == target_y))
+            break;
+    }
+
+    pmon_CoordHelper_x = current_x;
+    pmon_CoordHelper_y = current_y;
+    return true;
+}
 static bool pmon_CoordHelper(int current_x, int current_y, int from_x, int from_y, int target_x, int target_y, int steps, bool noclip)
 {
     int new_c_x;
@@ -1863,6 +1903,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
             bank_ypos[bank_idx] = b.first.y;
             bank_timeleft[bank_idx] = b.second;
             bank_idx++;
+
+            // for "dead man switch" path
+            if (IsInsideMap(b.first.x, b.first.y))
+                AI_coinmap_copy[b.first.y][b.first.x] = -1;
         }
 
 
@@ -1892,13 +1936,16 @@ void GameMapView::updateGameMap(const GameState &gameState)
         gem_visualonly_y = gameState.gemSpawnPos.y;
     }
 #ifdef AUX_AUCTION_BOT
-            if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_WAITING_BLUE) // if still alive and waiting for sell order that would match ours
-                pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_UNKNOWN; // unknown if alive (possibly killed since last tick)
-            else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_UNKNOWN)
-                pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_RED; // dead
+    if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_WAITING_BLUE) // if still alive and waiting for sell order that would match ours
+        pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_UNKNOWN; // unknown if alive (possibly killed since last tick)
+    else if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_UNKNOWN)
+        pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_RED; // dead
 #endif
 #endif
 
+    // for "dead man switch" path
+    if (pmon_config_defence & 16)
+        pmon_config_defence -= 16;
 
     // Sort by coordinate bottom-up, so the stacking (multiple players on tile) looks correct
     std::multimap<Coord, CharacterEntry> sortedPlayers;
@@ -2219,6 +2266,11 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 pmon_out_of_wp_idx = -1;
                         }
 
+                        // for "dead man switch" path
+#define AI_BLOCKS_TILL_PATH_UPDATE ((pmon_config_defence & 8)?10:15)
+                        if (tmp_has_pending_tx)
+                            if (pmon_my_idle_chronon[m] < gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE)
+                                pmon_my_idle_chronon[m] = gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE;
 
                         // notice heavy loot and nearby bank
                         //
@@ -2464,7 +2516,22 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (pmon_out_of_wp_idx == m) pmon_out_of_wp_idx = -1;
             if (pmon_need_bank_idx == m) pmon_need_bank_idx = -1;
 
-            continue;
+            // for "dead man switch" path
+            if (my_idx < 0)
+                pmon_my_idle_chronon[m] = 0; // clear if not alive
+            if (pmon_config_defence & 8)
+            {
+                if (my_idx < 0) continue; // only if not alive
+
+                // delete me
+                if (pmon_my_idlecount[m] < 4)
+                    pmon_my_idlecount[m] = 4;
+            }
+            else
+
+            {
+                continue;
+            }
         }
         int my_enemy_tx_age = -1;
 
@@ -2499,6 +2566,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (pmon_all_cache_isinmylist[k_all]) continue; // one of my players
             if (pmon_all_invulnerability[k_all] >= 2) continue; // ignore spectators completely
 
+// only if in danger
+if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
+{
             // hit+run system
             int dtn = pmon_DistanceHelper(my_x, my_y, pmon_all_x[k_all], pmon_all_y[k_all], false);
             if (dtn < my_dist_to_nearest_neutral) my_dist_to_nearest_neutral = dtn;
@@ -2541,6 +2611,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                     }
                 }
             }
+}
 
             int fdx = abs(my_x - pmon_all_x[k_all]);
             int fdy = abs(my_y - pmon_all_y[k_all]);
@@ -2558,6 +2629,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 {
                     tmp_trigger_alarm = true;
 
+// only if in danger
+if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
+{
                     // hit+run system
                     int tmp_foe_x = pmon_all_next_x[k_all];
                     int tmp_foe_y = pmon_all_next_y[k_all];
@@ -2572,6 +2646,12 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 pmon_my_tactical_sitch[m] = 1; // possibly cornered (by this enemy, if they come closer)
                         }
                     }
+}
+else
+{
+    tmp_trigger_alarm = false;
+    tmp_trigger_multi_alarm = false;
+}
                 }
             }
         }
@@ -2658,15 +2738,34 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
         // grabbing coins
         pmon_my_movecount[m] = 0;
-#define AI_MAX_FARM_MOVES 75
 #define AI_MAX_FARM_DIST 12
-        if (pmon_config_defence & 4)
-        if (gameState.nHeight > pmon_my_idle_chronon[m])
-        if ((pmon_go) && (gameState.nHeight > gem_log_height)) // try once per block, if tx monitor is on
-        if (pmon_my_idlecount[m] > 3) // in pmon ticks
-        if ((pmon_my_bankstate[m] == BANKSTATE_NORMAL) || (pmon_my_bankstate[m] == BANKSTATE_NOTIFY) || (pmon_my_bankstate[m] == BANKSTATE_NOLIMIT))
-        if ((pmon_my_foe_dist[m] > pmon_my_alarm_dist[m]) && (pmon_my_foe_dist[m] >= 5))
+        // for "dead man switch" path
+//#define AI_MAX_FARM_MOVES 75
+#define AI_MAX_FARM_MOVES ((pmon_config_defence & 8)?10:75)
+        if ((my_idx > 0) && (my_idx < PMON_MY_MAX))
         {
+//            printf("harvest test: player #%d %s idx %d next %d %d dest %d %d\n", m, pmon_my_names[m].c_str(), my_idx, my_next_x, my_next_y, pmon_all_wpdest_x[my_idx], pmon_all_wpdest_y[my_idx]);
+            if ((pmon_my_idle_chronon[m] < gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE - 2) || (pmon_config_defence & 8))
+            if (my_next_x == pmon_all_wpdest_x[my_idx])
+            if (my_next_y == pmon_all_wpdest_y[my_idx])
+            if (SpawnMap[my_next_y][my_next_x] == 2)
+                pmon_my_idle_chronon[m] = gameState.nHeight - 1;
+        }
+
+        if ((pmon_config_defence & 4) &&
+            (gameState.nHeight > pmon_my_idle_chronon[m]))
+        {
+
+         // for "dead man switch" path
+         if ( (pmon_go) && (!(pmon_config_defence & 16)) )
+         {
+//        if ((pmon_go) && (gameState.nHeight > gem_log_height)) // try once per block, if tx monitor is on
+//        if (pmon_my_idlecount[m] > 3) // in pmon ticks
+
+          if ((pmon_my_bankstate[m] == BANKSTATE_NORMAL) || (pmon_my_bankstate[m] == BANKSTATE_NOTIFY) || (pmon_my_bankstate[m] == BANKSTATE_NOLIMIT))
+          {
+           if ((pmon_my_foe_dist[m] > pmon_my_alarm_dist[m]) && (pmon_my_foe_dist[m] >= 5))
+           {
 //            for (int vy = my_y - AI_MAX_FARM_DIST; vy <= my_y + AI_MAX_FARM_DIST; vy++)
 //            {
 //              for (int vx = my_x - AI_MAX_FARM_DIST; vx <= my_x + AI_MAX_FARM_DIST; vx++)
@@ -2711,6 +2810,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   if ( (d > 0) && (AI_coinmap_copy[vy][vx] > 0) &&
                           ((d < dmin) || ((d == dmin) && (d2 < dmin2))) )
                   {
+                      // for "dead man switch" path
+                      if (pmon_CoordHelper_no_banks(old_x, old_y, old_x, old_y, vx, vy, AI_MAX_FARM_DIST))
+                      {
+                          dmin = d;
+                          best_x = vx;
+                          best_y = vy;
+                      }
+/*                    // old version
                       // see CheckLinearPath
                       Coord coord;
                       Coord variant_coord;
@@ -2729,11 +2836,56 @@ void GameMapView::updateGameMap(const GameState &gameState)
                           best_x = vx;
                           best_y = vy;
                       }
+*/
                   }
                 }
               }
 
-              if ((dmin < 10000) && (pmon_my_movecount[m] < AI_MAX_FARM_MOVES))
+              // for "dead man switch" path
+              if ( /* (pmon_config_defence & 8) && */
+                  ((dmin >= 10000) || (nh == AI_MAX_FARM_MOVES-1))) // Go to spawn strip
+              {
+                  dmin = 10000;
+                  for (int vy = old_y - AI_MAX_FARM_DIST; vy <= old_y + AI_MAX_FARM_DIST; vy++)
+                  for (int vx = old_x - AI_MAX_FARM_DIST; vx <= old_x + AI_MAX_FARM_DIST; vx++)
+                  {
+                    if (IsInsideMap(vx, vy))
+                    {
+                      int d = pmon_DistanceHelper(old_x, old_y, vx, vy, false); // to prev. tile
+                      if ( (d > 0) && (SpawnMap[vy][vx] == 2) && (d < dmin) )
+                      {
+                          // see CheckLinearPath
+                          Coord coord;
+                          Coord variant_coord;
+                          coord.x = old_x;
+                          coord.y = old_y;
+                          variant_coord.x = vx;
+                          variant_coord.y = vy;
+                          CharacterState tmp;
+                          tmp.from = tmp.coord = coord;
+                          tmp.waypoints.push_back(variant_coord);
+                          while (!tmp.waypoints.empty())
+                          tmp.MoveTowardsWaypoint();
+                          if(tmp.coord == variant_coord)
+                          {
+                              dmin = d;
+                              best_x = vx;
+                              best_y = vy;
+                          }
+                      }
+                    }
+                  }
+                  if (dmin < 10000)
+                  {
+                      pmon_my_moves_x[m][pmon_my_movecount[m]] = best_x;
+                      pmon_my_moves_y[m][pmon_my_movecount[m]] = best_y;
+                      pmon_my_movecount[m]++;
+                      break;
+                  }
+              }
+              else
+              // old version
+                  if ((dmin < 10000) && (pmon_my_movecount[m] < AI_MAX_FARM_MOVES))
               {
                   pmon_my_moves_x[m][pmon_my_movecount[m]] = best_x;
                   pmon_my_moves_y[m][pmon_my_movecount[m]] = best_y;
@@ -2745,9 +2897,10 @@ void GameMapView::updateGameMap(const GameState &gameState)
                   break;
               }
             }
-            if (pmon_my_movecount[m] >= (my_dist_to_nearest_neutral <= 5 ? 1 : 3)) // found 3 coins to pick up (or just 1 if facing annoying competition)
+            printf("harvest test: player #%d %s found %d tiles: \n", m, pmon_my_names[m].c_str(), pmon_my_movecount[m]);
+//            if (pmon_my_movecount[m] >= (my_dist_to_nearest_neutral <= 5 ? 1 : 3)) // found 3 coins to pick up (or just 1 if facing annoying competition)
+            if (pmon_my_movecount[m] >= 2) // found 1 coins to pick up and 1 bank tile
             {
-              printf("harvest test: player #%d %s can harvest %d coins: \n", m, pmon_my_names[m].c_str(), pmon_my_movecount[m]);
 //              for (int nh = 0; nh < pmon_my_movecount[m]; nh++)
 //                  printf("%d,%d ", pmon_my_moves_x[m][nh], pmon_my_moves_y[m][nh]);
 //              printf("\n");
@@ -2755,8 +2908,32 @@ void GameMapView::updateGameMap(const GameState &gameState)
               pmon_name_update(m, -1, -1);
 
               // be lazy only in case of no competition
-              pmon_my_idle_chronon[m] = gameState.nHeight + (my_dist_to_nearest_neutral < 30 ? my_dist_to_nearest_neutral : 30);
+              pmon_my_idle_chronon[m] = gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE;
+              if (pmon_config_defence & 8)
+                  pmon_my_idle_chronon[m] = gameState.nHeight + (my_dist_to_nearest_neutral < AI_BLOCKS_TILL_PATH_UPDATE ? my_dist_to_nearest_neutral : AI_BLOCKS_TILL_PATH_UPDATE);
+
+              // for "dead man switch" path
+              pmon_config_defence |= 16;
             }
+           }
+           else
+           {
+//             printf("harvest test: player #%d %s skipped, busy\n", m, pmon_my_names[m].c_str());
+           }
+          }
+          else
+          {
+              printf("harvest test: player #%d %s skipped, waiting for processing\n", m, pmon_my_names[m].c_str());
+          }
+         }
+         else
+         {
+             printf("harvest test: player #%d %s skipped, full\n", m, pmon_my_names[m].c_str());
+         }
+        }
+        else
+        {
+            printf("harvest test: player #%d %s skipped, nearby enemy\n", m, pmon_my_names[m].c_str());
         }
 
       }

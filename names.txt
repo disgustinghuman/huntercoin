@@ -8,7 +8,7 @@ config:auctionbot_hunter_name #Alice
 config:auctionbot_trade_price 100
 config:auctionbot_trade_size 0.1
 config:auctionbot_limit_coins 0
-config:afk_defence 7
+config:afk_defence 15
 config:defence_ticks_hold 5
 config:defence_ticks_confirm 10
 Alice 9
