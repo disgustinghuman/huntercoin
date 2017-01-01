@@ -2741,7 +2741,7 @@ else
 #define AI_MAX_FARM_DIST 12
         // for "dead man switch" path
 //#define AI_MAX_FARM_MOVES 75
-#define AI_MAX_FARM_MOVES ((pmon_config_defence & 8)?10:75)
+#define AI_MAX_FARM_MOVES ((pmon_config_defence & 8)?15:75)
         if ((my_idx > 0) && (my_idx < PMON_MY_MAX))
         {
 //            printf("harvest test: player #%d %s idx %d next %d %d dest %d %d\n", m, pmon_my_names[m].c_str(), my_idx, my_next_x, my_next_y, pmon_all_wpdest_x[my_idx], pmon_all_wpdest_y[my_idx]);
@@ -2762,7 +2762,8 @@ else
 //        if ((pmon_go) && (gameState.nHeight > gem_log_height)) // try once per block, if tx monitor is on
 //        if (pmon_my_idlecount[m] > 3) // in pmon ticks
 
-          if ((pmon_my_bankstate[m] == BANKSTATE_NORMAL) || (pmon_my_bankstate[m] == BANKSTATE_NOTIFY) || (pmon_my_bankstate[m] == BANKSTATE_NOLIMIT))
+          if ((pmon_config_defence & 8) ||
+              (pmon_my_bankstate[m] == BANKSTATE_NORMAL) || (pmon_my_bankstate[m] == BANKSTATE_NOTIFY) || (pmon_my_bankstate[m] == BANKSTATE_NOLIMIT))
           {
            if ((pmon_my_foe_dist[m] > pmon_my_alarm_dist[m]) && (pmon_my_foe_dist[m] >= 5))
            {

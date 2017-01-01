@@ -118,10 +118,10 @@ Hit+Run AI config options in names.txt:
                                    if the pending transaction is older than "config:afk_ticks_confirm"
                                    (highly experimental, only in binary release)
 
-    config:afk_defence 4           grab nearby coins if idle, and no enemy is in alarm range, every X chronons.
-                                   (X == min(30, distance to nearest unknown hunter))
+    config:afk_defence 12          grab nearby coins and let path end on banking tile
+                                   (if idle, and no enemy is in alarm range)
 
-    config:afk_defence 7           do all of the above
+    config:afk_defence 15          do all of the above
 
     config:afk_ticks_hold 5        wait time after a block was received,
                                    on "CONTACT" the player has by default 20 seconds to override
