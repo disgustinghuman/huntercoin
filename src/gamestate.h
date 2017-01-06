@@ -1294,6 +1294,7 @@ extern int pmon_my_idlecount[PMON_MY_MAX];
 extern bool pmon_name_pending_start();
 extern bool pmon_name_pending();
 extern bool pmon_name_update(int my_idx, int x, int y);
+extern bool pmon_name_register(int my_idx);
 #ifdef AUX_AUCTION_BOT
 extern bool pmon_sendtoaddress(const std::string& strAddress, const int64 nAmount);
 extern int pmon_config_auction_auto_stateicon; // auction bot
@@ -1354,6 +1355,8 @@ extern int pmon_config_hold;
 extern int pmon_config_confirm;
 extern int pmon_config_vote_tally;
 extern int pmon_config_show_wps;
+extern int pmon_txcount_sent_this_tick;
+extern bool pmon_move_sent_this_tick;
 
 // windows stability bug workaround
 #ifdef PMON_DEBUG_WIN32_GUI

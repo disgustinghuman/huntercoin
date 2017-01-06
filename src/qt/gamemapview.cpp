@@ -1924,7 +1924,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
     pmon_all_count = 0;
     for (int m = 0; m < PMON_MY_MAX; m++)
     {
-        pmon_my_idx[m] = -1;
+        if (pmon_my_idx[m] > -1)
+            pmon_my_idx[m] = -1;
     }
 
 #ifdef PERMANENT_LUGGAGE
@@ -1944,8 +1945,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
 #endif
 
     // for "dead man switch" path
-    if (pmon_config_defence & 16)
-        pmon_config_defence -= 16;
+    pmon_move_sent_this_tick = false;
+    pmon_txcount_sent_this_tick = 0;
 
     // Sort by coordinate bottom-up, so the stacking (multiple players on tile) looks correct
     std::multimap<Coord, CharacterEntry> sortedPlayers;
@@ -2236,7 +2237,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         // check for pending tx (to determine idle status)
                         bool tmp_has_pending_tx = false;
                         bool tmp_is_banking = gameState.IsBank(coord);
-                        if ((characterState.waypoints.empty()) || (pmon_out_of_wp_idx == m))
+                        if ((characterState.waypoints.empty()) || (pmon_out_of_wp_idx == m) ||
+                            (!(pmon_config_defence & 8))) // for "dead man switch" path -- make sure to not override path set by player
                         {
                             for (int k2 = 0; k2 < pmon_tx_count; k2++)
                             {
@@ -2266,11 +2268,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
                                 pmon_out_of_wp_idx = -1;
                         }
 
-                        // for "dead man switch" path
-#define AI_BLOCKS_TILL_PATH_UPDATE ((pmon_config_defence & 8)?10:15)
-                        if (tmp_has_pending_tx)
+                        // for "dead man switch" path -- make sure to not override path set by player
+#define AI_BLOCKS_TILL_PATH_UPDATE ((pmon_config_defence & 8)?10:12)
+                        if ( (tmp_has_pending_tx) && (!(pmon_config_defence & 8)) )
+                        {
+//                            printf("harvest test: player #%d %s has pending tx, height %d, idle_chronon %d\n", m, pmon_my_names[m].c_str(), gameState.nHeight, pmon_my_idle_chronon[m]);
                             if (pmon_my_idle_chronon[m] < gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE)
                                 pmon_my_idle_chronon[m] = gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE;
+                        }
 
                         // notice heavy loot and nearby bank
                         //
@@ -2396,9 +2401,9 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         {
                             entry.name += QString::fromStdString(" [Full]");
                         }
-                        else if (pmon_my_idle_chronon[m] > gameState.nHeight)
+                        else if (pmon_my_idle_chronon[m] >= gameState.nHeight)
                         {
-                            entry.name += QString::fromStdString(" [Idle ");
+                            entry.name += QString::fromStdString(" [Busy ");
                             entry.name += QString::number(pmon_my_idle_chronon[m] - gameState.nHeight);
                             entry.name += QString::fromStdString("]");
                         }
@@ -2519,13 +2524,14 @@ void GameMapView::updateGameMap(const GameState &gameState)
             // for "dead man switch" path
             if (my_idx < 0)
                 pmon_my_idle_chronon[m] = 0; // clear if not alive
-            if (pmon_config_defence & 8)
+            if (pmon_config_defence & (4|8))
             {
-                if (my_idx < 0) continue; // only if not alive
+                if (pmon_config_defence & 16)
+                if (pmon_txcount_sent_this_tick < 1)
+                if (my_idx == -1)
+                    pmon_name_register(m);
 
-                // delete me
-                if (pmon_my_idlecount[m] < 4)
-                    pmon_my_idlecount[m] = 4;
+                if (my_idx < 0) continue; // only if not alive
             }
             else
 
@@ -2741,23 +2747,25 @@ else
 #define AI_MAX_FARM_DIST 12
         // for "dead man switch" path
 //#define AI_MAX_FARM_MOVES 75
-#define AI_MAX_FARM_MOVES ((pmon_config_defence & 8)?15:75)
-        if ((my_idx > 0) && (my_idx < PMON_MY_MAX))
+#define AI_MAX_FARM_MOVES ((pmon_config_defence & 8)?15:20)
+        if ((my_idx >= 0) && (my_idx < PMON_ALL_MAX))
         {
 //            printf("harvest test: player #%d %s idx %d next %d %d dest %d %d\n", m, pmon_my_names[m].c_str(), my_idx, my_next_x, my_next_y, pmon_all_wpdest_x[my_idx], pmon_all_wpdest_y[my_idx]);
-            if ((pmon_my_idle_chronon[m] < gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE - 2) || (pmon_config_defence & 8))
+
+            // make sure to not override path set by player                                       aggressive setting
+            if ((pmon_my_idle_chronon[m] < gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE - 5) || (pmon_config_defence & 8))
             if (my_next_x == pmon_all_wpdest_x[my_idx])
             if (my_next_y == pmon_all_wpdest_y[my_idx])
             if (SpawnMap[my_next_y][my_next_x] == 2)
                 pmon_my_idle_chronon[m] = gameState.nHeight - 1;
         }
 
-        if ((pmon_config_defence & 4) &&
+        if ((pmon_config_defence & (4|8)) &&
             (gameState.nHeight > pmon_my_idle_chronon[m]))
         {
 
          // for "dead man switch" path
-         if ( (pmon_go) && (!(pmon_config_defence & 16)) )
+         if ( (pmon_go) && (!pmon_move_sent_this_tick) ) // try once per tick, if tx monitor is on
          {
 //        if ((pmon_go) && (gameState.nHeight > gem_log_height)) // try once per block, if tx monitor is on
 //        if (pmon_my_idlecount[m] > 3) // in pmon ticks
@@ -2843,8 +2851,7 @@ else
               }
 
               // for "dead man switch" path
-              if ( /* (pmon_config_defence & 8) && */
-                  ((dmin >= 10000) || (nh == AI_MAX_FARM_MOVES-1))) // Go to spawn strip
+              if ((dmin >= 10000) || (nh == AI_MAX_FARM_MOVES-1)) // Go to spawn strip
               {
                   dmin = 10000;
                   for (int vy = old_y - AI_MAX_FARM_DIST; vy <= old_y + AI_MAX_FARM_DIST; vy++)
@@ -2899,7 +2906,6 @@ else
               }
             }
             printf("harvest test: player #%d %s found %d tiles: \n", m, pmon_my_names[m].c_str(), pmon_my_movecount[m]);
-//            if (pmon_my_movecount[m] >= (my_dist_to_nearest_neutral <= 5 ? 1 : 3)) // found 3 coins to pick up (or just 1 if facing annoying competition)
             if (pmon_my_movecount[m] >= 2) // found 1 coins to pick up and 1 bank tile
             {
 //              for (int nh = 0; nh < pmon_my_movecount[m]; nh++)
@@ -2914,7 +2920,7 @@ else
                   pmon_my_idle_chronon[m] = gameState.nHeight + (my_dist_to_nearest_neutral < AI_BLOCKS_TILL_PATH_UPDATE ? my_dist_to_nearest_neutral : AI_BLOCKS_TILL_PATH_UPDATE);
 
               // for "dead man switch" path
-              pmon_config_defence |= 16;
+              pmon_move_sent_this_tick = true;
             }
            }
            else
@@ -3452,10 +3458,6 @@ else
             if (gameState.auction_settle_conservative > 0)
             {
                 fprintf(fp, "\n");
-
-                // delete me
-                if (gameState.nHeight < AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet))
-                    fprintf(fp, "*** enabled after chronon %d ***\n", AUX_MINHEIGHT_GEMHUC_SETTLEMENT(fTestNet));
 
                 fprintf(fp, "->example chat message to request settlement of 1 gem at a fixed rate of %s HUC per gem\n", FormatMoney(gameState.auction_settle_conservative).c_str());
                 fprintf(fp, "GEM:HUC set ask 1.0 at settlement\n");

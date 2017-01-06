@@ -121,11 +121,12 @@ Hit+Run AI config options in names.txt:
     config:afk_defence 12          grab nearby coins and let path end on banking tile
                                    (if idle, and no enemy is in alarm range)
 
-    config:afk_defence 15          do all of the above
+    config:afk_defence 15          do all of the above ("config:afk_defence 7" works similar but is more tame)
 
-    config:afk_ticks_hold 5        wait time after a block was received,
-                                   on "CONTACT" the player has by default 20 seconds to override
-                                   (by either sending a move, or middle mouse button to switch the tx monitor off)
+    config:afk_defence 31          additionally respawn all hunters from names.txt if dead
+                                   (color determined by last character of name)
+
+    config:afk_ticks_hold 5        normal wait time after a block was received, before sending destruct in case of self defense
                                    default 5
 
     config:afk_ticks_confirm 7     1/2 of the estimated time a transaction needs to confirm,

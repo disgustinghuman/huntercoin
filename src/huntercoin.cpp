@@ -1203,7 +1203,7 @@ int pmon_all_count;
 std::string pmon_my_names[PMON_MY_MAX];
 int pmon_my_alarm_dist[PMON_MY_MAX];
 int pmon_my_foe_dist[PMON_MY_MAX];
-int pmon_my_idx[PMON_MY_MAX];
+int pmon_my_idx[PMON_MY_MAX]; // -1..dead  -2..tried to spawn but failed
 int pmon_my_alarm_state[PMON_MY_MAX];
 int pmon_my_foecontact_age[PMON_MY_MAX];
 int pmon_my_idlecount[PMON_MY_MAX];
@@ -1239,6 +1239,8 @@ int pmon_config_hold = 5;
 int pmon_config_confirm = 7;
 int pmon_config_vote_tally = 0;
 int pmon_config_show_wps = 7;
+int pmon_txcount_sent_this_tick; // todo: unify these 2 vars
+bool pmon_move_sent_this_tick;   //
 
 #ifdef AUX_AUCTION_BOT
 int pmon_config_auction_auto_stateicon = 276; // RPG_ICON_EMPTY;
@@ -1401,6 +1403,9 @@ bool pmon_name_pending_start()
     {
         // clear variables for my hunters
         pmon_my_alarm_state[m] = 0;
+
+        // reset name list (clear "tried to spawn but failed" marker)
+        pmon_my_idx[m] = -1;
     }
 
     return true;
@@ -1631,6 +1636,88 @@ bool pmon_name_update(int my_idx, int x, int y)
     }
     return true;
 }
+
+bool pmon_name_register (int my_idx)
+{
+  if (!ForkInEffect (FORK_CARRYINGCAP, nBestHeight))
+    return false; // name_register is not yet available
+
+  pmon_my_idx[my_idx] = -2; // "tried to spawn but failed" marker, must go before "if (!IsValidPlayerName..."
+
+  vector<unsigned char> vchName = vchFromString(pmon_my_names[my_idx]);
+  int l = pmon_my_names[my_idx].length();
+  if (l <= 0)
+      return false;
+  if (pmon_my_names[my_idx][0] == '#')
+      return false;
+  if (!IsValidPlayerName (pmon_my_names[my_idx]))
+    return false;
+  char c = pmon_my_names[my_idx][l - 1];
+  vector<unsigned char> vchValue = vchFromString("{\"color\":2}");
+  if ((c == 'a') || (c == 'e') || (c == 'h') || (c == 'n') || (c == 'y'))
+      vchValue = vchFromString("{\"color\":0}");
+  else if ((c == 'i') || (c == 'j') || (c == 'l') || (c == 'o') || (c == 'q'))
+      vchValue = vchFromString("{\"color\":1}");
+  else if ((c == 'f') || (c == 'p') || (c == 's') || (c == 'v') || (c == 'x') || (c == 'z'))
+      vchValue = vchFromString("{\"color\":3}");
+
+  CRITICAL_BLOCK (cs_main)
+    {
+      if (mapNamePending.count (vchName) && !mapNamePending[vchName].empty ())
+        {
+          return false; // there are pending operations on that name
+        }
+
+      CNameDB dbName("r");
+      CTransaction tx;
+      if (GetTxOfName (dbName, vchName, tx) && !tx.IsGameTx ())
+        {
+          return false; // this name is already active
+        }
+    }
+
+  CWalletTx wtx;
+  wtx.nVersion = NAMECOIN_TX_VERSION;
+
+  CScript scriptPubKeyOrig;
+  /*
+  if (params.size () == 3)
+    {
+      const std::string strAddress = params[2].get_str ();
+      uint160 hash160;
+      bool isValid = AddressToHash160 (strAddress, hash160);
+      if (!isValid)
+        return false; // Invalid huntercoin address
+      scriptPubKeyOrig.SetBitcoinAddress (strAddress);
+    }
+  else
+  */
+    {
+      const vchType vchPubKey = pwalletMain->GetKeyFromKeyPool ();
+      scriptPubKeyOrig.SetBitcoinAddress (vchPubKey);
+    }
+
+  CScript scriptPubKey;
+  scriptPubKey << OP_NAME_FIRSTUPDATE << vchName << vchValue
+               << OP_2DROP << OP_DROP;
+  scriptPubKey += scriptPubKeyOrig;
+
+  CRITICAL_BLOCK(cs_main)
+    {
+      EnsureWalletIsUnlocked ();
+
+      const int64_t nCoinAmount = GetRequiredGameFee (vchName, vchValue);
+      string strError = pwalletMain->SendMoney (scriptPubKey, nCoinAmount,
+                                                wtx, false);
+      if (strError != "")
+          return false;
+      mapMyNames[vchName] = wtx.GetHash ();
+    }
+
+  pmon_txcount_sent_this_tick++;
+  return true;
+}
+
 #ifdef AUX_AUCTION_BOT
 bool pmon_sendtoaddress(const std::string& strAddress, const int64 nAmount) // auction bot
 {
