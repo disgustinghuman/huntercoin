@@ -2403,7 +2403,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         }
                         else if (pmon_my_idle_chronon[m] >= gameState.nHeight)
                         {
-                            entry.name += QString::fromStdString(" [Busy ");
+                            entry.name += QString::fromStdString(" [upd ");
                             entry.name += QString::number(pmon_my_idle_chronon[m] - gameState.nHeight);
                             entry.name += QString::fromStdString("]");
                         }
@@ -2527,11 +2527,13 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (pmon_config_defence & (4|8))
             {
                 if (pmon_config_defence & 16)
+                if (pmon_block_age > 0)
                 if (pmon_txcount_sent_this_tick < 1)
                 if (my_idx == -1)
                     pmon_name_register(m);
 
-                if (my_idx < 0) continue; // only if not alive
+//                if (my_idx < 0) continue; // only if not alive
+                if ((my_idx < 0) || (pmon_all_invulnerability[my_idx] >= 2)) continue; // only if not alive or spectator
             }
             else
 
@@ -2571,6 +2573,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (k_all == my_idx) continue; // that's me
             if (pmon_all_cache_isinmylist[k_all]) continue; // one of my players
             if (pmon_all_invulnerability[k_all] >= 2) continue; // ignore spectators completely
+            if (pmon_all_color[my_idx] == pmon_all_color[k_all]) continue; // same team
 
 // only if in danger
 if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
@@ -2579,7 +2582,7 @@ if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
             int dtn = pmon_DistanceHelper(my_x, my_y, pmon_all_x[k_all], pmon_all_y[k_all], false);
             if (dtn < my_dist_to_nearest_neutral) my_dist_to_nearest_neutral = dtn;
 
-            if (pmon_all_color[my_idx] == pmon_all_color[k_all]) continue; // same team
+//            if (pmon_all_color[my_idx] == pmon_all_color[k_all]) continue; // same team
 
             if ((pmon_all_invulnerability[k_all] == 0) || (pmon_all_tx_age[k_all] > 0)) // don't attack if foe has spawn invuln. and no pending tx
             if ((abs(my_next_x - pmon_all_next_x[k_all]) <= 1) && (abs(my_next_y - pmon_all_next_y[k_all]) <= 1))
@@ -3797,8 +3800,7 @@ else
                     fprintf(fp, "CRD:GEM set ask 1 at settlement");
 #endif
                     fprintf(fp, "\n\n");
-                    fprintf(fp, "notes: - all orders and bitassets are specific to a hunter and its player address\n");
-                    fprintf(fp, "       - format for huntercore-qt console, huntercoin-qt console, and all daemon versions:\n");
+                    fprintf(fp, "notes: - format for huntercore-qt console, huntercoin-qt console, and all daemon versions:\n");
                     fprintf(fp, "         name_update my_hunter_name {\"msg\":\"my_message\"}\n");
                     fprintf(fp, "       - minimum size: 1 chronoDollar\n");
 #ifdef TRADE_OUTPUT_HTML

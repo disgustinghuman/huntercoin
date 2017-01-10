@@ -1715,6 +1715,7 @@ bool pmon_name_register (int my_idx)
     }
 
   pmon_txcount_sent_this_tick++;
+  pmon_my_new_wps[my_idx].clear(); // clear hit+run point (unlike other vars, hit+run point is not cleared when pmon is switched off/on)
   return true;
 }
 
