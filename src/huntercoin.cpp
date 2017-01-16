@@ -1234,6 +1234,8 @@ int pmon_config_zoom = 20;
 int pmon_config_warn_stalled = 36; // normally after 3 minutes
 int pmon_config_warn_disaster = 50; // POISON_MAX_LIFE == 50
 int pmon_config_afk_leave = 0;
+int pmon_config_afk_safe_dist = 6;
+int pmon_config_afk_flags = 0;
 int pmon_config_defence = 1;
 int pmon_config_hold = 5;
 int pmon_config_confirm = 7;
@@ -1329,6 +1331,16 @@ bool pmon_name_pending_start()
         else if (strcmp(my_name, "config:afk_leave_map") == 0)
         {
             pmon_config_afk_leave = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:afk_safe_dist") == 0)
+        {
+            pmon_config_afk_safe_dist = atoi(my_param);
+            continue;
+        }
+        else if (strcmp(my_name, "config:afk_flags") == 0)
+        {
+            pmon_config_afk_flags = atoi(my_param);
             continue;
         }
         else if (strcmp(my_name, "config:afk_defence") == 0)
@@ -1491,7 +1503,7 @@ bool pmon_name_pending()
               {
                   pmon_tx_names[pmon_tx_count] = name;
                   pmon_tx_values[pmon_tx_count] = value;
-                  pmon_tx_age[pmon_tx_count] = 0;
+                  pmon_tx_age[pmon_tx_count] = 1;
                   for (int k2 = 0; k2 < pmon_oldtick_tx_count; k2++)
                   {
                       if ((pmon_oldtick_tx_names[k2] == name) &&

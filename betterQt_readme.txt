@@ -349,12 +349,13 @@ Advanced mode: Auction tool
 Advanced mode: Auction Bot
 --------------------------
 
-  The purpose is to make buying in the Gem:Huntercoin in-game auction easier and safer and
-  to provide a "hidden bid".
+  The purpose is to make buying in the Gem:Huntercoin in-game auction easier and safer.
 
   Config options (in names.txt)
 
-    config:auctionbot_hunter_name #Alice     name of the hunter "on duty" (players can't trade in Huntercoin, only hunters)
+    config:auctionbot_hunter_name #Alice     Name of the hunter "on duty". (players can't trade in Huntercoin, only hunters)
+                                             This name must also be in the list of hunter names in names.txt.
+                                             The Auction Bot will do 1 trade when this hunter becomes spectator.
                                              default ""
 
                                              IMPORTANT NOTE: comment out the name (i.e. #Alice instead of Alice) if not in use
@@ -368,9 +369,18 @@ Advanced mode: Auction Bot
                                              This is the maximum amount of coins to spent until the client is restarted.
                                              (0 means the auction bot is not active)
 
-  The bot will stop trading under a number of conditions that can happen in the dangerous game world of Huntercoin.
+  The bot will stop trading under a number of conditions.
   Current status of the bot is in auction.txt, updated each block. Restarting the tx monitor (i.e. click middle mouse button 2 times)
   will also restart the auction bot.
+
+  Color of status icon (displayed with the hunter on duty):
+  dark blue:     waiting
+  gold:          ready to send message (lock auction and reserve best ask for yourself)
+  dark green:    waiting for message to confirm
+  green:         coins sent, done
+  white outline: stopped, irregular block times
+  red outline:   stopped, hunter dead or in danger
+  blue outline:  stopped, session limit
 
 
 Advanced mode: Instant buying of gems and creation of storage vaults, settlement of gems in HUC

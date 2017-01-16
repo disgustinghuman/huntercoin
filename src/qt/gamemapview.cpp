@@ -2039,11 +2039,23 @@ void GameMapView::updateGameMap(const GameState &gameState)
                 if (VISUALIZE_TIMESAVE_IN_EFFECT(visualize_nHeight))
                 {
                     if (CHARACTER_IN_SPECTATOR_MODE(characterState.stay_in_spawn_area))
-                        pmon_all_invulnerability[pmon_all_count] = 2;
+                    {
+                        // only spectators can use the auction bot
+                        if (characterState.stay_in_spawn_area <= CHARACTER_MODE_SPECTATOR_BEGIN + 4) // 9...13
+                            pmon_all_invulnerability[pmon_all_count] = 2;
+                        else if (characterState.stay_in_spawn_area <= CHARACTER_MODE_SPECTATOR_BEGIN + 6) // <=15
+                            pmon_all_invulnerability[pmon_all_count] = 3;
+                        else
+                            pmon_all_invulnerability[pmon_all_count] = 4; // logout in less than 10 blocks
+                    }
                     else if (CHARACTER_HAS_SPAWN_PROTECTION(characterState.stay_in_spawn_area))
+                    {
                         pmon_all_invulnerability[pmon_all_count] = 1;
+                    }
                     else
+                    {
                         pmon_all_invulnerability[pmon_all_count] = 0;
+                    }
 
                     if (pl.value > 20000000000)
                         entry.icon_d1 = RPG_ICON_HUC_BANDIT400;
@@ -2193,7 +2205,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         pmon_my_bankdist[m] = 10000;
                         if ((pending_tx_idx == -1) &&
                             (pmon_my_foecontact_age[m] == 0) &&
-                            ((pmon_my_foe_dist[m] > pmon_my_alarm_dist[m]) || (pmon_my_foe_dist[m] >= 5)))
+                            (pmon_my_foe_dist[m] >= pmon_config_afk_safe_dist))
                         {
                           for (int b = 0; b < 75; b++)
                           {
@@ -2343,6 +2355,15 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                         if ((pmon_config_auction_auto_coinmax > 0) && (tmp_auction_auto_on_duty) && (!pmon_config_afk_leave) && (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_GO_YELLOW)) // if go!
                         {
+                            // only spectators can use the auction bot
+                            bool ab_can_send = true;
+                            if (pmon_all_invulnerability[pmon_all_count] != 2)
+                            {
+                                ab_can_send = false;
+                                pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_RED;
+                            }
+
+                            if (ab_can_send)
                             if (pending_tx_idx == -1)
                             {
                                 if (pmon_name_update(m, -1, -1))
@@ -2573,17 +2594,15 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (k_all == my_idx) continue; // that's me
             if (pmon_all_cache_isinmylist[k_all]) continue; // one of my players
             if (pmon_all_invulnerability[k_all] >= 2) continue; // ignore spectators completely
+
+            int dtn = pmon_DistanceHelper(my_x, my_y, pmon_all_x[k_all], pmon_all_y[k_all], false);
+            if (dtn < my_dist_to_nearest_neutral) my_dist_to_nearest_neutral = dtn;
             if (pmon_all_color[my_idx] == pmon_all_color[k_all]) continue; // same team
 
 // only if in danger
 if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
 {
             // hit+run system
-            int dtn = pmon_DistanceHelper(my_x, my_y, pmon_all_x[k_all], pmon_all_y[k_all], false);
-            if (dtn < my_dist_to_nearest_neutral) my_dist_to_nearest_neutral = dtn;
-
-//            if (pmon_all_color[my_idx] == pmon_all_color[k_all]) continue; // same team
-
             if ((pmon_all_invulnerability[k_all] == 0) || (pmon_all_tx_age[k_all] > 0)) // don't attack if foe has spawn invuln. and no pending tx
             if ((abs(my_next_x - pmon_all_next_x[k_all]) <= 1) && (abs(my_next_y - pmon_all_next_y[k_all]) <= 1))
             {
@@ -2622,9 +2641,12 @@ if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
             }
 }
 
-            int fdx = abs(my_x - pmon_all_x[k_all]);
-            int fdy = abs(my_y - pmon_all_y[k_all]);
-            int tmp_foe_dist = fdx > fdy ? fdx : fdy;
+//            int fdx = abs(my_x - pmon_all_x[k_all]);
+//            int fdy = abs(my_y - pmon_all_y[k_all]);
+//            int tmp_foe_dist = fdx > fdy ? fdx : fdy;
+            int dv1 = pmon_DistanceHelper(my_x, my_y, pmon_all_x[k_all], pmon_all_y[k_all], false);
+            int dv2 = pmon_DistanceHelper(my_next_x, my_next_y, pmon_all_next_x[k_all], pmon_all_next_y[k_all], false);
+            int tmp_foe_dist = dv2 < dv1 ? dv2 : dv1;
 
             if ((tmp_trigger_alarm) && (my_alarm_range) && (tmp_foe_dist <= my_alarm_range))
             {
@@ -2770,13 +2792,11 @@ else
          // for "dead man switch" path
          if ( (pmon_go) && (!pmon_move_sent_this_tick) ) // try once per tick, if tx monitor is on
          {
-//        if ((pmon_go) && (gameState.nHeight > gem_log_height)) // try once per block, if tx monitor is on
-//        if (pmon_my_idlecount[m] > 3) // in pmon ticks
-
           if ((pmon_config_defence & 8) ||
               (pmon_my_bankstate[m] == BANKSTATE_NORMAL) || (pmon_my_bankstate[m] == BANKSTATE_NOTIFY) || (pmon_my_bankstate[m] == BANKSTATE_NOLIMIT))
           {
-           if ((pmon_my_foe_dist[m] > pmon_my_alarm_dist[m]) && (pmon_my_foe_dist[m] >= 5))
+           if ((pmon_my_foe_dist[m] >= pmon_config_afk_safe_dist) &&
+               (pmon_my_alarm_state[m] != 2) && (pmon_my_alarm_state[m] != 6)) // not in case of more than 1 enemy
            {
 //            for (int vy = my_y - AI_MAX_FARM_DIST; vy <= my_y + AI_MAX_FARM_DIST; vy++)
 //            {
@@ -3362,11 +3382,37 @@ else
                     fprintf(fp, "auto mode, timeout %-7d           %-10s %5s at %9s\n", auctioncache_bid_chronon + AUCTION_BID_PRIORITY_TIMEOUT, auctioncache_bid_name.c_str(), FormatMoney(auctioncache_bid_size).c_str(), FormatMoney(auctioncache_bid_price).c_str());
                     if (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_WAIT2_GREEN) // if chat msg sent
                     {
-                        pmon_sendtoaddress(auctioncache_bestask_key, tmp_auto_coins);
-                        auction_auto_actual_totalcoins += tmp_auto_coins;
+                        // only spectators can use the auction bot
+                        bool ab_can_send = false;
+                        for (int m = 0; m < PMON_MY_MAX; m++)
+                        {
+                            if (pmon_my_names[m] == auctioncache_bid_name)
+                            {
+                                int tmp_my_idx = pmon_my_idx[m];
+                                if (tmp_my_idx >= 0)
+                                {
+                                    int tmp_invul = pmon_all_invulnerability[tmp_my_idx];
+                                    if ((tmp_invul == 2) || (tmp_invul == 3))
+                                    {
+                                        ab_can_send = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if ( ! ab_can_send)
+                        {
+                            pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_STOPPED_RED;
+                        }
+                        else
 
-                        pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_DONE_GREEN; // done
-                        fprintf(fp, "\nauto mode, sending coins... %s coins spent, session limit is %s", FormatMoney(tmp_auto_coins).c_str(), FormatMoney(pmon_config_auction_auto_coinmax).c_str());
+                        {
+                            pmon_sendtoaddress(auctioncache_bestask_key, tmp_auto_coins);
+                            auction_auto_actual_totalcoins += tmp_auto_coins;
+
+                            pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_DONE_GREEN; // done
+                            fprintf(fp, "\nauto mode, sending coins... %s coins spent, session limit is %s", FormatMoney(tmp_auto_coins).c_str(), FormatMoney(pmon_config_auction_auto_coinmax).c_str());
+                        }
                     }
                     else
                     {
@@ -3395,14 +3441,35 @@ else
                     (pmon_config_auction_auto_stateicon == RPG_ICON_ABSTATE_WAITING_BLUE) && // if still alive and waiting for sell order that would match ours
                     (pmon_config_auction_auto_price >= auctioncache_bestask_price))
                 {
-                    auction_auto_actual_price = auctioncache_bestask_price;
-                    auction_auto_actual_amount = pmon_config_auction_auto_size;
-                    if (pmon_config_auction_auto_size < auctioncache_bestask_size)
-                        auction_auto_actual_amount = pmon_config_auction_auto_size;
-                    else
-                        auction_auto_actual_amount = auctioncache_bestask_size;
+                    // only spectators can use the auction bot -- hold until we become spectator
+                    bool ab_can_send = false;
+                    for (int m = 0; m < PMON_MY_MAX; m++)
+                    {
+                        if (pmon_my_names[m] == pmon_config_auction_auto_name)
+                        {
+                            int tmp_my_idx = pmon_my_idx[m];
+                            if (tmp_my_idx >= 0)
+                            {
+                                if (pmon_all_invulnerability[tmp_my_idx] == 2)
+                                {
+                                    ab_can_send = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
 
-                    pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_GO_YELLOW; // go!
+                    if (ab_can_send)
+                    {
+                        auction_auto_actual_price = auctioncache_bestask_price;
+                        auction_auto_actual_amount = pmon_config_auction_auto_size;
+                        if (pmon_config_auction_auto_size < auctioncache_bestask_size)
+                            auction_auto_actual_amount = pmon_config_auction_auto_size;
+                        else
+                            auction_auto_actual_amount = auctioncache_bestask_size;
+
+                        pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_GO_YELLOW; // go!
+                    }
                 }
 #endif
             }

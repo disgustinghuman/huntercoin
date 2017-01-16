@@ -1343,13 +1343,15 @@ extern int pmon_my_moves_x[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
 extern int pmon_my_moves_y[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
 extern int pmon_my_movecount[PMON_MY_MAX];
 
-#define PMON_CONFIG_MAX 16
+#define PMON_CONFIG_MAX 18
 extern int pmon_config_loot_notice;
 extern int pmon_config_bank_notice;
 extern int pmon_config_zoom;
 extern int pmon_config_warn_stalled;
 extern int pmon_config_warn_disaster;
 extern int pmon_config_afk_leave;
+extern int pmon_config_afk_safe_dist;
+extern int pmon_config_afk_flags;
 extern int pmon_config_defence;
 extern int pmon_config_hold;
 extern int pmon_config_confirm;
