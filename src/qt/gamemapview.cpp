@@ -2281,7 +2281,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         }
 
                         // for "dead man switch" path -- make sure to not override path set by player
-#define AI_BLOCKS_TILL_PATH_UPDATE ((pmon_config_defence & 8)?10:12)
+#define AI_BLOCKS_TILL_PATH_UPDATE 10
                         if ( (tmp_has_pending_tx) && (!(pmon_config_defence & 8)) )
                         {
 //                            printf("harvest test: player #%d %s has pending tx, height %d, idle_chronon %d\n", m, pmon_my_names[m].c_str(), gameState.nHeight, pmon_my_idle_chronon[m]);
@@ -2770,9 +2770,9 @@ else
         // grabbing coins
         pmon_my_movecount[m] = 0;
 #define AI_MAX_FARM_DIST 12
+// maximum 100 moves
+#define AI_MAX_FARM_MOVES 15
         // for "dead man switch" path
-//#define AI_MAX_FARM_MOVES 75
-#define AI_MAX_FARM_MOVES ((pmon_config_defence & 8)?15:20)
         if ((my_idx >= 0) && (my_idx < PMON_ALL_MAX))
         {
 //            printf("harvest test: player #%d %s idx %d next %d %d dest %d %d\n", m, pmon_my_names[m].c_str(), my_idx, my_next_x, my_next_y, pmon_all_wpdest_x[my_idx], pmon_all_wpdest_y[my_idx]);
@@ -2785,6 +2785,7 @@ else
                 pmon_my_idle_chronon[m] = gameState.nHeight - 1;
         }
 
+        if (pmon_all_tx_age[my_idx] <= 0) // todo: skip other slow parts if we can't do anything
         if ((pmon_config_defence & (4|8)) &&
             (gameState.nHeight > pmon_my_idle_chronon[m]))
         {
@@ -2793,7 +2794,7 @@ else
          if ( (pmon_go) && (!pmon_move_sent_this_tick) ) // try once per tick, if tx monitor is on
          {
           if ((pmon_config_defence & 8) ||
-              (pmon_my_bankstate[m] == BANKSTATE_NORMAL) || (pmon_my_bankstate[m] == BANKSTATE_NOTIFY) || (pmon_my_bankstate[m] == BANKSTATE_NOLIMIT))
+              (pmon_my_bankstate[m] != BANKSTATE_FULL))
           {
            if ((pmon_my_foe_dist[m] >= pmon_config_afk_safe_dist) &&
                (pmon_my_alarm_state[m] != 2) && (pmon_my_alarm_state[m] != 6)) // not in case of more than 1 enemy
@@ -2807,7 +2808,7 @@ else
 //              }
 //              printf("\n");
 //            }
-
+            int tmp_step_count = 0;
             int old_x = my_x;
             int old_y = my_y;
             for (int nh = 0; nh < AI_MAX_FARM_MOVES; nh++)
@@ -2873,8 +2874,8 @@ else
                 }
               }
 
-              // for "dead man switch" path
-              if ((dmin >= 10000) || (nh == AI_MAX_FARM_MOVES-1)) // Go to spawn strip
+              // for "dead man switch" path                         todo: make configurable
+              if ((dmin >= 10000) || (nh == AI_MAX_FARM_MOVES-1) || (tmp_step_count >= 15)) // Go to spawn strip
               {
                   dmin = 10000;
                   for (int vy = old_y - AI_MAX_FARM_DIST; vy <= old_y + AI_MAX_FARM_DIST; vy++)
@@ -2922,6 +2923,8 @@ else
                   pmon_my_moves_y[m][pmon_my_movecount[m]] = best_y;
                   pmon_my_movecount[m]++;
                   AI_coinmap_copy[best_y][best_x] = 0; // dibs
+
+                  tmp_step_count += dmin;
               }
               else
               {

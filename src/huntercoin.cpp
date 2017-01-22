@@ -1227,6 +1227,11 @@ int pmon_24spritedirs_clockwise[24] = {8, 9, 6, 3, 2, 1, 4, 7, 8, 9, 6, 3, 2, 1,
 int pmon_my_moves_x[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
 int pmon_my_moves_y[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
 int pmon_my_movecount[PMON_MY_MAX];
+// better config
+int pmon_my_color[PMON_MY_MAX];
+int pmon_my_spawnflags[PMON_MY_MAX];
+std::string pmon_my_addr[PMON_MY_MAX];
+int pmon_config_afk_attack_dist = 0;
 
 int pmon_config_loot_notice = 50;
 int pmon_config_bank_notice = 0;
@@ -1268,13 +1273,193 @@ int pmon_dbg_waitcount_t2;
 
 bool pmon_name_pending_start()
 {
+    // better config
+    char my_name[100], my_param[100], my_param2[100], my_param3[100], my_param4[100]; // max name length for huntercoin is only 10
+    FILE *fp_adv_config, *fp_adv_names;
+    fp_adv_config = fopen("adv_config.txt", "r");
+    if (fp_adv_config != NULL)
+    {
+        for (unsigned int i = 0; i < PMON_CONFIG_MAX; i++)
+        {
+            if (fscanf(fp_adv_config, "%50s ", my_name) < 1)
+                break;
+
+            if (fscanf(fp_adv_config, "%50s ", my_param) < 1)
+                break;
+
+            // windows stability bug workaround
+#ifdef PMON_DEBUG_WIN32_GUI
+            if (il == 0) pmon_config_dbg_sleep = 12;
+
+            if (strcmp(my_name, "config:dbg_win32_qt_threads") == 0)
+            {
+                pmon_config_dbg_sleep = atoi(my_param);
+                continue;
+            }
+            else
+#endif
+            if (strcmp(my_name, "config:loot_notice") == 0)
+            {
+                pmon_config_loot_notice = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:bank_notice") == 0)
+            {
+                pmon_config_bank_notice = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:overview_zoom") == 0)
+            {
+                pmon_config_zoom = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:warn_stalled") == 0)
+            {
+                pmon_config_warn_stalled = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:warn_disaster") == 0)
+            {
+                pmon_config_warn_disaster = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:afk_leave_map") == 0)
+            {
+                pmon_config_afk_leave = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:afk_safe_dist") == 0)
+            {
+                pmon_config_afk_safe_dist = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:afk_attack_dist") == 0)
+            {
+                pmon_config_afk_attack_dist = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:afk_flags") == 0)
+            {
+                pmon_config_afk_flags = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:afk_defence") == 0)
+            {
+                pmon_config_defence = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:afk_ticks_hold") == 0)
+            {
+                pmon_config_hold = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:afk_ticks_confirm") == 0)
+            {
+                pmon_config_confirm = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:vote_tally") == 0)
+            {
+                pmon_config_vote_tally = atoi(my_param);
+                continue;
+            }
+#ifdef AUX_AUCTION_BOT
+            else if (strcmp(my_name, "config:auctionbot_hunter_name") == 0)
+            {
+                pmon_config_auction_auto_name.assign(my_param);
+                pmon_config_auction_auto_stateicon = RPG_ICON_ABSTATE_WAITING_BLUE; // still alive and waiting for sell order that would match ours
+                continue;
+            }
+            else if (strcmp(my_name, "config:auctionbot_trade_price") == 0)
+            {
+                std::string s_price = "";
+                s_price.assign(my_param);
+                ParseMoney(s_price, pmon_config_auction_auto_price);
+                continue;
+            }
+            else if (strcmp(my_name, "config:auctionbot_trade_size") == 0)
+            {
+                std::string s_amount = "";
+                s_amount.assign(my_param);
+                ParseMoney(s_amount, pmon_config_auction_auto_size);
+                continue;
+            }
+            else if (strcmp(my_name, "config:auctionbot_limit_coins") == 0)
+            {
+                std::string s_amount = "";
+                s_amount.assign(my_param);
+                ParseMoney(s_amount, pmon_config_auction_auto_coinmax);
+                continue;
+            }
+#endif
+            else if (strcmp(my_name, "config:show_wps") == 0)
+            {
+                pmon_config_show_wps = atoi(my_param);
+                continue;
+            }
+        }
+        fclose(fp_adv_config);
+        MilliSleep(20);
+
+        fp_adv_names = fopen("adv_names.txt", "r");
+        if (fp_adv_names != NULL)
+        {
+            // clear the list of "our" hunters
+            // (names in this list can be in a different wallet, but we assume they are all "friendlies")
+            for (unsigned int i = 0; i < PMON_MY_MAX; i++)
+            {
+                pmon_my_names[i] = "";
+                pmon_my_alarm_dist[i] = 0;
+                pmon_my_color[i] = -1;
+                pmon_my_spawnflags[i] = 0;
+                pmon_my_addr[i] = "";
+            }
+            for (unsigned int i = 0; i < PMON_MY_MAX; i++)
+            {
+                if (fscanf(fp_adv_names, "%50s ", my_name) < 1)
+                    break;
+
+                if (fscanf(fp_adv_names, "%50s ", my_param) < 1)
+                    break;
+                if (fscanf(fp_adv_names, "%50s ", my_param2) < 1)
+                    break;
+                if (fscanf(fp_adv_names, "%50s ", my_param3) < 1)
+                    break;
+                if (fscanf(fp_adv_names, "%50s ", my_param4) < 1)
+                    break;
+
+                pmon_my_names[i].assign(my_name);
+                pmon_my_alarm_dist[i] = atoi(my_param);
+                pmon_my_color[i] = atoi(my_param2);
+                pmon_my_spawnflags[i] = atoi(my_param3);
+                pmon_my_addr[i].assign(my_param4);
+                if (pmon_my_alarm_dist[i] < 0) pmon_my_alarm_dist[i] = 10;
+            }
+            fclose(fp_adv_names);
+            MilliSleep(20);
+
+            if (pmon_go < 2) pmon_go = 5;
+
+            for (unsigned int m = 0; m < PMON_MY_MAX; m++)
+            {
+                // clear variables for my hunters
+                pmon_my_alarm_state[m] = 0;
+
+                // reset name list (clear "tried to spawn but failed" marker)
+                pmon_my_idx[m] = -1;
+            }
+
+            return true;
+        }
+    }
+
+    //
+    // delete me (to remove support for old config format)
+    //
     FILE *fp;
     fp = fopen("names.txt", "r");
     if (fp == NULL)
         return false;
-
-    // max name length for huntercoin is only 10
-    char my_name[100], my_param[100];
 
     // clear the list of "our" hunters
     // (names in this list can be in a different wallet, but we assume they are all "friendlies")
@@ -1666,11 +1851,18 @@ bool pmon_name_register (int my_idx)
     return false;
   char c = pmon_my_names[my_idx][l - 1];
   vector<unsigned char> vchValue = vchFromString("{\"color\":2}");
-  if ((c == 'a') || (c == 'e') || (c == 'h') || (c == 'n') || (c == 'y'))
+  // better config
+  if (pmon_my_color[my_idx] == 0)
       vchValue = vchFromString("{\"color\":0}");
-  else if ((c == 'i') || (c == 'j') || (c == 'l') || (c == 'o') || (c == 'q'))
+  else if (pmon_my_color[my_idx] == 1)
       vchValue = vchFromString("{\"color\":1}");
-  else if ((c == 'f') || (c == 'p') || (c == 's') || (c == 'v') || (c == 'x') || (c == 'z'))
+  else if (pmon_my_color[my_idx] == 3)
+      vchValue = vchFromString("{\"color\":3}");
+  else if ((pmon_my_color[my_idx] == 0) || (c == 'a') || (c == 'e') || (c == 'h') || (c == 'n') || (c == 'y'))
+      vchValue = vchFromString("{\"color\":0}");
+  else if ((pmon_my_color[my_idx] == 1) || (c == 'i') || (c == 'j') || (c == 'l') || (c == 'o') || (c == 'q'))
+      vchValue = vchFromString("{\"color\":1}");
+  else if ((pmon_my_color[my_idx] == 3) || (c == 'f') || (c == 'p') || (c == 's') || (c == 'v') || (c == 'x') || (c == 'z'))
       vchValue = vchFromString("{\"color\":3}");
 
   CRITICAL_BLOCK (cs_main)
@@ -1692,10 +1884,10 @@ bool pmon_name_register (int my_idx)
   wtx.nVersion = NAMECOIN_TX_VERSION;
 
   CScript scriptPubKeyOrig;
-  /*
-  if (params.size () == 3)
+  // better config
+  if (IsValidBitcoinAddress(pmon_my_addr[my_idx]))
     {
-      const std::string strAddress = params[2].get_str ();
+      const std::string strAddress = pmon_my_addr[my_idx];
       uint160 hash160;
       bool isValid = AddressToHash160 (strAddress, hash160);
       if (!isValid)
@@ -1703,7 +1895,6 @@ bool pmon_name_register (int my_idx)
       scriptPubKeyOrig.SetBitcoinAddress (strAddress);
     }
   else
-  */
     {
       const vchType vchPubKey = pwalletMain->GetKeyFromKeyPool ();
       scriptPubKeyOrig.SetBitcoinAddress (vchPubKey);

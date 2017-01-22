@@ -1342,8 +1342,13 @@ extern int pmon_24spritedirs_clockwise[24];
 extern int pmon_my_moves_x[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
 extern int pmon_my_moves_y[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
 extern int pmon_my_movecount[PMON_MY_MAX];
+// better config
+extern int pmon_my_color[PMON_MY_MAX];
+extern int pmon_my_spawnflags[PMON_MY_MAX];
+extern std::string pmon_my_addr[PMON_MY_MAX];
+#define PMON_CONFIG_MAX 19
+extern int pmon_config_afk_attack_dist;
 
-#define PMON_CONFIG_MAX 18
 extern int pmon_config_loot_notice;
 extern int pmon_config_bank_notice;
 extern int pmon_config_zoom;
