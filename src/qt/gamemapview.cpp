@@ -1945,8 +1945,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
 #endif
 
     // for "dead man switch" path
-    pmon_move_sent_this_tick = false;
-    pmon_txcount_sent_this_tick = 0;
+    pmon_txcount_sent_per_tick = 0;
 
     // Sort by coordinate bottom-up, so the stacking (multiple players on tile) looks correct
     std::multimap<Coord, CharacterEntry> sortedPlayers;
@@ -2250,7 +2249,7 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         bool tmp_has_pending_tx = false;
                         bool tmp_is_banking = gameState.IsBank(coord);
                         if ((characterState.waypoints.empty()) || (pmon_out_of_wp_idx == m) ||
-                            (!(pmon_config_defence & 8))) // for "dead man switch" path -- make sure to not override path set by player
+                            (pmon_my_no_override_time[m] > 0)) // for "dead man switch" path -- make sure to not override path set by player
                         {
                             for (int k2 = 0; k2 < pmon_tx_count; k2++)
                             {
@@ -2282,11 +2281,11 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
                         // for "dead man switch" path -- make sure to not override path set by player
 #define AI_BLOCKS_TILL_PATH_UPDATE 10
-                        if ( (tmp_has_pending_tx) && (!(pmon_config_defence & 8)) )
+                        if ( (tmp_has_pending_tx) && (pmon_my_no_override_time[m] > 0) )
                         {
 //                            printf("harvest test: player #%d %s has pending tx, height %d, idle_chronon %d\n", m, pmon_my_names[m].c_str(), gameState.nHeight, pmon_my_idle_chronon[m]);
-                            if (pmon_my_idle_chronon[m] < gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE)
-                                pmon_my_idle_chronon[m] = gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE;
+                            if (pmon_my_idle_chronon[m] < gameState.nHeight + pmon_my_no_override_time[m])
+                                pmon_my_idle_chronon[m] = gameState.nHeight + pmon_my_no_override_time[m];
                         }
 
                         // notice heavy loot and nearby bank
@@ -2422,7 +2421,8 @@ void GameMapView::updateGameMap(const GameState &gameState)
                         {
                             entry.name += QString::fromStdString(" [Full]");
                         }
-                        else if (pmon_my_idle_chronon[m] >= gameState.nHeight)
+
+                        if (pmon_my_idle_chronon[m] >= gameState.nHeight)
                         {
                             entry.name += QString::fromStdString(" [upd ");
                             entry.name += QString::number(pmon_my_idle_chronon[m] - gameState.nHeight);
@@ -2519,12 +2519,18 @@ void GameMapView::updateGameMap(const GameState &gameState)
 
         bool tmp_trigger_alarm = false;
         bool tmp_trigger_multi_alarm = false;
+        bool would_trigger_alarm_if_in_danger = false;
+        bool would_trigger_multi_alarm_if_in_danger = false;
         bool enemy_in_range = false;
         int my_alarm_range = pmon_my_alarm_dist[m];
         if (pmon_my_alarm_state[m])
             my_alarm_range += 2;
 
         pmon_my_foe_dist[m] = 10000;
+
+        // mark other hunter's positions on coin map (so that we can go and annoy them)
+        int tmp_pmon_my_foe_x = 0;
+        int tmp_pmon_my_foe_y = 0;
 
         int my_idx = pmon_my_idx[m];
         if ((my_idx < 0) || (pmon_all_invulnerability[my_idx] > 0))  // not alive or not in danger
@@ -2542,18 +2548,28 @@ void GameMapView::updateGameMap(const GameState &gameState)
             if (pmon_out_of_wp_idx == m) pmon_out_of_wp_idx = -1;
             if (pmon_need_bank_idx == m) pmon_need_bank_idx = -1;
 
+            // hit+run point initialized with hunter position (when newly spawned)
+            if ((my_idx >= 0) && (pmon_all_invulnerability[my_idx] == 1)) // spawn protection
+            if (pmon_config_defence & 2)
+            if (pmon_my_new_wps[m].empty())
+            {
+                int my_x = pmon_all_x[my_idx];
+                int my_y = pmon_all_y[my_idx];
+
+                pmon_my_tactical_sitch[m] = 0;
+
+                pmon_my_new_wps[m].clear();
+                Coord c0;
+                c0.x = my_x;
+                c0.y = my_y;
+                pmon_my_new_wps[m].push_back(c0);
+            }
+
             // for "dead man switch" path
             if (my_idx < 0)
                 pmon_my_idle_chronon[m] = 0; // clear if not alive
-            if (pmon_config_defence & (4|8))
+            if (pmon_config_defence & 8)
             {
-                if (pmon_config_defence & 16)
-                if (pmon_block_age > 0)
-                if (pmon_txcount_sent_this_tick < 1)
-                if (my_idx == -1)
-                    pmon_name_register(m);
-
-//                if (my_idx < 0) continue; // only if not alive
                 if ((my_idx < 0) || (pmon_all_invulnerability[my_idx] >= 2)) continue; // only if not alive or spectator
             }
             else
@@ -2629,7 +2645,7 @@ if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
                 my_enemy_in_range_next_y = pmon_all_next_y[k_all];
                 if (have_hit_and_run_point)
                 {
-                    pmon_CoordHelper(my_x, my_y, my_x, my_y, my_hit_and_run_point_x, my_hit_and_run_point_y, 1, true);
+                    pmon_CoordHelper(my_x, my_y, my_x, my_y, my_hit_and_run_point_x, my_hit_and_run_point_y, 1, false);
                     int d1 = pmon_DistanceHelper(my_x,  my_y, my_enemy_in_range_next_x, my_enemy_in_range_next_y, false);
                     int d2 = pmon_DistanceHelper(pmon_CoordHelper_x, pmon_CoordHelper_y, my_enemy_in_range_next_x, my_enemy_in_range_next_y, false);
                     if (d2 <= d1)
@@ -2641,24 +2657,35 @@ if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
             }
 }
 
-//            int fdx = abs(my_x - pmon_all_x[k_all]);
-//            int fdy = abs(my_y - pmon_all_y[k_all]);
-//            int tmp_foe_dist = fdx > fdy ? fdx : fdy;
+            // effective distance is min(dist_current_block, dist_next_block)
             int dv1 = pmon_DistanceHelper(my_x, my_y, pmon_all_x[k_all], pmon_all_y[k_all], false);
             int dv2 = pmon_DistanceHelper(my_next_x, my_next_y, pmon_all_next_x[k_all], pmon_all_next_y[k_all], false);
+            int dv12 = pmon_DistanceHelper(my_x, my_y, pmon_all_next_x[k_all], pmon_all_next_y[k_all], false);
+            int dv21 = pmon_DistanceHelper(my_next_x, my_next_y, pmon_all_x[k_all], pmon_all_y[k_all], false);
+            if (dv12 < dv1) dv1 = dv12;
+            if (dv21 < dv2) dv2 = dv21;
             int tmp_foe_dist = dv2 < dv1 ? dv2 : dv1;
 
-            if ((tmp_trigger_alarm) && (my_alarm_range) && (tmp_foe_dist <= my_alarm_range))
+            if ((my_alarm_range) && (tmp_foe_dist <= my_alarm_range))
             {
-                tmp_trigger_multi_alarm = true;
+                if (tmp_trigger_alarm)
+                    tmp_trigger_multi_alarm = true;
+                if (would_trigger_alarm_if_in_danger)
+                    would_trigger_multi_alarm_if_in_danger = true;
             }
 
             if (tmp_foe_dist < pmon_my_foe_dist[m])
             {
                 pmon_my_foe_dist[m] = tmp_foe_dist;
+
+                // mark other hunter's positions on coin map (so that we can go and annoy them)
+                tmp_pmon_my_foe_x = pmon_all_x[k_all];
+                tmp_pmon_my_foe_y = pmon_all_y[k_all];
+
                 if ((my_alarm_range) && (tmp_foe_dist <= my_alarm_range))
                 {
                     tmp_trigger_alarm = true;
+                    would_trigger_alarm_if_in_danger = true;
 
 // only if in danger
 if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
@@ -2668,13 +2695,105 @@ if (pmon_all_invulnerability[my_idx] == 0)  // for "dead man switch" path
                     int tmp_foe_y = pmon_all_next_y[k_all];
                     if (have_hit_and_run_point)
                     {
-                        pmon_CoordHelper(my_x, my_y, my_x, my_y, my_hit_and_run_point_x, my_hit_and_run_point_y, 1, true);
+                        pmon_CoordHelper(my_x, my_y, my_x, my_y, my_hit_and_run_point_x, my_hit_and_run_point_y, 1, false);
                         int d1 = pmon_DistanceHelper(my_x,  my_y, tmp_foe_x, tmp_foe_y, false);
                         int d2 = pmon_DistanceHelper(pmon_CoordHelper_x, pmon_CoordHelper_y, tmp_foe_x, tmp_foe_y, false);
                         if (d2 <= d1)
                         {
                             if (pmon_my_tactical_sitch[m] < 1)
                                 pmon_my_tactical_sitch[m] = 1; // possibly cornered (by this enemy, if they come closer)
+
+#define AI_MAX_AUTO_HIT_AND_RUN_DIST 10
+                            // override player mistakes when setting hit+run point
+                            if (pmon_config_defence & 2)
+                            {
+                              int old_x = my_x;
+                              int old_y = my_y;
+                              int best_dist_ahrp = 10000;
+                              for (int vy = old_y - AI_MAX_AUTO_HIT_AND_RUN_DIST; vy <= old_y + AI_MAX_AUTO_HIT_AND_RUN_DIST; vy++)
+                              for (int vx = old_x - AI_MAX_AUTO_HIT_AND_RUN_DIST; vx <= old_x + AI_MAX_AUTO_HIT_AND_RUN_DIST; vx++)
+                              {
+                                int dist_ahrp = pmon_DistanceHelper(my_x,  my_y, vx, vy, false);
+                                if ((best_dist_ahrp == 10000) || (dist_ahrp <= best_dist_ahrp))
+                                if (IsInsideMap(vx, vy))
+                                if (IsWalkable(vx, vy))
+                                if (SpawnMap[vy][vx] == 2)
+                                {
+                                  // need LOS
+                                  if (pmon_CoordHelper(my_x, my_y, my_x, my_y, vx, vy, AI_MAX_AUTO_HIT_AND_RUN_DIST, false))
+                                  if (pmon_CoordHelper(my_next_x, my_next_y, my_next_x, my_next_y, vx, vy, AI_MAX_AUTO_HIT_AND_RUN_DIST, false))
+                                  {
+                                      // get next coor
+                                      pmon_CoordHelper(my_x, my_y, my_x, my_y, vx, vy, 1, true);
+
+                                      int d1 = pmon_DistanceHelper(my_x,  my_y, tmp_foe_x, tmp_foe_y, false);
+                                      int d2 = pmon_DistanceHelper(pmon_CoordHelper_x, pmon_CoordHelper_y, tmp_foe_x, tmp_foe_y, false);
+
+                                      int d1n = pmon_DistanceHelper(my_next_x,  my_next_y, tmp_foe_x, tmp_foe_y, false);
+                                      if (((d2 > d1n) || (d1n > d1) || (!(pmon_config_defence & 4)))) // use different algorithm if desired
+                                      if (d2 > d1) // old version
+                                      {
+                                          pmon_my_tactical_sitch[m] = 0;
+
+                                          my_hit_and_run_point_x = vx;
+                                          my_hit_and_run_point_y = vy;
+
+                                          pmon_my_new_wps[m].clear();
+                                          Coord c2;
+                                          c2.x = vx;
+                                          c2.y = vy;
+                                          pmon_my_new_wps[m].push_back(c2);
+
+                                          best_dist_ahrp = dist_ahrp;
+                                      }
+                                  }
+                                }
+                              }
+                              // if found nothing, use adjacent non-spawnstrip tile
+                              if (pmon_config_afk_flags & 1)
+                              if (best_dist_ahrp == 10000)
+                              {
+                                for (int vy = old_y - 1; vy <= old_y + 1; vy++)
+                                {
+                                    for (int vx = old_x - 1; vx <= old_x + 1; vx++)
+                                    {
+                                        if ( ! (IsInsideMap(vx, vy)) ) continue;
+                                        if ( ! (IsWalkable(vx, vy)) )  continue;
+
+                                        // we know we have LOS in this case
+                                        if (true)
+                                        {
+                                            // get next coor
+                                            pmon_CoordHelper_x = vx;
+                                            pmon_CoordHelper_y = vy;
+
+                                            int d1 = pmon_DistanceHelper(my_x,  my_y, tmp_foe_x, tmp_foe_y, false);
+                                            int d2 = pmon_DistanceHelper(pmon_CoordHelper_x, pmon_CoordHelper_y, tmp_foe_x, tmp_foe_y, false);
+
+                                            int d1n = pmon_DistanceHelper(my_next_x,  my_next_y, tmp_foe_x, tmp_foe_y, false);
+                                            if (((d2 > d1n) || (d1n > d1) || (!(pmon_config_defence & 4)))) // use different algorithm if desired
+                                            if (d2 > d1) // old version
+                                            {
+                                                pmon_my_tactical_sitch[m] = 0;
+
+                                                my_hit_and_run_point_x = vx;
+                                                my_hit_and_run_point_y = vy;
+
+                                                pmon_my_new_wps[m].clear();
+                                                Coord c2;
+                                                c2.x = vx;
+                                                c2.y = vy;
+                                                pmon_my_new_wps[m].push_back(c2);
+
+                                                best_dist_ahrp = 1;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (best_dist_ahrp < 10000) break;
+                                }
+                              }
+                            }
                         }
                     }
 }
@@ -2739,10 +2858,12 @@ else
             {
                 if (!(pmon_my_new_wps[m].empty()))
                 {
-                    Coord c1;
-                    c1 = pmon_my_new_wps[m].back();
-
+                    Coord c1 = pmon_my_new_wps[m].back();
                     int ir8 = (Display_xorshift128plus() % 8);
+
+                    // add randomness (delete me)
+                    if (IsInsideMap(c1.x, c1.y))
+                    if ( (!(pmon_config_defence & 2)) || (SpawnMap[c1.y][c1.x] != 2))
                     for (int id = ir8; id < ir8 + 8; id++)
                     {
                         if (id < 24)
@@ -2759,7 +2880,9 @@ else
                 }
 
                 pmon_my_foecontact_age[m] = -5; // cooldown
-                break;
+
+                if (pmon_txcount_sent_per_tick >= pmon_config_move_per_tick)
+                    break;
             }
             else
             {
@@ -2767,37 +2890,75 @@ else
             }
         }
 
+        //
         // grabbing coins
-        pmon_my_movecount[m] = 0;
-#define AI_MAX_FARM_DIST 12
-// maximum 100 moves
+        //
+
+        // mark other hunter's positions on coin map (so that we can go and annoy them)
+        if (pmon_config_afk_attack_dist > 0)
+        if (pmon_my_foe_dist[m] <= pmon_config_afk_attack_dist) // not too far away
+        if ((pmon_my_alarm_state[m] != 2) && (pmon_my_alarm_state[m] != 6)) // not if 2 enemies in alarm range
+        if (!would_trigger_multi_alarm_if_in_danger)                        //
+        {
+            if (IsInsideMap(my_x, my_y))
+            if (IsInsideMap(tmp_pmon_my_foe_x, tmp_pmon_my_foe_y))
+            {
+                if (pmon_block_age <= 2) // todo: try <1
+                if ((SpawnMap[my_y][my_x] == 1) ||
+                    ((SpawnMap[my_y][my_x] == 2) && (pmon_config_afk_flags & 4)))
+                if (IsInsideMap(tmp_pmon_my_foe_x, tmp_pmon_my_foe_y))
+                if (AI_coinmap_copy[tmp_pmon_my_foe_y][tmp_pmon_my_foe_x] == 0)
+                    AI_coinmap_copy[tmp_pmon_my_foe_y][tmp_pmon_my_foe_x] = 1;
+            }
+        }
+
+        // leave if outnumbered
+        if (pmon_config_afk_flags & (8|16))
+        if (IsInsideMap(my_x, my_y))
+        if (SpawnMap[my_y][my_x] != 2)
+        if ((my_x != my_next_x) || (my_y != my_next_y))
+        if ((pmon_my_alarm_state[m] == 2) || (pmon_my_alarm_state[m] == 6)) // more than 1 hostiles
+            pmon_my_idle_chronon[m] = gameState.nHeight - 1;
+
+// set this not higher than 100 moves (array bounds)
 #define AI_MAX_FARM_MOVES 15
+#define AI_MAX_FARM_DIST 12
+        pmon_my_movecount[m] = 0;
+
         // for "dead man switch" path
         if ((my_idx >= 0) && (my_idx < PMON_ALL_MAX))
         {
 //            printf("harvest test: player #%d %s idx %d next %d %d dest %d %d\n", m, pmon_my_names[m].c_str(), my_idx, my_next_x, my_next_y, pmon_all_wpdest_x[my_idx], pmon_all_wpdest_y[my_idx]);
 
-            // make sure to not override path set by player                                       aggressive setting
-            if ((pmon_my_idle_chronon[m] < gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE - 5) || (pmon_config_defence & 8))
-            if (my_next_x == pmon_all_wpdest_x[my_idx])
-            if (my_next_y == pmon_all_wpdest_y[my_idx])
-            if (SpawnMap[my_next_y][my_next_x] == 2)
-                pmon_my_idle_chronon[m] = gameState.nHeight - 1;
+            if ((pmon_my_idle_chronon[m] < gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE - 2) || // try to not override path set by player
+                (pmon_my_no_override_time[m] == 0))                                               // aggressive setting
+            {
+                if ((my_next_x == pmon_all_wpdest_x[my_idx]) &&
+                    (my_next_y == pmon_all_wpdest_y[my_idx]) &&
+                    (SpawnMap[my_next_y][my_next_x] == 2))
+                {
+                    pmon_my_idle_chronon[m] = gameState.nHeight - 1;
+                    if (pmon_my_bankstate[m] == BANKSTATE_FULL) // if this was the reason for going to spawn strip
+                        pmon_my_bankstate[m] = BANKSTATE_ONMYWAY;
+                }
+                else if (pmon_my_bankstate[m] == BANKSTATE_FULL)
+                {
+                    pmon_my_idle_chronon[m] = gameState.nHeight - 1; // to allow the hunter to go to spawn strip
+                }
+            }
         }
 
         if (pmon_all_tx_age[my_idx] <= 0) // todo: skip other slow parts if we can't do anything
-        if ((pmon_config_defence & (4|8)) &&
+        if ((pmon_config_defence & 8) &&
             (gameState.nHeight > pmon_my_idle_chronon[m]))
         {
 
          // for "dead man switch" path
-         if ( (pmon_go) && (!pmon_move_sent_this_tick) ) // try once per tick, if tx monitor is on
+         if ( (pmon_go) && (pmon_txcount_sent_per_tick < pmon_config_move_per_tick) )
          {
-          if ((pmon_config_defence & 8) ||
-              (pmon_my_bankstate[m] != BANKSTATE_FULL))
+          if (true) // was: (pmon_my_bankstate[m] != BANKSTATE_FULL)
           {
-           if ((pmon_my_foe_dist[m] >= pmon_config_afk_safe_dist) &&
-               (pmon_my_alarm_state[m] != 2) && (pmon_my_alarm_state[m] != 6)) // not in case of more than 1 enemy
+           if (pmon_my_foe_dist[m] >= pmon_config_afk_safe_dist)
            {
 //            for (int vy = my_y - AI_MAX_FARM_DIST; vy <= my_y + AI_MAX_FARM_DIST; vy++)
 //            {
@@ -2833,6 +2994,54 @@ else
                   printf("harvest test: bad coors %d %d\n", old_x, old_y);
                   break;
               }
+
+
+              // leave if outnumbered
+              if (nh == 0)
+              if (pmon_config_afk_flags & 16)
+              if (IsInsideMap(my_x, my_y))
+              if (SpawnMap[my_y][my_x] != 2)
+              if ((my_x != my_next_x) || (my_y != my_next_y))
+              if ((pmon_my_alarm_state[m] == 2) || (pmon_my_alarm_state[m] == 6)) // in case of more than 1 enemy
+              {
+                  int d_score_min = 10000;
+
+                  for (int vy = old_y - AI_MAX_FARM_DIST; vy <= old_y + AI_MAX_FARM_DIST; vy++)
+                  for (int vx = old_x - AI_MAX_FARM_DIST; vx <= old_x + AI_MAX_FARM_DIST; vx++)
+                  {
+                    if (IsInsideMap(vx, vy))
+                    {
+                      int d = pmon_DistanceHelper(old_x, old_y, vx, vy, false); // to prev. tile
+                      int d_foe = pmon_DistanceHelper(tmp_pmon_my_foe_x, tmp_pmon_my_foe_y, vx, vy, false);
+                      int d_score = (d * 2) - d_foe;
+                      if ( (SpawnMap[vy][vx] == 2) && (d_score < d_score_min) )
+                      {
+                          if (pmon_CoordHelper(old_x, old_y, old_x, old_y, vx, vy, AI_MAX_FARM_DIST, false))
+                          {
+                              d_score_min = d_score;
+                              best_x = vx;
+                              best_y = vy;
+                          }
+                      }
+                    }
+                  }
+                  if (d_score_min < 10000)
+                  {
+                      pmon_my_moves_x[m][pmon_my_movecount[m]] = best_x;
+                      pmon_my_moves_y[m][pmon_my_movecount[m]] = best_y;
+                      pmon_my_movecount[m]++;
+
+                      printf("harvest test: player #%d %s leaves the map\n", m, pmon_my_names[m].c_str());
+
+                      break;
+                  }
+              }
+
+
+              // get some coins
+              if ((pmon_my_alarm_state[m] != 2) && (pmon_my_alarm_state[m] != 6)) // not in case of more than 1 enemy
+              if (!would_trigger_multi_alarm_if_in_danger)                        //
+              if (pmon_my_bankstate[m] != BANKSTATE_FULL)
               for (int vy = old_y - AI_MAX_FARM_DIST; vy <= old_y + AI_MAX_FARM_DIST; vy++)
               for (int vx = old_x - AI_MAX_FARM_DIST; vx <= old_x + AI_MAX_FARM_DIST; vx++)
               {
@@ -2850,33 +3059,50 @@ else
                           best_x = vx;
                           best_y = vy;
                       }
-/*                    // old version
-                      // see CheckLinearPath
-                      Coord coord;
-                      Coord variant_coord;
-                      coord.x = old_x;
-                      coord.y = old_y;
-                      variant_coord.x = vx;
-                      variant_coord.y = vy;
-                      CharacterState tmp;
-                      tmp.from = tmp.coord = coord;
-                      tmp.waypoints.push_back(variant_coord);
-                      while (!tmp.waypoints.empty())
-                      tmp.MoveTowardsWaypoint();
-                      if(tmp.coord == variant_coord)
-                      {
-                          dmin = d;
-                          best_x = vx;
-                          best_y = vy;
-                      }
-*/
                   }
                 }
               }
 
+
               // for "dead man switch" path                         todo: make configurable
               if ((dmin >= 10000) || (nh == AI_MAX_FARM_MOVES-1) || (tmp_step_count >= 15)) // Go to spawn strip
               {
+                  // Go to a spawn tile that is far away (attempt to stay longer on map)
+                  int d_max = 0;
+
+                  // only as 1. move, if no coins,    if desired                            if desired
+                  if ((nh == 0) && (dmin >= 10000) && (pmon_my_no_override_time[m] == 0) && (pmon_config_afk_flags & 2) &&
+                      (pmon_my_alarm_state[m] == 0) &&             // if no threat nearby
+                      (!would_trigger_multi_alarm_if_in_danger))   //
+                  {
+                      for (int vy = old_y - AI_MAX_FARM_DIST; vy <= old_y + AI_MAX_FARM_DIST; vy++)
+                      for (int vx = old_x - AI_MAX_FARM_DIST; vx <= old_x + AI_MAX_FARM_DIST; vx++)
+                      {
+                        if (IsInsideMap(vx, vy))
+                        {
+                          int d = pmon_DistanceHelper(old_x, old_y, vx, vy, false); // to prev. tile
+                          if ( (d > 0) && (SpawnMap[vy][vx] == 2) && (d > d_max) )
+                          {
+                              if (pmon_CoordHelper(old_x, old_y, old_x, old_y, vx, vy, AI_MAX_FARM_DIST, false))
+                              {
+                                  d_max = d;
+                                  best_x = vx;
+                                  best_y = vy;
+                              }
+
+                          }
+                        }
+                      }
+                      if (d_max > 0)
+                      {
+                          old_x = pmon_my_moves_x[m][pmon_my_movecount[m]] = best_x;
+                          old_y = pmon_my_moves_y[m][pmon_my_movecount[m]] = best_y;
+                          pmon_my_movecount[m]++;
+                      }
+                  }
+
+
+                  // Go to a spawn tile
                   dmin = 10000;
                   for (int vy = old_y - AI_MAX_FARM_DIST; vy <= old_y + AI_MAX_FARM_DIST; vy++)
                   for (int vx = old_x - AI_MAX_FARM_DIST; vx <= old_x + AI_MAX_FARM_DIST; vx++)
@@ -2886,19 +3112,7 @@ else
                       int d = pmon_DistanceHelper(old_x, old_y, vx, vy, false); // to prev. tile
                       if ( (d > 0) && (SpawnMap[vy][vx] == 2) && (d < dmin) )
                       {
-                          // see CheckLinearPath
-                          Coord coord;
-                          Coord variant_coord;
-                          coord.x = old_x;
-                          coord.y = old_y;
-                          variant_coord.x = vx;
-                          variant_coord.y = vy;
-                          CharacterState tmp;
-                          tmp.from = tmp.coord = coord;
-                          tmp.waypoints.push_back(variant_coord);
-                          while (!tmp.waypoints.empty())
-                          tmp.MoveTowardsWaypoint();
-                          if(tmp.coord == variant_coord)
+                          if (pmon_CoordHelper(old_x, old_y, old_x, old_y, vx, vy, AI_MAX_FARM_DIST, false))
                           {
                               dmin = d;
                               best_x = vx;
@@ -2915,9 +3129,7 @@ else
                       break;
                   }
               }
-              else
-              // old version
-                  if ((dmin < 10000) && (pmon_my_movecount[m] < AI_MAX_FARM_MOVES))
+              else if ((dmin < 10000) && (pmon_my_movecount[m] < AI_MAX_FARM_MOVES))
               {
                   pmon_my_moves_x[m][pmon_my_movecount[m]] = best_x;
                   pmon_my_moves_y[m][pmon_my_movecount[m]] = best_y;
@@ -2932,7 +3144,9 @@ else
               }
             }
             printf("harvest test: player #%d %s found %d tiles: \n", m, pmon_my_names[m].c_str(), pmon_my_movecount[m]);
-            if (pmon_my_movecount[m] >= 2) // found 1 coins to pick up and 1 bank tile
+            if ((pmon_my_movecount[m] >= 2) || // found 1 coins to pick up and 1 bank tile
+                ((pmon_my_movecount[m] == 1) && (pmon_my_bankstate[m] == BANKSTATE_FULL)) || // found 1 bank tile
+                ( (pmon_my_movecount[m] == 1) && (pmon_config_afk_flags & (8|16)) && ((pmon_my_alarm_state[m] == 2) || (pmon_my_alarm_state[m] == 6)) )) // more than 1 hostiles
             {
 //              for (int nh = 0; nh < pmon_my_movecount[m]; nh++)
 //                  printf("%d,%d ", pmon_my_moves_x[m][nh], pmon_my_moves_y[m][nh]);
@@ -2942,11 +3156,8 @@ else
 
               // be lazy only in case of no competition
               pmon_my_idle_chronon[m] = gameState.nHeight + AI_BLOCKS_TILL_PATH_UPDATE;
-              if (pmon_config_defence & 8)
+              if (pmon_my_no_override_time[m] == 0)
                   pmon_my_idle_chronon[m] = gameState.nHeight + (my_dist_to_nearest_neutral < AI_BLOCKS_TILL_PATH_UPDATE ? my_dist_to_nearest_neutral : AI_BLOCKS_TILL_PATH_UPDATE);
-
-              // for "dead man switch" path
-              pmon_move_sent_this_tick = true;
             }
            }
            else
@@ -2970,6 +3181,20 @@ else
         }
 
       }
+    }
+
+    // spawning new hunters (lowest priority)
+    if (((pmon_state == PMONSTATE_CONSOLE) || (pmon_state == PMONSTATE_RUN)) &&
+        (pmon_all_count < PMON_ALL_MAX))
+    {
+        for (int m = 0; m < PMON_MY_MAX; m++)
+        {
+            if ((pmon_config_defence & 16) &&
+                (pmon_block_age > 0) &&
+                (pmon_txcount_sent_per_tick < 1) &&
+                (pmon_my_idx[m] == -1))
+                pmon_name_register(m);
+        }
     }
 
     if (pmon_config_afk_leave > pmon_config_bank_notice)

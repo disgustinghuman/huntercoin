@@ -1283,7 +1283,7 @@ extern int pmon_all_tx_age[PMON_ALL_MAX];
 extern bool pmon_all_cache_isinmylist[PMON_ALL_MAX];
 extern int pmon_all_invulnerability[PMON_ALL_MAX];
 extern int pmon_all_count;
-#define PMON_MY_MAX 50
+#define PMON_MY_MAX 62
 extern std::string pmon_my_names[PMON_MY_MAX];
 extern int pmon_my_alarm_dist[PMON_MY_MAX];
 extern int pmon_my_foe_dist[PMON_MY_MAX];
@@ -1344,10 +1344,11 @@ extern int pmon_my_moves_y[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
 extern int pmon_my_movecount[PMON_MY_MAX];
 // better config
 extern int pmon_my_color[PMON_MY_MAX];
-extern int pmon_my_spawnflags[PMON_MY_MAX];
+extern int pmon_my_no_override_time[PMON_MY_MAX];
 extern std::string pmon_my_addr[PMON_MY_MAX];
 #define PMON_CONFIG_MAX 19
 extern int pmon_config_afk_attack_dist;
+extern int pmon_config_move_per_tick;
 
 extern int pmon_config_loot_notice;
 extern int pmon_config_bank_notice;
@@ -1362,8 +1363,7 @@ extern int pmon_config_hold;
 extern int pmon_config_confirm;
 extern int pmon_config_vote_tally;
 extern int pmon_config_show_wps;
-extern int pmon_txcount_sent_this_tick;
-extern bool pmon_move_sent_this_tick;
+extern int pmon_txcount_sent_per_tick;
 
 // windows stability bug workaround
 #ifdef PMON_DEBUG_WIN32_GUI
@@ -1476,7 +1476,7 @@ extern int64 risk_after_bid_filled(int64 bid_size, int64 bid_price, int64 positi
 #define AUCTIONFLAG_ASK_GTC 1
 #define AUX_MINHEIGHT_ZHUNT(T) (T?328000:1400000)
 #define AUX_MINHEIGHT_ZHUNT_REBALANCE(T) (T?352000:1520000)
-#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?390000:1600000)
+#define AUX_MINHEIGHT_WARN_UPGRADE(T) (T?390000:1640000)
 // possible values for "B"id and "A"sk are 100000 (==COIN/1000), 101000, 102000, ..., 100000000000 (1000*COIN)
 #define MM_ORDERLIMIT_PACK(I64,B,A) {I64=(B/1000)+(A*1000000);}
 #define MM_ORDERLIMIT_UNPACK(I64,B,A) {B=(I64%1000000000)*1000;A=(I64/1000000000)*1000;}

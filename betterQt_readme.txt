@@ -9,7 +9,7 @@ Latest Windows build
 
 huntercoin-qt-v140-binaries-20170117.zip, 23.7 MB
 https://mega.nz/#!eZszFLyb!HQipQpwAzQ6SGM3VE4yM04MkpM3z2UWoaZ-fUtDCYkk
-
+(outdated, new one coming soon)
 
 
 for Safemode and Advanced mode:
@@ -32,17 +32,23 @@ Optional: acoustic alarm, hit+run points and auto destruct:
 * To use these, copy the 3 files from "acoustic alarm sounds" to Huntercoin's data folder.
   (I.e. same folder where debug.log is. Click "Help, Debug window, Open debug log file" to find it)
 
-* Add a line in names.txt for each currently used hunter.
-  This line must contain the hunter's name and a number (acoustic alarm distance), separated by 1 space (and nothing else)
-  e.g. "Bob 10" without the quotation marks.
+* Add a line in adv_names.txt for each currently used hunter.
+  This line must contain the hunter's name and 4 parameters separated by space (and nothing else)
+  1. parameter:  acoustic alarm distance (recommended: 5...9)
+  2. parameter:  color (0...3)
+  3. parameter:  client will not override moves sent by player for a number of blocks
+  4. parameter:  if valid address, spawn the hunter on that address and set as reward address
+                 (ignored if not a valid address)
+  e.g. "Bob 9 0 0 0" without the quotation marks.
 
-* After editing names.txt, click middle mouse button 2 times to stop and restart all betterQt functions.
-  This will reload names.txt.
+* After editing adv_names.txt, click middle mouse button 2 times to stop and restart all betterQt functions.
+  This will reload adv_names.txt.
 
 * If a hostile hunter is nearby, click on a (nearby) tile in a direction away from the enemy.
   A floating "hit+run" arrow will appear.
 
 * If the text on the arrow says "cornered?" instead of "hit+run", try a different tile.
+  (the client can do this automatically, see "config:afk_defence")
 
 * In case of contact with the hostile hunter, the client will try to kill this enemy
   (without having to click "Destruct" and "Go" button).
@@ -63,19 +69,19 @@ betterQt function: Pending Transaction Monitor
 
     Ctrl+middle mouse button  toggle silent mode
 
-    names.txt                 up to 48 names of "friendly" hunters + distance to trigger alarm. Changes are effective after stopping and restarting the tx monitor.
-                              - if name is in names.txt, hunters ignore each other for alarm purposes
+    adv_names.txt             up to 60 names of "friendly" hunters + distance to trigger alarm. Changes are effective after stopping and restarting the tx monitor.
+                              - if name is in adv_names.txt, hunters ignore each other for alarm purposes
                               - it's not required that all friendlies are controlled by the same node/wallet
 
   output:
     small_wave_file.wav      played (by asking the OS to open it) on alarm, must be in same folder as debug.log (not included, windows system sounds work just fine)
 
-    *ALARM*: <name> [<name>]  after all names from names.txt in case of alarm
-    <n> min: <name>           after all names from names.txt, longest idle hunter (out of waypoints for n minutes)
-    (OK)                      after all names from names.txt, in case of no alarm and no idle hunter
+    *ALARM*: <name> [<name>]  after all names from adv_names.txt in case of alarm
+    <n> min: <name>           after all names from adv_names.txt, longest idle hunter (out of waypoints for n minutes)
+    (OK)                      after all names from adv_names.txt, in case of no alarm and no idle hunter
 
-    Full: <name>              after all names from names.txt, if reached maximum loot (carrying capacity)
-    Bank: <name>              after all names from names.txt, if reached 50% of carrying capacity, and a bank is nearby
+    Full: <name>              after all names from adv_names.txt, if reached maximum loot (carrying capacity)
+    Bank: <name>              after all names from adv_names.txt, if reached 50% of carrying capacity, and a bank is nearby
                               (see "config:bank_notice" and "config:loot_notice")
 
     x,y->x2,y2               after hunter name, coors currently and expected after next block
@@ -107,33 +113,65 @@ betterQt function: Hit+Run AI
   Any click on an unwalkable tile will clear the current Hit+Run point.
 
 
-Hit+Run AI config options in names.txt:
----------------------------------------
+Hit+Run AI config options in adv_config.txt:
+-------------------------------------------
 
-    config:afk_defence 1           hunters have the capability to "destruct" in self defense,
-                                   other hunters listed in names.txt are seen as friendlies
+    config:afk_defence 1           (or any value >0) hunters have the capability to "destruct" in self defense,
+                                   other hunters listed in adv_names.txt are seen as friendlies
                                    but no attempt is made to avoid collateral damage, default 1
 
     config:afk_defence 2           use the first waypoint from an enemy hunter's pending unconfirmed move for calculations
                                    if the pending transaction is older than "config:afk_ticks_confirm"
-                                   (highly experimental, only in binary release)
+                                   (only in binary release, experimental and currently not recommended,
+                                   use high values of config:afk_ticks_confirm to disable)
 
-    config:afk_defence 12          grab nearby coins and let path end on banking tile
-                                   (if idle, and no enemy is in alarm range)
+                                   automatically correct player mistakes when setting hit+run points,
+                                   so that the new point is on a player spawn strip tile
 
-    config:afk_defence 15          do all of the above ("config:afk_defence 7" works similar but is more tame)
+    config:afk_defence 4           automatically correct player mistakes when setting hit+run points,
+                                   so that the new point is on a player spawn strip tile
+                                   (different algorithm than "config:afk_defence 2")
 
-    config:afk_defence 31          additionally respawn all hunters from names.txt if dead
-                                   (color determined by last character of name)
+    config:afk_defence 8           grab nearby coins and let path end on banking tile
+                                   (if idle, and no enemy is in range)
 
-    config:afk_ticks_hold 5        normal wait time after a block was received, before sending destruct in case of self defense
+    config:afk_defence 15          do all of the above
+
+    config:afk_defence 31          additionally respawn all hunters from adv_names.txt if dead
+
+    config:afk_ticks_hold 4        normal wait time after a block was received, before sending destruct in case of self defense
                                    default 5
 
-    config:afk_ticks_confirm 7     1/2 of the estimated time a transaction needs to confirm,
+    config:afk_ticks_confirm 10    1/2 of the estimated time a transaction needs to confirm
                                    default 7
+    config:afk_ticks_confirm 99    but higher values can be safer if enemy hunters try some "tricks"
+
+                                   note that tick count now starts with 1, not 0
+                                   (and "config:afk_ticks_hold" and "config:afk_ticks_confirm" should be adjusted by adding 1)
+
+    config:afk_safe_dist 5         minimum distance to enemy hunter for sending non-critical moves,
+                                   the alarm distance is now only used to determine of whether we have >1 enemy nearby
+                                   (also no non-critical moves in this case)
+                                   default 6
+
+                                   distance is now: minimum(current distance, predicted distance next block)
+
+    config:afk_attack_dist 0       go pester other hunters up to this distance (0..off)
+
+    config:afk_flags 1             if the attempt to set a good hit+run point (see "config:afk_defence 2")
+                                   on player spawn strip tile has failed, try again and allow any adjacent tile
+
+    config:afk_flags 2             go to far away spawn tile in case of no nearby coins (to stay longer on map)
+
+    config:afk_flags 4             go pester other hunters even if standing on spawn strip
+
+    config:afk_flags 8             leave if outnumbered
+    config:afk_flags 16            leave if outnumbered (smarter version)
+
+    config:afk_flags 24            recommended setting
 
 
-Additional config options in names.txt:
+Additional config options in adv_config.txt:
 show movement of unknown hunters as floating arrows
 ---------------------------------------------------
 
@@ -147,8 +185,8 @@ show movement of unknown hunters as floating arrows
     config:show_wps 7              default 7, do all of the above
 
 
-Misc. config options (in names.txt)
------------------------------------
+Misc. config options (in adv_config.txt)
+---------------------------------------
 
     config:overview_zoom 20        minimum zoom level to display "where-are-my-hunters" marker
                                    (zoom level is 10...200, 10 means completely zoomed out)
@@ -157,8 +195,10 @@ Misc. config options (in names.txt)
     config:afk_leave_map 60        hunters will leave the map (if they notice a bank), default 0
                                    - recommended value 60 (if bank_notice is smaller, it will inrease at a rate of 1 per tick)
                                    - nothing is done if the hunter's last waypoint is already a bank tile
+                                   (obsolete after timesave fork)
 
     config:bank_notice 10          maximum distance to notice a bank if an hunter can walk there in a straight line, default 0
+                                   (obsolete after timesave fork)
 
     config:loot_notice 50          show 'Bank' reminder if an hunter carries more coins, default 50
 
@@ -168,8 +208,8 @@ Misc. config options (in names.txt)
     config:warn_disaster 50        green blinking lights on hunters for n blocks after disaster, default 50
 
 
-Additional config options in names.txt: (Windows only)
-------------------------------------------------------
+Additional config options in adv_config.txt: (Windows only)
+----------------------------------------------------------
 
     config:dbg_win32_qt_threads 12    Windows stability bug workaround (force some threads to wait for each other)
                                       0...off
@@ -188,11 +228,11 @@ on Windows:            nodes may (randomly after some hours) stop receiving data
                        available                         virtual disk space
                        RAM (host)        RAM (guest)     (fixed size)           virtual machine OS
 
-                       >= 8 GB           2 GB            35 GB                  Linux Mint 18LTS, 64bit, Mate
-                       4 GB              1.75 GB         35 GB                  Linux Mint 18LTS, 32bit, Mate
+                       >= 8 GB           2 GB            35 GB                  Linux Mint 17.3LTS, 64bit, Mate
+                       4 GB              1.75 GB         35 GB                  Linux Mint 17.3LTS, 32bit, Mate
 
 pending tx monitor:    if either "(OK)", the idle time "n min" or "*ALARM*" is displayed for the hunter
-                       last in the list of hunters in names.txt, then the entire list was correctly parsed
+                       last in the list of hunters in adv_names.txt, then the entire list was correctly parsed
 
                        it's dangerous to have valid names of hunters in the list when these hunters are not currently alive,
                        hostiles with same name would go undetected (e.g. "#Bob" is not a valid hunter name)
@@ -351,10 +391,10 @@ Advanced mode: Auction Bot
 
   The purpose is to make buying in the Gem:Huntercoin in-game auction easier and safer.
 
-  Config options (in names.txt)
+  Config options (in adv_config.txt)
 
     config:auctionbot_hunter_name #Alice     Name of the hunter "on duty". (players can't trade in Huntercoin, only hunters)
-                                             This name must also be in the list of hunter names in names.txt.
+                                             This name must also be in the list of hunter names in adv_names.txt.
                                              The Auction Bot will do 1 trade when this hunter becomes spectator.
                                              default ""
 

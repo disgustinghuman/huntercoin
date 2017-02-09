@@ -1229,9 +1229,10 @@ int pmon_my_moves_y[PMON_MY_MAX][PMON_DESIRED_MOVES_MAX];
 int pmon_my_movecount[PMON_MY_MAX];
 // better config
 int pmon_my_color[PMON_MY_MAX];
-int pmon_my_spawnflags[PMON_MY_MAX];
+int pmon_my_no_override_time[PMON_MY_MAX];
 std::string pmon_my_addr[PMON_MY_MAX];
 int pmon_config_afk_attack_dist = 0;
+int pmon_config_move_per_tick = 1;
 
 int pmon_config_loot_notice = 50;
 int pmon_config_bank_notice = 0;
@@ -1246,8 +1247,7 @@ int pmon_config_hold = 5;
 int pmon_config_confirm = 7;
 int pmon_config_vote_tally = 0;
 int pmon_config_show_wps = 7;
-int pmon_txcount_sent_this_tick; // todo: unify these 2 vars
-bool pmon_move_sent_this_tick;   //
+int pmon_txcount_sent_per_tick;
 
 #ifdef AUX_AUCTION_BOT
 int pmon_config_auction_auto_stateicon = 276; // RPG_ICON_EMPTY;
@@ -1326,6 +1326,11 @@ bool pmon_name_pending_start()
             else if (strcmp(my_name, "config:afk_leave_map") == 0)
             {
                 pmon_config_afk_leave = atoi(my_param);
+                continue;
+            }
+            else if (strcmp(my_name, "config:move_per_tick") == 0)
+            {
+                pmon_config_move_per_tick = atoi(my_param);
                 continue;
             }
             else if (strcmp(my_name, "config:afk_safe_dist") == 0)
@@ -1411,7 +1416,7 @@ bool pmon_name_pending_start()
                 pmon_my_names[i] = "";
                 pmon_my_alarm_dist[i] = 0;
                 pmon_my_color[i] = -1;
-                pmon_my_spawnflags[i] = 0;
+                pmon_my_no_override_time[i] = 0;
                 pmon_my_addr[i] = "";
             }
             for (unsigned int i = 0; i < PMON_MY_MAX; i++)
@@ -1431,7 +1436,7 @@ bool pmon_name_pending_start()
                 pmon_my_names[i].assign(my_name);
                 pmon_my_alarm_dist[i] = atoi(my_param);
                 pmon_my_color[i] = atoi(my_param2);
-                pmon_my_spawnflags[i] = atoi(my_param3);
+                pmon_my_no_override_time[i] = atoi(my_param3);
                 pmon_my_addr[i].assign(my_param4);
                 if (pmon_my_alarm_dist[i] < 0) pmon_my_alarm_dist[i] = 10;
             }
@@ -1831,6 +1836,7 @@ bool pmon_name_update(int my_idx, int x, int y)
         if (strError != "")
             return false;
     }
+    pmon_txcount_sent_per_tick++;
     return true;
 }
 
@@ -1850,8 +1856,21 @@ bool pmon_name_register (int my_idx)
   if (!IsValidPlayerName (pmon_my_names[my_idx]))
     return false;
   char c = pmon_my_names[my_idx][l - 1];
-  vector<unsigned char> vchValue = vchFromString("{\"color\":2}");
+
   // better config
+  vector<unsigned char> vchValue = vchFromString("{\"color\":2}");
+  if (((pmon_my_color[my_idx] >= 0) && (pmon_my_color[my_idx] <= 3)) &&
+      (IsValidBitcoinAddress(pmon_my_addr[my_idx])))
+  {
+      char buf[150];
+      std::string s;
+      sprintf(buf, "{\"color\":%d,\"address\":\"%s\"}", pmon_my_color[my_idx], pmon_my_addr[my_idx].c_str());
+      s.assign(buf);
+      vchValue = vchFromString(s);
+  }
+  // delete me (to remove support for old config format)
+  else
+  {
   if (pmon_my_color[my_idx] == 0)
       vchValue = vchFromString("{\"color\":0}");
   else if (pmon_my_color[my_idx] == 1)
@@ -1864,6 +1883,7 @@ bool pmon_name_register (int my_idx)
       vchValue = vchFromString("{\"color\":1}");
   else if ((pmon_my_color[my_idx] == 3) || (c == 'f') || (c == 'p') || (c == 's') || (c == 'v') || (c == 'x') || (c == 'z'))
       vchValue = vchFromString("{\"color\":3}");
+  }
 
   CRITICAL_BLOCK (cs_main)
     {
@@ -1917,7 +1937,7 @@ bool pmon_name_register (int my_idx)
       mapMyNames[vchName] = wtx.GetHash ();
     }
 
-  pmon_txcount_sent_this_tick++;
+  pmon_txcount_sent_per_tick++;
   pmon_my_new_wps[my_idx].clear(); // clear hit+run point (unlike other vars, hit+run point is not cleared when pmon is switched off/on)
   return true;
 }

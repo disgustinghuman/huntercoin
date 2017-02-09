@@ -2,15 +2,17 @@ config:overview_zoom 20
 config:bank_notice 10
 config:loot_notice 50
 config:warn_stalled 36
-config:warn_disaster 50
+config:warn_disaster 5
 config:afk_leave_map 0
 config:auctionbot_hunter_name #Alice
 config:auctionbot_trade_price 100
 config:auctionbot_trade_size 0.1
 config:auctionbot_limit_coins 0
-config:afk_defence 7
-config:defence_ticks_hold 4
-config:defence_ticks_confirm 10
-Alice 9
-Bob 9
+config:move_per_tick 5
+config:afk_safe_dist 4
+config:afk_attack_dist 0
+config:afk_flags 27
+config:afk_defence 15
+config:afk_ticks_hold 4
+config:afk_ticks_confirm 99
 
