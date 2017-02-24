@@ -7,9 +7,8 @@ https://github.com/wiggi/huntercoin
 Latest Windows build
 ====================
 
-huntercoin-qt-v140-binaries-20170117.zip, 23.7 MB
-https://mega.nz/#!eZszFLyb!HQipQpwAzQ6SGM3VE4yM04MkpM3z2UWoaZ-fUtDCYkk
-(outdated, new one coming soon)
+huntercoin-qt-v140-win32-20170223.zip, 19.9 MB
+https://mega.nz/#!rB01UAhB!ngojKw0fGXLzWnUCsqwsMCFFsF2rnuZydKFlzDOFIVg
 
 
 for Safemode and Advanced mode:

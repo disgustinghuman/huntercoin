@@ -7,9 +7,9 @@ www.huntercoin.org
 
 latest Windows build:
 
-huntercoin-qt-v140-binaries-20170117.zip, 23.7 MB
+huntercoin-qt-v140-win32-20170223.zip, 19.9 MB
 
-https://mega.nz/#!eZszFLyb!HQipQpwAzQ6SGM3VE4yM04MkpM3z2UWoaZ-fUtDCYkk
+https://mega.nz/#!rB01UAhB!ngojKw0fGXLzWnUCsqwsMCFFsF2rnuZydKFlzDOFIVg
 
 ![hunters](images/hunters1.jpg)
 
@@ -33,4 +33,9 @@ https://github.com/wiggi/huntercoin/blob/betterQt-with-storage/src/gamestate.h#L
 
 Don't forget to copy the gamestate file game_sv4.dat to '.huntercoin', and make sure that the
 blockchain is always equally or more up-to-date than the gamestate.
+
+Fast blockchain download
+========================
+
+http://forum.huntercoin.org/index.php/topic,24070.0.html
 

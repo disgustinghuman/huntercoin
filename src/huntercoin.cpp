@@ -1289,7 +1289,7 @@ bool pmon_name_pending_start()
 
             // windows stability bug workaround
 #ifdef PMON_DEBUG_WIN32_GUI
-            if (il == 0) pmon_config_dbg_sleep = 12;
+            if (i == 0) pmon_config_dbg_sleep = 12;
 
             if (strcmp(my_name, "config:dbg_win32_qt_threads") == 0)
             {
