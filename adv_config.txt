@@ -4,10 +4,6 @@ config:loot_notice 50
 config:warn_stalled 36
 config:warn_disaster 5
 config:afk_leave_map 0
-config:auctionbot_hunter_name #Alice
-config:auctionbot_trade_price 100
-config:auctionbot_trade_size 0.1
-config:auctionbot_limit_coins 0
 config:move_per_tick 5
 config:afk_safe_dist 4
 config:afk_attack_dist 0

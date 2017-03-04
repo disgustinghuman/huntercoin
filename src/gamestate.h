@@ -13,7 +13,7 @@
 #include <string>
 
 // gems and storage
-// uncomment this line if you dare
+// Don't uncomment this line for use with mainnet after block 1640000
 //#define PERMANENT_LUGGAGE
 
 #ifdef PERMANENT_LUGGAGE
