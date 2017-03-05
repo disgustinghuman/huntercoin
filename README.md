@@ -7,9 +7,9 @@ www.huntercoin.org
 
 latest Windows build:
 
-huntercoin-qt-v140-win32-20170223.zip, 19.9 MB
+huntercoin-qt-v140-win32-20170304.zip, 14.6 MB
 
-https://mega.nz/#!rB01UAhB!ngojKw0fGXLzWnUCsqwsMCFFsF2rnuZydKFlzDOFIVg
+https://mega.nz/#!rAdgxKIS!I3zoMMrGptIPjzFxzlMccAN_d3Ov_XAgH0qw7_iO598
 
 To build on a new Ubuntu 16.04 or Linux Mint 18
 

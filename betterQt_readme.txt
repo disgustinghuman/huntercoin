@@ -7,8 +7,8 @@ https://github.com/wiggi/huntercoin
 Latest Windows build
 --------------------
 
-huntercoin-qt-v140-win32-20170223.zip, 19.9 MB
-https://mega.nz/#!rB01UAhB!ngojKw0fGXLzWnUCsqwsMCFFsF2rnuZydKFlzDOFIVg
+huntercoin-qt-v140-win32-20170304.zip, 14.6 MB
+https://mega.nz/#!rAdgxKIS!I3zoMMrGptIPjzFxzlMccAN_d3Ov_XAgH0qw7_iO598
 
 
 Start betterQt functions:
